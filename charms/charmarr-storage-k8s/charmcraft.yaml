@@ -1,0 +1,139 @@
+name: charmarr-storage-k8s
+type: charm
+title: Charmarr Storage
+summary: Shared media storage provider for Charmarr applications
+description: |
+  Manages a shared PersistentVolumeClaim (PVC) that enables hardlinks
+  across all Charmarr media applications (Radarr, Sonarr, qBittorrent, Plex).
+
+  Supports two backend modes:
+  - storage-class: Use existing Kubernetes StorageClass
+  - native-nfs: Manage PV/PVC for Kubernetes native NFS driver
+
+  This is a workload-less charm - it manages K8s resources via API calls
+  without running any container workload.
+
+  Publishes PUID/PGID to all connected applications for consistent
+  file ownership across the media stack.
+
+links:
+  documentation: https://github.com/charmarr/charmarr
+  source: https://github.com/charmarr/charmarr
+  issues: https://github.com/charmarr/charmarr/issues
+
+assumes:
+  - k8s-api
+  - juju >= 3.6
+
+platforms:
+  amd64:
+    - name: ubuntu
+      channel: "24.04"
+
+parts:
+  charm:
+    source: .
+    plugin: uv
+    build-packages: [git]
+    build-snaps: [astral-uv]
+    override-build: |
+      craftctl default
+      git describe --always > $CRAFT_PART_INSTALL/version
+
+provides:
+  media-storage:
+    interface: media-storage
+
+config:
+  options:
+    backend-type:
+      type: string
+      default: ""
+      description: |
+        Storage backend type. REQUIRED.
+
+        Options:
+        - storage-class: Use existing Kubernetes StorageClass
+        - native-nfs: Use Kubernetes native NFS driver (managed by charm)
+
+        Cannot be changed after initial deployment.
+
+    storage-class:
+      type: string
+      default: ""
+      description: |
+        Kubernetes StorageClass name to use (backend-type: storage-class).
+
+        Examples:
+        - local-path (single-node, RWO)
+        - topolvm-provisioner (multi-node local storage, RWO)
+        - nfs-csi (multi-node NFS, RWX)
+
+        Use 'kubectl get storageclass' to see available options.
+
+    size:
+      type: string
+      default: "100Gi"
+      description: |
+        Storage size to provision. Can be increased later (not decreased).
+
+        For storage-class: Initial PVC size, expansion handled by CSI driver.
+        For native-nfs: Informational only (NFS share size managed externally).
+
+        Examples: 100Gi, 1Ti, 5Ti
+
+    nfs-server:
+      type: string
+      default: ""
+      description: |
+        NFS server IP or hostname (backend-type: native-nfs).
+
+        Example: 192.168.1.100 or nas.local
+
+    nfs-path:
+      type: string
+      default: ""
+      description: |
+        NFS export path (backend-type: native-nfs).
+
+        Example: /mnt/pool/charmarr-media
+
+    access-mode:
+      type: string
+      default: "ReadWriteMany"
+      description: |
+        PVC access mode (storage-class backend only).
+
+        ReadWriteMany: Pods can run on any node (requires NFS or similar)
+        ReadWriteOnce: All pods locked to same node (works with local storage)
+
+        Ignored for native-nfs backend (always ReadWriteMany).
+
+        If StorageClass doesn't support ReadWriteMany, charm will detect
+        and suggest changing to ReadWriteOnce.
+
+    puid:
+      type: int
+      default: 1000
+      description: |
+        User ID for file ownership. Published to all connected applications.
+
+        All LinuxServer.io containers will run as this UID, ensuring
+        consistent file ownership across the entire media stack.
+
+        Default 1000 is the standard first non-root user on most Linux systems.
+
+        For NFS backends, set this to match your NFS export's expected UID.
+
+    pgid:
+      type: int
+      default: 1000
+      description: |
+        Group ID for file ownership. Published to all connected applications.
+
+        All LinuxServer.io containers will use this GID, ensuring
+        consistent file ownership across the entire media stack.
+
+        Default 1000 is the standard first non-root group on most Linux systems.
+
+        For NFS backends, set this to match your NFS export's expected GID.
