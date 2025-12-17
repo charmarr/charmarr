@@ -1,7 +1,9 @@
 # Copyright 2025 The Charmarr Project
 # See LICENSE file for licensing details.
 
-"""Unit tests for CharmarrStorageCharm."""
+"""Unit tests for CharmarrStorageCharm - config validation."""
+
+from unittest.mock import patch
 
 import ops
 from ops.testing import State
@@ -48,25 +50,14 @@ def test_blocked_native_nfs_without_path(ctx):
     assert state.unit_status == ops.BlockedStatus("nfs-path not configured")
 
 
-def test_active_with_storage_class_config(ctx):
-    """Charm is active when storage-class backend is properly configured."""
-    state = ctx.run(
-        ctx.on.config_changed(),
-        State(config={"backend-type": "storage-class", "storage-class": "local-path"}),
-    )
-    assert state.unit_status == ops.ActiveStatus("Storage scaffold ready")
-
-
-def test_active_with_native_nfs_config(ctx):
-    """Charm is active when native-nfs backend is properly configured."""
-    state = ctx.run(
-        ctx.on.config_changed(),
-        State(
-            config={
-                "backend-type": "native-nfs",
-                "nfs-server": "192.168.1.100",
-                "nfs-path": "/mnt/media",
-            }
-        ),
-    )
-    assert state.unit_status == ops.ActiveStatus("Storage scaffold ready")
+def test_non_leader_standby_status(ctx):
+    """Non-leader unit shows standby status."""
+    with patch("charm.K8sResourceManager"):
+        state = ctx.run(
+            ctx.on.config_changed(),
+            State(
+                leader=False,
+                config={"backend-type": "storage-class", "storage-class": "local-path"},
+            ),
+        )
+    assert state.unit_status == ops.ActiveStatus("Standby (leader manages storage)")
