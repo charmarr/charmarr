@@ -10,8 +10,11 @@ from enum import Enum
 import ops
 from lightkube import ApiError
 from lightkube.models.core_v1 import (
+    NFSVolumeSource,
+    PersistentVolume,
     PersistentVolumeClaim,
     PersistentVolumeClaimSpec,
+    PersistentVolumeSpec,
     VolumeResourceRequirements,
 )
 from lightkube.models.meta_v1 import ObjectMeta
@@ -73,7 +76,8 @@ class CharmarrStorageCharm(ops.CharmBase):
         backend_type = self.config.get("backend-type")
         if backend_type == BackendType.STORAGE_CLASS.value:
             self._reconcile_storage_class_pvc()
-        # native-nfs backend will be implemented in a future task
+        elif backend_type == BackendType.NATIVE_NFS.value:
+            self._reconcile_native_nfs()
 
         self._publish_relation_data()
 
@@ -148,6 +152,70 @@ class CharmarrStorageCharm(ops.CharmBase):
             patch = {"spec": {"resources": {"requests": {"storage": desired_size}}}}
             self.k8s.patch(PersistentVolumeClaim, self._pvc_name, patch, self.model.name)
 
+    def _reconcile_native_nfs(self) -> None:
+        """Reconcile PV and PVC for native-nfs backend."""
+        pv = self._get_pv()
+        if pv is None:
+            self._create_nfs_pv()
+
+        pvc = self._get_pvc()
+        if pvc is None:
+            self._create_nfs_pvc()
+
+    def _get_pv(self) -> PersistentVolume | None:
+        """Get the PV if it exists."""
+        try:
+            return self.k8s.get(PersistentVolume, self._pv_name, namespace=None)
+        except ApiError as e:
+            if e.status.code == 404:
+                return None
+            raise
+
+    def _create_nfs_pv(self) -> None:
+        """Create the NFS-backed PersistentVolume."""
+        nfs_server = str(self.config.get("nfs-server"))
+        nfs_path = str(self.config.get("nfs-path"))
+        size = str(self.config.get("size", "100Gi"))
+
+        pv = PersistentVolume(
+            metadata=ObjectMeta(name=self._pv_name),
+            spec=PersistentVolumeSpec(
+                capacity={"storage": size},
+                accessModes=[AccessMode.READ_WRITE_MANY.value],
+                persistentVolumeReclaimPolicy="Retain",
+                nfs=NFSVolumeSource(server=nfs_server, path=nfs_path),
+            ),
+        )
+
+        logger.info(
+            "Creating NFS PV %s with server %s, path %s", self._pv_name, nfs_server, nfs_path
+        )
+        self.k8s.apply(pv)
+
+    def _create_nfs_pvc(self) -> None:
+        """Create PVC that binds to the NFS PV."""
+        size = str(self.config.get("size", "100Gi"))
+
+        pvc = PersistentVolumeClaim(
+            metadata=ObjectMeta(name=self._pvc_name, namespace=self.model.name),
+            spec=PersistentVolumeClaimSpec(
+                storageClassName="",
+                accessModes=[AccessMode.READ_WRITE_MANY.value],
+                resources=VolumeResourceRequirements(requests={"storage": size}),
+                volumeName=self._pv_name,
+            ),
+        )
+
+        logger.info("Creating PVC %s bound to PV %s", self._pvc_name, self._pv_name)
+        self.k8s.apply(pvc)
+
+    def _get_pv_phase(self) -> str | None:
+        """Get the current PV phase (Available, Bound, Released, Failed)."""
+        pv = self._get_pv()
+        if pv is None or pv.status is None:
+            return None
+        return pv.status.phase
+
     def _get_pvc_phase(self) -> str | None:
         """Get the current PVC phase (Pending, Bound, Lost)."""
         pvc = self._get_pvc()
@@ -190,7 +258,7 @@ class CharmarrStorageCharm(ops.CharmBase):
         backend_type = self.config.get("backend-type")
 
         if backend_type == BackendType.NATIVE_NFS.value:
-            event.add_status(ops.BlockedStatus("native-nfs backend not yet implemented"))
+            self._check_native_nfs_status(event)
             return
 
         pvc_phase = self._get_pvc_phase()
@@ -209,6 +277,36 @@ class CharmarrStorageCharm(ops.CharmBase):
                 event.add_status(ops.ActiveStatus("Storage ready"))
         elif pvc_phase == "Lost":
             event.add_status(ops.BlockedStatus("PVC lost - underlying volume unavailable"))
+
+    def _check_native_nfs_status(self, event: ops.CollectStatusEvent) -> None:
+        """Check native-nfs backend status (PV and PVC)."""
+        pv_phase = self._get_pv_phase()
+        pvc_phase = self._get_pvc_phase()
+
+        if pv_phase is None:
+            event.add_status(ops.MaintenanceStatus("Creating NFS PV"))
+            return
+
+        if pv_phase == "Failed":
+            event.add_status(ops.BlockedStatus("NFS PV failed"))
+            return
+
+        if pvc_phase is None:
+            event.add_status(ops.MaintenanceStatus("Creating PVC"))
+            return
+
+        if pvc_phase == "Pending":
+            event.add_status(ops.MaintenanceStatus("PVC pending - waiting for PV binding"))
+        elif pvc_phase == "Bound":
+            connected = self._storage_provider.get_connected_apps()
+            if connected:
+                event.add_status(
+                    ops.ActiveStatus(f"Storage ready ({len(connected)} apps connected)")
+                )
+            else:
+                event.add_status(ops.ActiveStatus("Storage ready"))
+        elif pvc_phase == "Lost":
+            event.add_status(ops.BlockedStatus("PVC lost - NFS volume unavailable"))
 
     def _check_config_status(self, event: ops.CollectStatusEvent) -> None:
         """Check configuration and add relevant statuses."""

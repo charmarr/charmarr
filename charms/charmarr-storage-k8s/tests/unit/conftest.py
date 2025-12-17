@@ -10,9 +10,13 @@ from unittest.mock import MagicMock, patch
 import pytest
 from lightkube import ApiError
 from lightkube.models.core_v1 import (
+    NFSVolumeSource,
+    PersistentVolume,
     PersistentVolumeClaim,
     PersistentVolumeClaimSpec,
     PersistentVolumeClaimStatus,
+    PersistentVolumeSpec,
+    PersistentVolumeStatus,
     VolumeResourceRequirements,
 )
 from lightkube.models.meta_v1 import ObjectMeta, Status
@@ -56,6 +60,34 @@ def make_pvc(phase: str, size: str = "100Gi") -> PersistentVolumeClaim:
             storageClassName="local-path",
             accessModes=["ReadWriteMany"],
             resources=VolumeResourceRequirements(requests={"storage": size}),
+        ),
+        status=PersistentVolumeClaimStatus(phase=phase),
+    )
+
+
+def make_nfs_pv(phase: str, size: str = "100Gi") -> PersistentVolume:
+    """Create a mock NFS PV with the given phase."""
+    return PersistentVolume(
+        metadata=ObjectMeta(name="charmarr-shared-media-pv"),
+        spec=PersistentVolumeSpec(
+            capacity={"storage": size},
+            accessModes=["ReadWriteMany"],
+            persistentVolumeReclaimPolicy="Retain",
+            nfs=NFSVolumeSource(server="192.168.1.100", path="/mnt/media"),
+        ),
+        status=PersistentVolumeStatus(phase=phase),
+    )
+
+
+def make_nfs_pvc(phase: str, size: str = "100Gi") -> PersistentVolumeClaim:
+    """Create a mock NFS PVC with the given phase."""
+    return PersistentVolumeClaim(
+        metadata=ObjectMeta(name="charmarr-shared-media", namespace="test-model"),
+        spec=PersistentVolumeClaimSpec(
+            storageClassName="",
+            accessModes=["ReadWriteMany"],
+            resources=VolumeResourceRequirements(requests={"storage": size}),
+            volumeName="charmarr-shared-media-pv",
         ),
         status=PersistentVolumeClaimStatus(phase=phase),
     )
