@@ -1,0 +1,56 @@
+name: charmarr-multimeter
+type: charm
+title: Charmarr Multimeter
+summary: Test utility charm for validating Charmarr interface implementations
+description: |
+  A minimal test utility charm that implements the requirer side of all Charmarr
+  interfaces. Used for integration testing of provider charms.
+
+  This charm:
+  - Implements all Charmarr interfaces as requirer only
+  - Publishes minimal data to complete relation handshakes
+  - Receives provider data for test assertions
+  - Has no config options - uses sensible defaults
+
+  Tests use juju show-unit or jhack to inspect received relation data.
+
+links:
+  documentation: https://github.com/charmarr/charmarr
+  source: https://github.com/charmarr/charmarr
+  issues: https://github.com/charmarr/charmarr/issues
+
+assumes:
+  - k8s-api
+  - juju >= 3.6
+
+platforms:
+  amd64:
+    - name: ubuntu
+      channel: "24.04"
+
+parts:
+  charm:
+    source: .
+    plugin: uv
+    build-packages: [git]
+    build-snaps: [astral-uv]
+    override-build: |
+      craftctl default
+      git describe --always > $CRAFT_PART_INSTALL/version
+
+requires:
+  media-storage:
+    interface: media-storage
+    optional: true
+  media-indexer:
+    interface: media-indexer
+    optional: true
+  download-client:
+    interface: download-client
+    optional: true
+  media-manager:
+    interface: media-manager
+    optional: true
+  vpn-gateway:
+    interface: vpn-gateway
+    optional: true
