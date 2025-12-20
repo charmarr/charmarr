@@ -1,0 +1,14 @@
+formatter: markdown table
+
+sections:
+  show:
+    - inputs
+    - outputs
+
+sort:
+  enabled: true
+  by: required
+
+output:
+  file: README.md
+  mode: replace
