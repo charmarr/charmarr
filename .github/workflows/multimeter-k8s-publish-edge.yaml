@@ -19,7 +19,7 @@ jobs:
     uses: charmarr/.github/.github/workflows/charm-publish-edge.yaml@v1
     with:
       charm-path: charms/charmarr-multimeter-k8s
-      track: "1"
+      track: latest
       run-integration: false
       tag-terraform: false
       dry-run: ${{ inputs.dry-run || false }}

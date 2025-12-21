@@ -18,7 +18,7 @@ jobs:
     uses: charmarr/.github/.github/workflows/charm-publish-edge.yaml@v1
     with:
       charm-path: charms/charmarr-storage-k8s
-      track: "1"
+      track: latest
       dry-run: ${{ inputs.dry-run || false }}
     secrets:
       CHARMHUB_TOKEN: ${{ secrets.CHARMHUB_TOKEN }}

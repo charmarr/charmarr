@@ -34,7 +34,7 @@ def test_publishes_media_storage_requirer_data(ctx):
     relation_out = state_out.get_relations("media-storage")[0]
     assert "config" in relation_out.local_app_data
     data = MediaStorageRequirerData.model_validate_json(relation_out.local_app_data["config"])
-    assert data.instance_name == "charmarr-multimeter"
+    assert data.instance_name == "charmarr-multimeter-k8s"
 
 
 def test_counts_connected_providers(ctx):
