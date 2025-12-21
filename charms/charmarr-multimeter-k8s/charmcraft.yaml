@@ -1,4 +1,4 @@
-name: charmarr-multimeter
+name: charmarr-multimeter-k8s
 type: charm
 title: Charmarr Multimeter
 summary: Test utility charm for validating Charmarr interface implementations

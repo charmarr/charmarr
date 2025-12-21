@@ -1,4 +1,4 @@
-name: "Multimeter: Publish Edge"
+name: "Multimeter K8s: Publish Edge"
 
 on:
   workflow_call:
@@ -11,14 +11,14 @@ jobs:
   quality:
     uses: charmarr/.github/.github/workflows/charm-ci.yaml@v1
     with:
-      charm-path: charms/charmarr-multimeter
+      charm-path: charms/charmarr-multimeter-k8s
       run-terraform-validate: false
 
   publish:
     needs: quality
     uses: charmarr/.github/.github/workflows/charm-publish-edge.yaml@v1
     with:
-      charm-path: charms/charmarr-multimeter
+      charm-path: charms/charmarr-multimeter-k8s
       track: "1"
       run-integration: false
       tag-terraform: false

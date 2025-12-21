@@ -20,7 +20,7 @@ jobs:
           base="${{ github.event.pull_request.base.sha }}"
           changed=$(git diff --name-only "$base"...HEAD)
 
-          if echo "$changed" | grep -q "^charms/charmarr-multimeter/"; then
+          if echo "$changed" | grep -q "^charms/charmarr-multimeter-k8s/"; then
             echo "multimeter=true" >> "$GITHUB_OUTPUT"
           fi
 
@@ -32,10 +32,10 @@ jobs:
     name: Multimeter
     needs: detect
     if: needs.detect.outputs.multimeter == 'true'
-    uses: ./.github/workflows/multimeter-ci.yaml
+    uses: ./.github/workflows/multimeter-k8s-ci.yaml
 
   storage:
     name: Storage
     needs: detect
     if: needs.detect.outputs.storage == 'true'
-    uses: ./.github/workflows/storage-ci.yaml
+    uses: ./.github/workflows/storage-k8s-ci.yaml

@@ -1,4 +1,4 @@
-name: "Multimeter: CI"
+name: "Multimeter K8s: CI"
 
 on:
   workflow_call:
@@ -7,5 +7,5 @@ jobs:
   quality:
     uses: charmarr/.github/.github/workflows/charm-ci.yaml@v1
     with:
-      charm-path: charms/charmarr-multimeter
+      charm-path: charms/charmarr-multimeter-k8s
       run-terraform-validate: false

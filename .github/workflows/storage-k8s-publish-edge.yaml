@@ -1,4 +1,4 @@
-name: "Storage: Publish Edge"
+name: "Storage K8s: Publish Edge"
 
 on:
   workflow_call:
