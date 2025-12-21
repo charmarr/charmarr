@@ -23,10 +23,9 @@ assumes:
   - k8s-api
   - juju >= 3.6
 
+base: ubuntu@24.04
 platforms:
   amd64:
-    - name: ubuntu
-      channel: "24.04"
 
 parts:
   charm:
@@ -34,9 +33,10 @@ parts:
     plugin: uv
     build-packages: [git]
     build-snaps: [astral-uv]
-    override-build: |
-      craftctl default
-      git describe --always > $CRAFT_PART_INSTALL/version
+# FIXME: git describe doesn't work - charmcraft copies source without .git directory
+#    override-build: |
+#      craftctl default
+#      git describe --always > $CRAFT_PART_INSTALL/version
 
 requires:
   media-storage:

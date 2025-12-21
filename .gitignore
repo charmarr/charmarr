@@ -61,4 +61,4 @@ charms/*/terraform/*.tfstate*
 charms/*/terraform/.terraform.lock.hcl
 
 # UV
-uv.lock
+# uv.lock is committed for reproducible CI builds
