@@ -1,0 +1,10 @@
+name: "Storage: CI"
+
+on:
+  workflow_call:
+
+jobs:
+  quality:
+    uses: charmarr/.github/.github/workflows/charm-ci.yaml@v1
+    with:
+      charm-path: charms/charmarr-storage-k8s

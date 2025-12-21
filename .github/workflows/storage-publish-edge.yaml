@@ -1,0 +1,24 @@
+name: "Storage: Publish Edge"
+
+on:
+  workflow_call:
+    inputs:
+      dry-run:
+        type: boolean
+        default: false
+
+jobs:
+  quality:
+    uses: charmarr/.github/.github/workflows/charm-ci.yaml@v1
+    with:
+      charm-path: charms/charmarr-storage-k8s
+
+  publish:
+    needs: quality
+    uses: charmarr/.github/.github/workflows/charm-publish-edge.yaml@v1
+    with:
+      charm-path: charms/charmarr-storage-k8s
+      track: "1"
+      dry-run: ${{ inputs.dry-run || false }}
+    secrets:
+      CHARMHUB_TOKEN: ${{ secrets.CHARMHUB_TOKEN }}

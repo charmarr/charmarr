@@ -1,0 +1,27 @@
+name: "Multimeter: Publish Edge"
+
+on:
+  workflow_call:
+    inputs:
+      dry-run:
+        type: boolean
+        default: false
+
+jobs:
+  quality:
+    uses: charmarr/.github/.github/workflows/charm-ci.yaml@v1
+    with:
+      charm-path: charms/charmarr-multimeter
+      run-terraform-validate: false
+
+  publish:
+    needs: quality
+    uses: charmarr/.github/.github/workflows/charm-publish-edge.yaml@v1
+    with:
+      charm-path: charms/charmarr-multimeter
+      track: "1"
+      run-integration: false
+      tag-terraform: false
+      dry-run: ${{ inputs.dry-run || false }}
+    secrets:
+      CHARMHUB_TOKEN: ${{ secrets.CHARMHUB_TOKEN }}

@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  pull_request:
+
+jobs:
+  detect:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      multimeter: ${{ steps.check.outputs.multimeter }}
+      storage: ${{ steps.check.outputs.storage }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: check
+        run: |
+          base="${{ github.event.pull_request.base.sha }}"
+          changed=$(git diff --name-only "$base"...HEAD)
+
+          if echo "$changed" | grep -q "^charms/charmarr-multimeter/"; then
+            echo "multimeter=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          if echo "$changed" | grep -q "^charms/charmarr-storage-k8s/"; then
+            echo "storage=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  multimeter:
+    name: Multimeter
+    needs: detect
+    if: needs.detect.outputs.multimeter == 'true'
+    uses: ./.github/workflows/multimeter-ci.yaml
+
+  storage:
+    name: Storage
+    needs: detect
+    if: needs.detect.outputs.storage == 'true'
+    uses: ./.github/workflows/storage-ci.yaml

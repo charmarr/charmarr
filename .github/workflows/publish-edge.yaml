@@ -1,0 +1,77 @@
+name: Publish Edge
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      charm:
+        description: Charm to publish (auto = detect from changes)
+        type: choice
+        options:
+          - auto
+          - multimeter
+          - storage
+          - all
+        default: auto
+      dry-run:
+        description: Skip actual publish (for testing)
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  detect:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      multimeter: ${{ steps.check.outputs.multimeter }}
+      storage: ${{ steps.check.outputs.storage }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: check
+        env:
+          CHARM_INPUT: ${{ inputs.charm }}
+        run: |
+          # Manual selection
+          if [[ "$CHARM_INPUT" == "multimeter" || "$CHARM_INPUT" == "all" ]]; then
+            echo "multimeter=true" >> "$GITHUB_OUTPUT"
+          fi
+          if [[ "$CHARM_INPUT" == "storage" || "$CHARM_INPUT" == "all" ]]; then
+            echo "storage=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          # Auto-detect from changes (push or workflow_dispatch with auto)
+          if [[ -z "$CHARM_INPUT" || "$CHARM_INPUT" == "auto" ]]; then
+            changed=$(git diff --name-only HEAD~1 HEAD)
+
+            if echo "$changed" | grep -q "^charms/charmarr-multimeter/"; then
+              echo "multimeter=true" >> "$GITHUB_OUTPUT"
+            fi
+            if echo "$changed" | grep -q "^charms/charmarr-storage-k8s/"; then
+              echo "storage=true" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+  multimeter:
+    name: Multimeter
+    needs: detect
+    if: needs.detect.outputs.multimeter == 'true'
+    uses: ./.github/workflows/multimeter-publish-edge.yaml
+    with:
+      dry-run: ${{ inputs.dry-run || false }}
+    secrets: inherit
+
+  storage:
+    name: Storage
+    needs: detect
+    if: needs.detect.outputs.storage == 'true'
+    uses: ./.github/workflows/storage-publish-edge.yaml
+    with:
+      dry-run: ${{ inputs.dry-run || false }}
+    secrets: inherit
