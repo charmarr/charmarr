@@ -21,6 +21,7 @@ jobs:
       track: latest
       dry-run: ${{ inputs.dry-run || false }}
       extra-debs: nfs-common
-      microk8s-channel: 1.32/stable
+      substrate-channel: 1.32/stable
+      integration-runner: charmarr-charm-ci
     secrets:
       CHARMHUB_TOKEN: ${{ secrets.CHARMHUB_TOKEN }}
