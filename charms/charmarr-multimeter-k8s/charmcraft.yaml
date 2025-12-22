@@ -10,6 +10,7 @@ description: |
   - Implements all Charmarr interfaces as requirer only
   - Publishes minimal data to complete relation handshakes
   - Receives provider data for test assertions
+  - Provides actions for K8s resource inspection (get-pvc, get-pv, get-mounts)
   - Has no config options - uses sensible defaults
 
   Tests use juju show-unit or jhack to inspect received relation data.
@@ -35,7 +36,7 @@ resources:
   multimeter-image:
     type: oci-image
     description: Container image for multimeter
-    upstream-source: busybox:latest
+    upstream-source: docker.io/library/busybox:latest
 
 parts:
   charm:
