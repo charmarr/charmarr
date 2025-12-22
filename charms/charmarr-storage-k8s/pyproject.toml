@@ -20,6 +20,13 @@ dev = [
     "coverage[toml]>=7.0",
     "ops[testing]>=2.17",
 ]
+integration = [
+    "charmarr-lib-testing",
+    "pytest-jubilant",
+    "pytest-bdd>=7.0",
+    "jubilant>=1.6",
+    "lightkube>=0.15",
+]
 
 [tool.uv]
 package = false
@@ -67,8 +74,8 @@ include = ["src"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"
-addopts = "-v --tb=short"
-log_cli_level = "INFO"
+addopts = "-v --tb=short -x"
+log_cli_level = "WARNING"
 
 [tool.coverage.run]
 source = ["src"]

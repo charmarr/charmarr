@@ -11,8 +11,6 @@ import pytest
 from lightkube import ApiError
 from lightkube.models.core_v1 import (
     NFSVolumeSource,
-    PersistentVolume,
-    PersistentVolumeClaim,
     PersistentVolumeClaimSpec,
     PersistentVolumeClaimStatus,
     PersistentVolumeSpec,
@@ -20,6 +18,7 @@ from lightkube.models.core_v1 import (
     VolumeResourceRequirements,
 )
 from lightkube.models.meta_v1 import ObjectMeta, Status
+from lightkube.resources.core_v1 import PersistentVolume, PersistentVolumeClaim
 from ops.testing import Context
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))

@@ -5,7 +5,7 @@
 
 import ops
 from conftest import make_api_error_404, make_nfs_pv, make_nfs_pvc
-from lightkube.models.core_v1 import PersistentVolume, PersistentVolumeClaim
+from lightkube.resources.core_v1 import PersistentVolume, PersistentVolumeClaim
 from ops.testing import State
 
 
@@ -91,11 +91,11 @@ def test_pvc_bound_status(ctx, mock_k8s):
         State(leader=True, config=_nfs_config()),
     )
 
-    assert state.unit_status == ops.ActiveStatus("Storage ready")
+    assert state.unit_status == ops.ActiveStatus()
 
 
 def test_pvc_pending_status(ctx, mock_k8s):
-    """Shows maintenance status when PVC is pending."""
+    """Shows active status when PVC is pending (WaitForFirstConsumer is expected)."""
 
     def get_side_effect(resource_type, name, namespace=None):
         if resource_type == PersistentVolume:
@@ -109,7 +109,7 @@ def test_pvc_pending_status(ctx, mock_k8s):
         State(leader=True, config=_nfs_config()),
     )
 
-    assert state.unit_status == ops.MaintenanceStatus("PVC pending - waiting for PV binding")
+    assert state.unit_status == ops.ActiveStatus()
 
 
 def test_pv_failed_status(ctx, mock_k8s):
@@ -127,7 +127,7 @@ def test_pv_failed_status(ctx, mock_k8s):
         State(leader=True, config=_nfs_config()),
     )
 
-    assert state.unit_status == ops.BlockedStatus("NFS PV failed")
+    assert state.unit_status == ops.BlockedStatus("NFS PV failed. Check NFS server")
 
 
 def test_pvc_lost_status(ctx, mock_k8s):
@@ -145,7 +145,7 @@ def test_pvc_lost_status(ctx, mock_k8s):
         State(leader=True, config=_nfs_config()),
     )
 
-    assert state.unit_status == ops.BlockedStatus("PVC lost - NFS volume unavailable")
+    assert state.unit_status == ops.BlockedStatus("PVC lost. Check NFS server")
 
 
 def test_does_not_recreate_existing_pv(ctx, mock_k8s):

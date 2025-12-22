@@ -28,7 +28,7 @@ def test_creates_pvc_when_missing(ctx, mock_k8s):
 
 
 def test_pvc_pending_status(ctx, mock_k8s):
-    """Shows maintenance status when PVC is pending."""
+    """Shows active status when PVC is pending (WaitForFirstConsumer is expected)."""
     mock_k8s.get.return_value = make_pvc("Pending")
 
     state = ctx.run(
@@ -39,7 +39,7 @@ def test_pvc_pending_status(ctx, mock_k8s):
         ),
     )
 
-    assert state.unit_status == ops.MaintenanceStatus("PVC pending - waiting for volume")
+    assert state.unit_status == ops.ActiveStatus()
 
 
 def test_pvc_bound_status(ctx, mock_k8s):
@@ -54,7 +54,7 @@ def test_pvc_bound_status(ctx, mock_k8s):
         ),
     )
 
-    assert state.unit_status == ops.ActiveStatus("Storage ready")
+    assert state.unit_status == ops.ActiveStatus()
 
 
 def test_pvc_lost_status(ctx, mock_k8s):
@@ -69,7 +69,7 @@ def test_pvc_lost_status(ctx, mock_k8s):
         ),
     )
 
-    assert state.unit_status == ops.BlockedStatus("PVC lost - underlying volume unavailable")
+    assert state.unit_status == ops.BlockedStatus("PVC lost. Check storage backend")
 
 
 def test_pvc_created_with_custom_size(ctx, mock_k8s):

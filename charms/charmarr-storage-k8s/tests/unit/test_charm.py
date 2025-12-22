@@ -6,6 +6,7 @@
 from unittest.mock import patch
 
 import ops
+from conftest import make_api_error_404
 from ops.testing import State
 
 
@@ -23,8 +24,10 @@ def test_blocked_with_invalid_backend_type(ctx):
     )
 
 
-def test_blocked_storage_class_without_class_name(ctx):
+def test_blocked_storage_class_without_class_name(ctx, mock_k8s):
     """Charm is blocked when storage-class backend lacks storage-class config."""
+    mock_k8s.get.side_effect = make_api_error_404()
+
     state = ctx.run(
         ctx.on.config_changed(),
         State(config={"backend-type": "storage-class"}),
@@ -32,8 +35,10 @@ def test_blocked_storage_class_without_class_name(ctx):
     assert state.unit_status == ops.BlockedStatus("storage-class not configured")
 
 
-def test_blocked_native_nfs_without_server(ctx):
+def test_blocked_native_nfs_without_server(ctx, mock_k8s):
     """Charm is blocked when native-nfs backend lacks nfs-server."""
+    mock_k8s.get.side_effect = make_api_error_404()
+
     state = ctx.run(
         ctx.on.config_changed(),
         State(config={"backend-type": "native-nfs", "nfs-path": "/mnt/media"}),
@@ -41,8 +46,10 @@ def test_blocked_native_nfs_without_server(ctx):
     assert state.unit_status == ops.BlockedStatus("nfs-server not configured")
 
 
-def test_blocked_native_nfs_without_path(ctx):
+def test_blocked_native_nfs_without_path(ctx, mock_k8s):
     """Charm is blocked when native-nfs backend lacks nfs-path."""
+    mock_k8s.get.side_effect = make_api_error_404()
+
     state = ctx.run(
         ctx.on.config_changed(),
         State(config={"backend-type": "native-nfs", "nfs-server": "192.168.1.100"}),

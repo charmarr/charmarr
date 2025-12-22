@@ -137,3 +137,15 @@ config:
         Default 1000 is the standard first non-root group on most Linux systems.
 
         For NFS backends, set this to match your NFS export's expected GID.
+
+    cleanup-on-remove:
+      type: boolean
+      default: false
+      description: |
+        Delete charm-managed K8s storage resources when the charm is removed.
+
+        When false (default): Resources persist for manual cleanup or reattachment.
+        When true: Resources are cleaned up on removal.
+
+        WARNING: Setting to true may cause data loss depending on StorageClass
+        reclaim policy.
