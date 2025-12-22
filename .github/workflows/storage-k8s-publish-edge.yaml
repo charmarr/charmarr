@@ -20,5 +20,6 @@ jobs:
       charm-path: charms/charmarr-storage-k8s
       track: latest
       dry-run: ${{ inputs.dry-run || false }}
+      extra-debs: nfs-common
     secrets:
       CHARMHUB_TOKEN: ${{ secrets.CHARMHUB_TOKEN }}
