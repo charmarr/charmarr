@@ -5,12 +5,17 @@
 """Charmarr Multimeter - test utility charm for validating interface providers."""
 
 import ops
+from lightkube import ApiError
+from lightkube.resources.core_v1 import PersistentVolume, PersistentVolumeClaim
 
+from _mock_nfs import cleanup_nfs_server, deploy_nfs_server
 from charmarr_lib.core import (
+    K8sResourceManager,
     MediaManager,
     RequestManager,
     observe_events,
-    reconcilable_events_k8s_workloadless,
+    reconcilable_events_k8s,
+    reconcile_storage_volume,
 )
 from charmarr_lib.core.interfaces import (
     DownloadClientRequirer,
@@ -24,6 +29,8 @@ from charmarr_lib.core.interfaces import (
 )
 from charmarr_lib.vpn.interfaces import VPNGatewayRequirer, VPNGatewayRequirerData
 
+CONTAINER_NAME = "multimeter"
+
 
 class CharmarrMultimeterCharm(ops.CharmBase):
     """Test utility charm implementing requirer side of all Charmarr interfaces."""
@@ -36,14 +43,28 @@ class CharmarrMultimeterCharm(ops.CharmBase):
         self._download_client = DownloadClientRequirer(self, "download-client")
         self._media_manager = MediaManagerRequirer(self, "media-manager")
         self._vpn_gateway = VPNGatewayRequirer(self, "vpn-gateway")
+        self._k8s: K8sResourceManager | None = None
 
-        observe_events(self, reconcilable_events_k8s_workloadless, self._reconcile)
+        observe_events(self, reconcilable_events_k8s, self._reconcile)
         framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
+        framework.observe(self.on.get_pvc_action, self._on_get_pvc_action)
+        framework.observe(self.on.get_pv_action, self._on_get_pv_action)
+        framework.observe(self.on.deploy_nfs_server_action, self._on_deploy_nfs_server_action)
+        framework.observe(self.on.cleanup_nfs_server_action, self._on_cleanup_nfs_server_action)
+        framework.observe(self.on.get_mounts_action, self._on_get_mounts_action)
+
+    @property
+    def k8s(self) -> K8sResourceManager:
+        if self._k8s is None:
+            self._k8s = K8sResourceManager()
+        return self._k8s
 
     def _reconcile(self, event: ops.EventBase) -> None:
-        """Publish requirer data to all connected providers."""
+        """Reconcile workload and publish requirer data."""
         if not self.unit.is_leader():
             return
+
+        self._reconcile_storage()
 
         instance_name = self.app.name
 
@@ -79,6 +100,18 @@ class CharmarrMultimeterCharm(ops.CharmBase):
         if self.model.get_relation("vpn-gateway"):
             self._vpn_gateway.publish_data(VPNGatewayRequirerData(instance_name=instance_name))
 
+    def _reconcile_storage(self) -> None:
+        """Mount or unmount shared storage based on relation state."""
+        storage_data = self._media_storage.get_provider()
+        reconcile_storage_volume(
+            self.k8s,
+            statefulset_name=self.app.name,
+            namespace=self.model.name,
+            container_name=CONTAINER_NAME,
+            pvc_name=storage_data.pvc_name if storage_data else None,
+            mount_path=storage_data.mount_path if storage_data else "/data",
+        )
+
     def _on_collect_unit_status(self, event: ops.CollectStatusEvent) -> None:
         """Collect unit status based on connected relations."""
         if not self.unit.is_leader():
@@ -105,6 +138,84 @@ class CharmarrMultimeterCharm(ops.CharmBase):
         if self._vpn_gateway.get_gateway() is not None:
             count += 1
         return count
+
+    def _on_get_pvc_action(self, event: ops.ActionEvent) -> None:
+        """Return PVC details."""
+        namespace = event.params["namespace"]
+        name = event.params["name"]
+        try:
+            pvc = self.k8s.get(PersistentVolumeClaim, name, namespace)
+            phase = pvc.status.phase if pvc.status else None
+            event.set_results(
+                {
+                    "storage-class": pvc.spec.storageClassName or "",
+                    "access-modes": ",".join(pvc.spec.accessModes or []),
+                    "capacity": pvc.spec.resources.requests.get("storage", "")
+                    if pvc.spec.resources
+                    else "",
+                    "volume-name": pvc.spec.volumeName or "",
+                    "phase": phase or "",
+                }
+            )
+        except ApiError as e:
+            event.fail(f"Failed to get PVC: {e}")
+
+    def _on_get_pv_action(self, event: ops.ActionEvent) -> None:
+        """Return PV details."""
+        name = event.params["name"]
+        try:
+            pv = self.k8s.get(PersistentVolume, name, namespace=None)
+            phase = pv.status.phase if pv.status else None
+            nfs_server = ""
+            nfs_path = ""
+            if pv.spec.nfs:
+                nfs_server = pv.spec.nfs.server or ""
+                nfs_path = pv.spec.nfs.path or ""
+            event.set_results(
+                {
+                    "capacity": pv.spec.capacity.get("storage", "") if pv.spec.capacity else "",
+                    "access-modes": ",".join(pv.spec.accessModes or []),
+                    "nfs-server": nfs_server,
+                    "nfs-path": nfs_path,
+                    "reclaim-policy": pv.spec.persistentVolumeReclaimPolicy or "",
+                    "phase": phase or "",
+                }
+            )
+        except ApiError as e:
+            event.fail(f"Failed to get PV: {e}")
+
+    def _on_deploy_nfs_server_action(self, event: ops.ActionEvent) -> None:
+        """Deploy a mock NFS server for testing."""
+        timeout = event.params.get("timeout", 120)
+        try:
+            ip = deploy_nfs_server(self.k8s, self.model.name, timeout)
+            event.set_results({"nfs-server-ip": ip, "nfs-path": "/"})
+        except TimeoutError as e:
+            event.fail(str(e))
+        except Exception as e:
+            event.fail(f"Failed to deploy NFS server: {e}")
+
+    def _on_cleanup_nfs_server_action(self, event: ops.ActionEvent) -> None:
+        """Remove the mock NFS server."""
+        try:
+            cleanup_nfs_server(self.k8s, self.model.name)
+            event.set_results({"status": "removed"})
+        except Exception as e:
+            event.fail(f"Failed to cleanup NFS server: {e}")
+
+    def _on_get_mounts_action(self, event: ops.ActionEvent) -> None:
+        """Return list of mount paths in the workload container."""
+        try:
+            container = self.unit.get_container(CONTAINER_NAME)
+            if not container.can_connect():
+                event.fail("Cannot connect to container")
+                return
+            process = container.exec(["cat", "/proc/mounts"])
+            output, _ = process.wait_output()
+            mounts = [line.split()[1] for line in output.strip().split("\n") if line]
+            event.set_results({"mounts": ",".join(mounts)})
+        except Exception as e:
+            event.fail(f"Failed to get mounts: {e}")
 
 
 if __name__ == "__main__":

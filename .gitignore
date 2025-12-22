@@ -45,6 +45,9 @@ coverage.xml
 .DS_Store
 Thumbs.db
 
+# Logs
+.logs/
+
 # Charmcraft
 *.charm
 charms/*/build/

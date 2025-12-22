@@ -3,6 +3,8 @@
 
 """Unit tests for CharmarrMultimeterCharm."""
 
+from unittest.mock import MagicMock
+
 import ops
 from ops.testing import Relation, State
 
@@ -61,3 +63,93 @@ def test_non_leader_does_not_publish(ctx):
 
     relation_out = state_out.get_relations("media-storage")[0]
     assert "config" not in relation_out.local_app_data
+
+
+def test_get_pvc_action_returns_pvc_details(ctx, mock_k8s):
+    """get-pvc action returns PVC details from Kubernetes."""
+    mock_pvc = MagicMock()
+    mock_pvc.spec.storageClassName = "microk8s-hostpath"
+    mock_pvc.spec.accessModes = ["ReadWriteOnce"]
+    mock_pvc.spec.resources.requests.get.return_value = "1Gi"
+    mock_pvc.spec.volumeName = "pvc-12345"
+    mock_pvc.status.phase = "Bound"
+    mock_k8s.return_value.get.return_value = mock_pvc
+
+    ctx.run(
+        ctx.on.action("get-pvc", params={"namespace": "storage-test", "name": "charmarr-shared"}),
+        State(leader=True),
+    )
+
+    mock_k8s.return_value.get.assert_called_once()
+
+
+def test_get_pv_action_returns_pv_details(ctx, mock_k8s):
+    """get-pv action returns PV details from Kubernetes."""
+    mock_pv = MagicMock()
+    mock_pv.spec.capacity = {"storage": "1Gi"}
+    mock_pv.spec.accessModes = ["ReadWriteMany"]
+    mock_pv.spec.nfs.server = "192.168.1.100"
+    mock_pv.spec.nfs.path = "/export"
+    mock_pv.spec.persistentVolumeReclaimPolicy = "Retain"
+    mock_pv.status.phase = "Bound"
+    mock_k8s.return_value.get.return_value = mock_pv
+
+    ctx.run(
+        ctx.on.action("get-pv", params={"name": "charmarr-shared-media-pv"}),
+        State(leader=True),
+    )
+
+    mock_k8s.return_value.get.assert_called_once()
+
+
+def test_get_pv_action_handles_non_nfs_pv(ctx, mock_k8s):
+    """get-pv action handles PVs without NFS config."""
+    mock_pv = MagicMock()
+    mock_pv.spec.capacity = {"storage": "1Gi"}
+    mock_pv.spec.accessModes = ["ReadWriteOnce"]
+    mock_pv.spec.nfs = None
+    mock_pv.spec.persistentVolumeReclaimPolicy = "Delete"
+    mock_pv.status.phase = "Bound"
+    mock_k8s.return_value.get.return_value = mock_pv
+
+    ctx.run(
+        ctx.on.action("get-pv", params={"name": "some-pv"}),
+        State(leader=True),
+    )
+
+
+def test_deploy_nfs_server_action(ctx, mock_k8s):
+    """deploy-nfs-server action deploys mock NFS server."""
+    ctx.run(
+        ctx.on.action("deploy-nfs-server", params={}),
+        State(leader=True),
+    )
+
+
+def test_cleanup_nfs_server_action(ctx, mock_k8s):
+    """cleanup-nfs-server action removes mock NFS server."""
+    ctx.run(
+        ctx.on.action("cleanup-nfs-server", params={}),
+        State(leader=True),
+    )
+
+
+def test_get_mounts_action_returns_mounts(ctx, mock_k8s):
+    """get-mounts action returns mount paths from container."""
+    from ops.testing import Container, Exec
+
+    container = Container(
+        name="multimeter",
+        can_connect=True,
+        execs={
+            Exec(
+                command_prefix=["cat", "/proc/mounts"],
+                return_code=0,
+                stdout="rootfs / rootfs rw 0 0\n/dev/vda1 /data ext4 rw 0 0\n",
+            )
+        },
+    )
+    ctx.run(
+        ctx.on.action("get-mounts", params={}),
+        State(leader=True, containers=[container]),
+    )

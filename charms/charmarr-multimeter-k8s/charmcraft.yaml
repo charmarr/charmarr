@@ -27,6 +27,16 @@ base: ubuntu@24.04
 platforms:
   amd64:
 
+containers:
+  multimeter:
+    resource: multimeter-image
+
+resources:
+  multimeter-image:
+    type: oci-image
+    description: Container image for multimeter
+    upstream-source: busybox:latest
+
 parts:
   charm:
     source: .
@@ -54,3 +64,33 @@ requires:
   vpn-gateway:
     interface: vpn-gateway
     optional: true
+
+actions:
+  get-pvc:
+    description: Get PVC details from Kubernetes
+    params:
+      namespace:
+        type: string
+        description: Kubernetes namespace
+      name:
+        type: string
+        description: PVC name
+    required: [namespace, name]
+  get-pv:
+    description: Get PV details from Kubernetes
+    params:
+      name:
+        type: string
+        description: PV name
+    required: [name]
+  deploy-nfs-server:
+    description: Deploy a mock NFS server for testing native-nfs backend
+    params:
+      timeout:
+        type: integer
+        description: Timeout in seconds to wait for server to be ready (default 120)
+        default: 120
+  cleanup-nfs-server:
+    description: Remove the mock NFS server
+  get-mounts:
+    description: Get list of mount paths in the workload container

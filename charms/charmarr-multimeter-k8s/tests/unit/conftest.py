@@ -5,6 +5,7 @@
 
 import sys
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 from ops.testing import Context
@@ -12,6 +13,22 @@ from ops.testing import Context
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 from charm import CharmarrMultimeterCharm
+
+
+@pytest.fixture(autouse=True)
+def mock_k8s():
+    """Mock K8s operations that require cluster access."""
+    with (
+        patch("charm.reconcile_storage_volume") as mock_reconcile,
+        patch("charm.K8sResourceManager") as mock_k8s_manager,
+        patch("charm.deploy_nfs_server") as mock_deploy_nfs,
+        patch("charm.cleanup_nfs_server") as mock_cleanup_nfs,
+    ):
+        mock_k8s_manager.return_value = MagicMock()
+        mock_reconcile.return_value = None
+        mock_deploy_nfs.return_value = "10.152.183.100"
+        mock_cleanup_nfs.return_value = None
+        yield mock_k8s_manager
 
 
 @pytest.fixture
