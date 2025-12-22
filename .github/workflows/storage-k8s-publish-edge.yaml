@@ -22,6 +22,8 @@ jobs:
       dry-run: ${{ inputs.dry-run || false }}
       extra-debs: nfs-common
       substrate-channel: 1.32/stable
-      integration-runner: charmarr-charm-ci
+      self-hosted-runner: charmarr-charm-ci
+      self-hosted-suites: '["test_native_nfs_backend.py"]'
+      concierge-restore: true
     secrets:
       CHARMHUB_TOKEN: ${{ secrets.CHARMHUB_TOKEN }}
