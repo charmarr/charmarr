@@ -20,7 +20,6 @@ jobs:
       charm-path: charms/charmarr-storage-k8s
       track: latest
       dry-run: ${{ inputs.dry-run || false }}
-      extra-debs: nfs-common
       substrate-channel: 1.32/stable
       self-hosted-runner: charmarr-charm-ci
       self-hosted-suites: '["test_native_nfs_backend.py"]'
