@@ -21,10 +21,7 @@ jobs:
       track: latest
       dry-run: ${{ inputs.dry-run || false }}
       substrate-channel: 1.32/stable
-      self-hosted-runner: charmarr-charm-ci
-      self-hosted-suites: '["test_native_nfs_backend.py"]'
-      run-cleanup: true
       load-nfs-modules: true
-      classic-microk8s: true
+      classic-microk8s-suites: '["test_native_nfs_backend.py"]'
     secrets:
       CHARMHUB_TOKEN: ${{ secrets.CHARMHUB_TOKEN }}

@@ -16,6 +16,9 @@ description: |
   Publishes PUID/PGID to all connected applications for consistent
   file ownership across the media stack.
 
+  Note: When using native-nfs backend with MicroK8s, MicroK8s must be
+  installed with --classic confinement for NFS mounts to work.
+
 links:
   documentation: https://github.com/charmarr/charmarr
   source: https://github.com/charmarr/charmarr
