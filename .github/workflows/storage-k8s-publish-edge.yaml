@@ -23,7 +23,8 @@ jobs:
       substrate-channel: 1.32/stable
       self-hosted-runner: charmarr-charm-ci
       self-hosted-suites: '["test_native_nfs_backend.py"]'
-      concierge-restore: true
+      run-cleanup: true
       load-nfs-modules: true
+      classic-microk8s: true
     secrets:
       CHARMHUB_TOKEN: ${{ secrets.CHARMHUB_TOKEN }}
