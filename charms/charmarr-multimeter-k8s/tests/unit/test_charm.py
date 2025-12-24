@@ -3,7 +3,7 @@
 
 """Unit tests for CharmarrMultimeterCharm."""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import ops
 from ops.testing import Relation, State
@@ -171,8 +171,6 @@ def test_publishes_vpn_gateway_requirer_data(ctx):
 
 def test_reconcile_vpn_when_gateway_ready(ctx):
     """Charm reconciles VPN client when gateway is ready and connected."""
-    from unittest.mock import patch
-
     provider_data = VPNGatewayProviderData(
         gateway_dns_name="gluetun.vpn-gateway.svc.cluster.local",
         cluster_cidrs="10.1.0.0/16,10.152.183.0/24",
@@ -198,8 +196,6 @@ def test_reconcile_vpn_when_gateway_ready(ctx):
 
 def test_reconcile_vpn_when_vpn_not_connected(ctx):
     """Charm reconciles VPN client even when VPN is not connected."""
-    from unittest.mock import patch
-
     provider_data = VPNGatewayProviderData(
         gateway_dns_name="gluetun.vpn-gateway.svc.cluster.local",
         cluster_cidrs="10.1.0.0/16,10.152.183.0/24",
