@@ -1,0 +1,118 @@
+name: gluetun-k8s
+type: charm
+title: Gluetun VPN Gateway
+summary: VPN gateway for Kubernetes workloads using gluetun and pod-gateway
+description: |
+  Runs gluetun as a VPN client with pod-gateway VXLAN overlay networking.
+  Consumer pods route traffic through this gateway via the vpn-gateway relation.
+
+  Requires --trust for StatefulSet patching.
+  Deploy outside Istio Ambient mesh namespaces.
+
+links:
+  documentation: https://github.com/charmarr/charmarr
+  source: https://github.com/charmarr/charmarr
+  issues: https://github.com/charmarr/charmarr/issues
+
+assumes:
+  - k8s-api
+  - juju >= 3.6
+
+base: ubuntu@24.04
+platforms:
+  amd64:
+
+parts:
+  charm:
+    source: .
+    plugin: uv
+    build-packages: [git]
+    build-snaps: [astral-uv]
+
+containers:
+  gluetun:
+    resource: gluetun-image
+
+resources:
+  gluetun-image:
+    type: oci-image
+    description: Gluetun VPN client container
+    upstream-source: ghcr.io/qdm12/gluetun:v3.40.0
+
+provides:
+  vpn-gateway:
+    interface: vpn-gateway
+
+config:
+  options:
+    cluster-cidrs:
+      type: string
+      default: ""
+      description: |
+        Comma-separated pod/service CIDRs excluded from VPN routing.
+        Example: "10.1.0.0/16,10.152.183.0/24" (MicroK8s)
+
+    vpn-provider:
+      type: string
+      default: ""
+      description: VPN provider (nordvpn, mullvad, protonvpn, pia, surfshark, ivpn, windscribe, custom).
+
+    vpn-type:
+      type: string
+      default: "wireguard"
+      description: VPN protocol (wireguard only in v1).
+
+    wireguard-private-key-secret:
+      type: secret
+      description: |
+        Juju secret with 'private-key' attribute containing WireGuard private key.
+
+        juju add-secret vpn-key private-key="wOEI9rqqbDwnN8/..."
+        juju grant-secret vpn-key gluetun
+        juju config gluetun wireguard-private-key-secret=secret:vpn-key
+
+    wireguard-addresses:
+      type: string
+      default: ""
+      description: |
+        WireGuard interface address in CIDR format.
+        Example: "10.64.222.21/32"
+
+    server-countries:
+      type: string
+      default: ""
+      description: Comma-separated preferred server countries.
+
+    server-cities:
+      type: string
+      default: ""
+      description: Comma-separated preferred server cities.
+
+    vpn-endpoint-ip:
+      type: string
+      default: ""
+      description: VPN server IP address (custom provider).
+
+    vpn-endpoint-port:
+      type: int
+      default: 51820
+      description: VPN server port (custom provider).
+
+    wireguard-public-key:
+      type: string
+      default: ""
+      description: Server's WireGuard public key (custom provider).
+
+    vxlan-id:
+      type: int
+      default: 42
+      description: |
+        VXLAN tunnel ID (1-16777215).
+
+        Unique ID for each gluetun-k8s instance in the cluster.
+        If not running multiple instances, change the default only if you know what you're doing.
+
+    dns-over-tls:
+      type: boolean
+      default: true
+      description: Enable DNS-over-TLS.
