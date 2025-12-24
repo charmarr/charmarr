@@ -23,11 +23,13 @@ def mock_k8s():
         patch("charm.K8sResourceManager") as mock_k8s_manager,
         patch("charm.deploy_nfs_server") as mock_deploy_nfs,
         patch("charm.cleanup_nfs_server") as mock_cleanup_nfs,
+        patch("charm.reconcile_gateway_client") as mock_gw_client,
     ):
         mock_k8s_manager.return_value = MagicMock()
         mock_reconcile.return_value = None
         mock_deploy_nfs.return_value = "10.152.183.100"
         mock_cleanup_nfs.return_value = None
+        mock_gw_client.return_value = None
         yield mock_k8s_manager
 
 

@@ -4,6 +4,8 @@
 
 """Charmarr Multimeter - test utility charm for validating interface providers."""
 
+import logging
+
 import ops
 from lightkube import ApiError
 from lightkube.resources.core_v1 import PersistentVolume, PersistentVolumeClaim
@@ -27,7 +29,10 @@ from charmarr_lib.core.interfaces import (
     MediaStorageRequirer,
     MediaStorageRequirerData,
 )
+from charmarr_lib.vpn import reconcile_gateway_client
 from charmarr_lib.vpn.interfaces import VPNGatewayRequirer, VPNGatewayRequirerData
+
+logger = logging.getLogger(__name__)
 
 CONTAINER_NAME = "multimeter"
 
@@ -100,6 +105,8 @@ class CharmarrMultimeterCharm(ops.CharmBase):
         if self.model.get_relation("vpn-gateway"):
             self._vpn_gateway.publish_data(VPNGatewayRequirerData(instance_name=instance_name))
 
+        self._reconcile_vpn()
+
     def _reconcile_storage(self) -> None:
         """Mount or unmount shared storage based on relation state."""
         storage_data = self._media_storage.get_provider()
@@ -110,6 +117,18 @@ class CharmarrMultimeterCharm(ops.CharmBase):
             container_name=CONTAINER_NAME,
             pvc_name=storage_data.pvc_name if storage_data else None,
             mount_path=storage_data.mount_path if storage_data else "/data",
+        )
+
+    def _reconcile_vpn(self) -> None:
+        """Reconcile VPN client-side patching based on gateway state."""
+        gateway_data = self._vpn_gateway.get_gateway()
+
+        reconcile_gateway_client(
+            manager=self.k8s,
+            statefulset_name=self.app.name,
+            namespace=self.model.name,
+            data=gateway_data,
+            killswitch=True,
         )
 
     def _on_collect_unit_status(self, event: ops.CollectStatusEvent) -> None:

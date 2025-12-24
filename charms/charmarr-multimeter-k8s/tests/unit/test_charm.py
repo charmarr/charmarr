@@ -12,6 +12,7 @@ from charmarr_lib.core.interfaces import (
     MediaStorageProviderData,
     MediaStorageRequirerData,
 )
+from charmarr_lib.vpn.interfaces import VPNGatewayProviderData, VPNGatewayRequirerData
 
 
 def test_active_status_no_relations(ctx):
@@ -153,3 +154,68 @@ def test_get_mounts_action_returns_mounts(ctx, mock_k8s):
         ctx.on.action("get-mounts", params={}),
         State(leader=True, containers=[container]),
     )
+
+
+def test_publishes_vpn_gateway_requirer_data(ctx):
+    """Charm publishes requirer data when vpn-gateway relation exists."""
+    relation = Relation(endpoint="vpn-gateway", interface="vpn-gateway")
+    state_in = State(leader=True, relations=[relation])
+
+    state_out = ctx.run(ctx.on.relation_joined(relation), state_in)
+
+    relation_out = state_out.get_relations("vpn-gateway")[0]
+    assert "config" in relation_out.local_app_data
+    data = VPNGatewayRequirerData.model_validate_json(relation_out.local_app_data["config"])
+    assert data.instance_name == "charmarr-multimeter-k8s"
+
+
+def test_reconcile_vpn_when_gateway_ready(ctx):
+    """Charm reconciles VPN client when gateway is ready and connected."""
+    from unittest.mock import patch
+
+    provider_data = VPNGatewayProviderData(
+        gateway_dns_name="gluetun.vpn-gateway.svc.cluster.local",
+        cluster_cidrs="10.1.0.0/16,10.152.183.0/24",
+        cluster_dns_ip="10.152.183.10",
+        vpn_connected=True,
+        external_ip="185.112.34.56",
+        instance_name="gluetun",
+    )
+    relation = Relation(
+        endpoint="vpn-gateway",
+        interface="vpn-gateway",
+        remote_app_data={"config": provider_data.model_dump_json()},
+    )
+    state_in = State(leader=True, relations=[relation])
+
+    with patch("charm.reconcile_gateway_client") as mock_gw_client:
+        ctx.run(ctx.on.relation_changed(relation), state_in)
+        mock_gw_client.assert_called_once()
+        call_kwargs = mock_gw_client.call_args.kwargs
+        assert call_kwargs["killswitch"] is True
+        assert call_kwargs["data"].vpn_connected is True
+
+
+def test_reconcile_vpn_when_vpn_not_connected(ctx):
+    """Charm reconciles VPN client even when VPN is not connected."""
+    from unittest.mock import patch
+
+    provider_data = VPNGatewayProviderData(
+        gateway_dns_name="gluetun.vpn-gateway.svc.cluster.local",
+        cluster_cidrs="10.1.0.0/16,10.152.183.0/24",
+        cluster_dns_ip="10.152.183.10",
+        vpn_connected=False,
+        instance_name="gluetun",
+    )
+    relation = Relation(
+        endpoint="vpn-gateway",
+        interface="vpn-gateway",
+        remote_app_data={"config": provider_data.model_dump_json()},
+    )
+    state_in = State(leader=True, relations=[relation])
+
+    with patch("charm.reconcile_gateway_client") as mock_gw_client:
+        ctx.run(ctx.on.relation_changed(relation), state_in)
+        mock_gw_client.assert_called_once()
+        call_kwargs = mock_gw_client.call_args.kwargs
+        assert call_kwargs["data"].vpn_connected is False
