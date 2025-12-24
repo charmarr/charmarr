@@ -3,8 +3,6 @@
 
 """Unit tests for gluetun-k8s config validation."""
 
-from unittest.mock import patch
-
 import ops
 from ops.testing import Container, Secret, State
 
@@ -92,43 +90,41 @@ def test_blocked_custom_requires_all_fields(ctx):
     )
 
 
-def test_non_leader_standby_status(ctx):
+def test_non_leader_standby_status(ctx, mock_k8s):
     """Non-leader unit shows standby status with valid config."""
     secret = Secret(tracked_content={"private-key": "test-key"})
-    with patch("charm.K8sResourceManager"):
-        state = ctx.run(
-            ctx.on.config_changed(),
-            State(
-                leader=False,
-                containers=[GLUETUN_CONTAINER],
-                config={
-                    "cluster-cidrs": "10.1.0.0/16",
-                    "vpn-provider": "nordvpn",
-                    "wireguard-private-key-secret": secret.id,
-                },
-                secrets=[secret],
-            ),
-        )
+    state = ctx.run(
+        ctx.on.config_changed(),
+        State(
+            leader=False,
+            containers=[GLUETUN_CONTAINER],
+            config={
+                "cluster-cidrs": "10.1.0.0/16",
+                "vpn-provider": "nordvpn",
+                "wireguard-private-key-secret": secret.id,
+            },
+            secrets=[secret],
+        ),
+    )
     assert state.unit_status == ops.WaitingStatus("Standby (non-leader unit)")
 
 
-def test_blocked_when_secret_missing_private_key(ctx):
+def test_blocked_when_secret_missing_private_key(ctx, mock_k8s):
     """Charm is blocked when secret exists but missing private-key attribute."""
     secret = Secret(tracked_content={"wrong-key": "value"})
-    with patch("charm.K8sResourceManager"):
-        state = ctx.run(
-            ctx.on.config_changed(),
-            State(
-                leader=True,
-                containers=[GLUETUN_CONTAINER],
-                config={
-                    "cluster-cidrs": "10.1.0.0/16",
-                    "vpn-provider": "nordvpn",
-                    "wireguard-private-key-secret": secret.id,
-                },
-                secrets=[secret],
-            ),
-        )
+    state = ctx.run(
+        ctx.on.config_changed(),
+        State(
+            leader=True,
+            containers=[GLUETUN_CONTAINER],
+            config={
+                "cluster-cidrs": "10.1.0.0/16",
+                "vpn-provider": "nordvpn",
+                "wireguard-private-key-secret": secret.id,
+            },
+            secrets=[secret],
+        ),
+    )
     assert state.unit_status == ops.BlockedStatus("Secret not found or missing private-key")
 
 

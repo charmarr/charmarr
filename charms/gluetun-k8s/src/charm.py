@@ -5,14 +5,15 @@
 """Gluetun VPN Gateway Charm."""
 
 import logging
-from dataclasses import dataclass
 from typing import Any
 
 import httpx
 import ops
+from lightkube.core.exceptions import ApiError
 from lightkube.models.core_v1 import Container, SecurityContext
 from lightkube.resources.apps_v1 import StatefulSet
 from ops.pebble import Layer
+from pydantic import BaseModel
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from charmarr_lib.core import K8sResourceManager, observe_events, reconcilable_events_k8s
@@ -23,6 +24,7 @@ from charmarr_lib.vpn import (
 from charmarr_lib.vpn.interfaces import VPNGatewayProvider, VPNGatewayProviderData
 
 GLUETUN_CONTAINER_NAME = "gluetun"
+DEFAULT_WIREGUARD_PORT = 51820
 
 logger = logging.getLogger(__name__)
 
@@ -35,8 +37,7 @@ HEALTH_CHECK_WAIT_MIN = 2
 HEALTH_CHECK_WAIT_MAX = 5
 
 
-@dataclass
-class VPNHealthStatus:
+class VPNHealthStatus(BaseModel, frozen=True):
     """VPN health check result."""
 
     connected: bool
@@ -49,7 +50,7 @@ class GluetunCharm(ops.CharmBase):
 
     def __init__(self, framework: ops.Framework) -> None:
         super().__init__(framework)
-        self._container = self.unit.get_container("gluetun")
+        self._container = self.unit.get_container(GLUETUN_CONTAINER_NAME)
         self._vpn_gateway = VPNGatewayProvider(self, "vpn-gateway")
         self._k8s: K8sResourceManager | None = None
 
@@ -63,43 +64,56 @@ class GluetunCharm(ops.CharmBase):
             self._k8s = K8sResourceManager()
         return self._k8s
 
+    def _get_config_str(self, key: str, default: str = "", *, lowercase: bool = False) -> str:
+        """Get a config value as a stripped string."""
+        value = str(self.config.get(key, default)).strip()
+        return value.lower() if lowercase else value
+
+    def _validate_vpn_type(self) -> str | None:
+        """Validate VPN type is WireGuard."""
+        vpn_type = self._get_config_str("vpn-type", "wireguard", lowercase=True)
+        if vpn_type != "wireguard":
+            return "OpenVPN is not supported"
+        return None
+
+    def _validate_required_config(self) -> str | None:
+        """Validate required configuration fields are present."""
+        if not self._get_config_str("cluster-cidrs"):
+            return "cluster-cidrs config is required"
+        if not self._get_config_str("vpn-provider"):
+            return "vpn-provider config is required"
+        if not self.config.get("wireguard-private-key-secret"):
+            return "wireguard-private-key-secret is required"
+        return None
+
+    def _validate_provider_config(self) -> str | None:
+        """Validate provider-specific configuration."""
+        provider = self._get_config_str("vpn-provider", lowercase=True)
+
+        if provider in PROVIDERS_REQUIRING_ADDRESSES and not self._get_config_str(
+            "wireguard-addresses"
+        ):
+            return f"wireguard-addresses is required for provider '{provider}'"
+
+        if provider == "custom":
+            if not self._get_config_str("vpn-endpoint-ip"):
+                return "vpn-endpoint-ip is required for custom provider"
+            if not self._get_config_str("wireguard-public-key"):
+                return "wireguard-public-key is required for custom provider"
+
+        return None
+
     def _validate_config(self) -> str | None:
         """Validate charm configuration.
 
         Returns:
             Error message if config is invalid, None if valid.
         """
-        vpn_type = str(self.config.get("vpn-type", "wireguard")).strip().lower()
-        if vpn_type != "wireguard":
-            return "OpenVPN is not supported"
-
-        provider = str(self.config.get("vpn-provider", "")).strip().lower()
-
-        cluster_cidrs = str(self.config.get("cluster-cidrs", "")).strip()
-        if not cluster_cidrs:
-            return "cluster-cidrs config is required"
-
-        if not provider:
-            return "vpn-provider config is required"
-
-        if not self.config.get("wireguard-private-key-secret"):
-            return "wireguard-private-key-secret is required"
-
-        if provider in PROVIDERS_REQUIRING_ADDRESSES:
-            wireguard_addresses = str(self.config.get("wireguard-addresses", "")).strip()
-            if not wireguard_addresses:
-                return f"wireguard-addresses is required for provider '{provider}'"
-
-        if provider == "custom":
-            vpn_endpoint_ip = str(self.config.get("vpn-endpoint-ip", "")).strip()
-            if not vpn_endpoint_ip:
-                return "vpn-endpoint-ip is required for custom provider"
-
-            wireguard_public_key = str(self.config.get("wireguard-public-key", "")).strip()
-            if not wireguard_public_key:
-                return "wireguard-public-key is required for custom provider"
-
-        return None
+        return (
+            self._validate_vpn_type()
+            or self._validate_required_config()
+            or self._validate_provider_config()
+        )
 
     def _get_private_key(self) -> str | None:
         """Retrieve WireGuard private key from Juju secret."""
@@ -116,7 +130,7 @@ class GluetunCharm(ops.CharmBase):
 
     def _get_cluster_cidrs_list(self) -> list[str]:
         """Parse cluster-cidrs config into a list."""
-        cluster_cidrs = str(self.config.get("cluster-cidrs", "")).strip()
+        cluster_cidrs = self._get_config_str("cluster-cidrs")
         return [c.strip() for c in cluster_cidrs.split(",") if c.strip()]
 
     def _push_iptables_post_rules(self) -> None:
@@ -134,8 +148,8 @@ class GluetunCharm(ops.CharmBase):
 
     def _build_pebble_layer(self, private_key: str) -> Layer:
         """Build Pebble layer for gluetun service."""
-        provider = str(self.config.get("vpn-provider", "")).strip().lower()
-        cluster_cidrs = str(self.config.get("cluster-cidrs", "")).strip()
+        provider = self._get_config_str("vpn-provider", lowercase=True)
+        cluster_cidrs = self._get_config_str("cluster-cidrs")
         dns_over_tls = self.config.get("dns-over-tls", True)
 
         env = {
@@ -147,17 +161,19 @@ class GluetunCharm(ops.CharmBase):
             "DOT": "on" if dns_over_tls else "off",
         }
 
-        if addr := str(self.config.get("wireguard-addresses", "")).strip():
+        if addr := self._get_config_str("wireguard-addresses"):
             env["WIREGUARD_ADDRESSES"] = addr
-        if countries := str(self.config.get("server-countries", "")).strip():
+        if countries := self._get_config_str("server-countries"):
             env["SERVER_COUNTRIES"] = countries
-        if cities := str(self.config.get("server-cities", "")).strip():
+        if cities := self._get_config_str("server-cities"):
             env["SERVER_CITIES"] = cities
 
         if provider == "custom":
-            env["VPN_ENDPOINT_IP"] = str(self.config.get("vpn-endpoint-ip", ""))
-            env["VPN_ENDPOINT_PORT"] = str(self.config.get("vpn-endpoint-port", 51820))
-            env["WIREGUARD_PUBLIC_KEY"] = str(self.config.get("wireguard-public-key", ""))
+            env["VPN_ENDPOINT_IP"] = self._get_config_str("vpn-endpoint-ip")
+            env["VPN_ENDPOINT_PORT"] = str(
+                self.config.get("vpn-endpoint-port", DEFAULT_WIREGUARD_PORT)
+            )
+            env["WIREGUARD_PUBLIC_KEY"] = self._get_config_str("wireguard-public-key")
 
         return Layer(
             {
@@ -207,7 +223,7 @@ class GluetunCharm(ops.CharmBase):
         """Check if gluetun container has privileged security context."""
         try:
             sts = self.k8s.get(StatefulSet, self.app.name, self.model.name)
-        except Exception:
+        except ApiError:
             return False
 
         if sts.spec is None or sts.spec.template.spec is None:
@@ -252,7 +268,7 @@ class GluetunCharm(ops.CharmBase):
         self, health: VPNHealthStatus, cluster_dns_ip: str
     ) -> VPNGatewayProviderData:
         """Build VPN gateway provider data for relation."""
-        cluster_cidrs = str(self.config.get("cluster-cidrs", "")).strip()
+        cluster_cidrs = self._get_config_str("cluster-cidrs")
         vxlan_id = int(self.config.get("vxlan-id", 42))
 
         return VPNGatewayProviderData(
@@ -266,7 +282,11 @@ class GluetunCharm(ops.CharmBase):
         )
 
     def _reconcile(self, event: ops.EventBase) -> None:
-        """Main reconciliation handler."""
+        """Reconcile charm state with desired configuration.
+
+        Early returns when: non-leader, scaled beyond 1, invalid config,
+        privilege patch applied (pod restarting), pebble not ready, or missing secret.
+        """
         if not self.unit.is_leader():
             return
 
