@@ -49,6 +49,10 @@ parts:
 #      craftctl default
 #      git describe --always > $CRAFT_PART_INSTALL/version
 
+charm-libs:
+  - lib: istio_beacon_k8s.service_mesh
+    version: "0"
+
 requires:
   media-storage:
     interface: media-storage
@@ -65,6 +69,21 @@ requires:
   vpn-gateway:
     interface: vpn-gateway
     optional: true
+  service-mesh:
+    interface: service_mesh
+    limit: 1
+    optional: true
+    description: Subscribe this charm into a service mesh for policy-driven traffic management
+  require-cmr-mesh:
+    interface: cross_model_mesh
+    optional: true
+    description: Allow cross-model applications access via service mesh
+
+provides:
+  provide-cmr-mesh:
+    interface: cross_model_mesh
+    optional: true
+    description: Access cross-model applications via service mesh
 
 actions:
   get-pvc:

@@ -7,6 +7,7 @@
 import logging
 
 import ops
+from charms.istio_beacon_k8s.v0.service_mesh import ServiceMeshConsumer
 from lightkube import ApiError
 from lightkube.resources.core_v1 import PersistentVolume, PersistentVolumeClaim
 
@@ -48,6 +49,7 @@ class CharmarrMultimeterCharm(ops.CharmBase):
         self._download_client = DownloadClientRequirer(self, "download-client")
         self._media_manager = MediaManagerRequirer(self, "media-manager")
         self._vpn_gateway = VPNGatewayRequirer(self, "vpn-gateway")
+        self._service_mesh = ServiceMeshConsumer(self)
         self._k8s: K8sResourceManager | None = None
 
         observe_events(self, reconcilable_events_k8s, self._reconcile)
@@ -155,6 +157,8 @@ class CharmarrMultimeterCharm(ops.CharmBase):
         if self._media_manager.get_providers():
             count += 1
         if self._vpn_gateway.get_gateway() is not None:
+            count += 1
+        if self._service_mesh.mesh_type() is not None:
             count += 1
         return count
 
