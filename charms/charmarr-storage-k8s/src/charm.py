@@ -152,7 +152,7 @@ class CharmarrStorageCharm(ops.CharmBase):
         if backend_type == BackendType.NATIVE_NFS.value:
             return bool(self.config.get("nfs-server") and self.config.get("nfs-path"))
 
-        return True
+        return False
 
     def _reconcile_storage_class_pvc(self) -> None:
         """Reconcile PVC for storage-class backend."""

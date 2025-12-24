@@ -52,9 +52,9 @@ def nfs_server_ip(juju: jubilant.Juju) -> Generator[str, None, None]:
     try:
         result = juju.run("charmarr-multimeter/0", "deploy-nfs-server")
         ip = result.results["nfs-server-ip"]
-        logger.info(f"NFS server deployed at {ip}")
+        logger.info("NFS server deployed at %s", ip)
     except Exception as e:
-        logger.warning(f"NFS server deployment failed: {e}")
+        logger.warning("NFS server deployment failed: %s", e)
         pytest.skip(f"NFS server deployment failed: {e}")
 
     yield ip
@@ -62,4 +62,4 @@ def nfs_server_ip(juju: jubilant.Juju) -> Generator[str, None, None]:
     try:
         juju.run("charmarr-multimeter/0", "cleanup-nfs-server")
     except Exception as e:
-        logger.warning(f"NFS server cleanup failed: {e}")
+        logger.warning("NFS server cleanup failed: %s", e)

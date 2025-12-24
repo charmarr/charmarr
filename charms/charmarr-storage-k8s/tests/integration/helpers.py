@@ -39,7 +39,7 @@ class PVData(BaseModel):
 
 def pack_storage_charm() -> Path:
     """Pack the storage charm and return path to .charm file."""
-    logger.info(f"Packing charm from {CHARM_DIR}")
+    logger.info("Packing charm from %s", CHARM_DIR)
     return pack(CHARM_DIR)
 
 
@@ -51,7 +51,7 @@ def deploy_storage_charm(
 ) -> None:
     """Deploy charmarr-storage charm with specified backend."""
     full_config = {"backend-type": backend_type, **config}
-    logger.info(f"Deploying charmarr-storage with config: {full_config}")
+    logger.info("Deploying charmarr-storage with config: %s", full_config)
 
     juju.deploy(
         str(charm_path),
@@ -75,7 +75,7 @@ def get_pvc(juju: jubilant.Juju, namespace: str, name: str) -> PVCData | None:
             phase=result.results.get("phase", ""),
         )
     except Exception as e:
-        logger.warning(f"Failed to get PVC: {e}")
+        logger.warning("Failed to get PVC: %s", e)
         return None
 
 
@@ -92,7 +92,7 @@ def get_pv(juju: jubilant.Juju, name: str) -> PVData | None:
             phase=result.results.get("phase", ""),
         )
     except Exception as e:
-        logger.warning(f"Failed to get PV: {e}")
+        logger.warning("Failed to get PV: %s", e)
         return None
 
 
@@ -103,5 +103,5 @@ def get_pod_mounts(juju: jubilant.Juju, app_name: str) -> list[str]:
         mounts_str = result.results.get("mounts", "")
         return mounts_str.split(",") if mounts_str else []
     except Exception as e:
-        logger.warning(f"Failed to get mounts: {e}")
+        logger.warning("Failed to get mounts: %s", e)
         return []
