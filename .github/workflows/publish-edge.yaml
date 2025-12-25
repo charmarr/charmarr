@@ -12,6 +12,7 @@ on:
           - auto
           - multimeter
           - storage
+          - gluetun
           - all
         default: auto
       dry-run:
@@ -29,6 +30,7 @@ jobs:
     outputs:
       multimeter: ${{ steps.check.outputs.multimeter }}
       storage: ${{ steps.check.outputs.storage }}
+      gluetun: ${{ steps.check.outputs.gluetun }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -45,6 +47,9 @@ jobs:
           if [[ "$CHARM_INPUT" == "storage" || "$CHARM_INPUT" == "all" ]]; then
             echo "storage=true" >> "$GITHUB_OUTPUT"
           fi
+          if [[ "$CHARM_INPUT" == "gluetun" || "$CHARM_INPUT" == "all" ]]; then
+            echo "gluetun=true" >> "$GITHUB_OUTPUT"
+          fi
 
           # Auto-detect from changes (push or workflow_dispatch with auto)
           if [[ -z "$CHARM_INPUT" || "$CHARM_INPUT" == "auto" ]]; then
@@ -55,6 +60,9 @@ jobs:
             fi
             if echo "$changed" | grep -q "^charms/charmarr-storage-k8s/"; then
               echo "storage=true" >> "$GITHUB_OUTPUT"
+            fi
+            if echo "$changed" | grep -q "^charms/gluetun-k8s/"; then
+              echo "gluetun=true" >> "$GITHUB_OUTPUT"
             fi
           fi
 
@@ -72,6 +80,15 @@ jobs:
     needs: detect
     if: needs.detect.outputs.storage == 'true'
     uses: ./.github/workflows/storage-k8s-publish-edge.yaml
+    with:
+      dry-run: ${{ inputs.dry-run || false }}
+    secrets: inherit
+
+  gluetun:
+    name: Gluetun
+    needs: detect
+    if: needs.detect.outputs.gluetun == 'true'
+    uses: ./.github/workflows/gluetun-k8s-publish-edge.yaml
     with:
       dry-run: ${{ inputs.dry-run || false }}
     secrets: inherit

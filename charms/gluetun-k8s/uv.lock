@@ -82,7 +82,7 @@ wheels = [
 
 [[package]]
 name = "charmarr-lib-testing"
-version = "0.2.4"
+version = "0.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jubilant" },
@@ -91,9 +91,9 @@ dependencies = [
     { name = "pytest-bdd" },
     { name = "pytest-jubilant" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/7f/4f/0741e16fe7afee403aa71a6a2949c333dfeca2346dbc57547a145acc05c1/charmarr_lib_testing-0.2.4.tar.gz", hash = "sha256:a50112c579335431f1cb429f45e59d45467748c054bcbfb69cb43e923eb85587", size = 6212, upload-time = "2025-12-24T23:31:03.186Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fa/48/048e4d398b019450c8ee1da851b4ce339b9429e1878cc56730954629173b/charmarr_lib_testing-0.3.0.tar.gz", hash = "sha256:a5d1549dc20c71e44c4be3ee2a1fdc33da7379f22fd3a68f5fec391de1a1419c", size = 6603, upload-time = "2025-12-25T04:05:19.561Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d9/f4/d9ab761224f074c88aebe9460e9ba75729e596e8c50ec90a3276178f22dc/charmarr_lib_testing-0.2.4-py3-none-any.whl", hash = "sha256:5dc2fd1c040d720fb1ad5917ff2554a35609b2ca7b3ff55e1906d4ac0546aa64", size = 5043, upload-time = "2025-12-24T23:31:00.286Z" },
+    { url = "https://files.pythonhosted.org/packages/86/f6/486f554c510eac3084a98dddfc7355aebb31bb2de120ec30577ac8599889/charmarr_lib_testing-0.3.0-py3-none-any.whl", hash = "sha256:394b5a26d008f55965491c6faaa8d9f43c79dc332ac7b7fd45d98e9a9bcb4014", size = 5668, upload-time = "2025-12-25T04:05:18.491Z" },
 ]
 
 [[package]]
