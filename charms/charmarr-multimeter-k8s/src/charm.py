@@ -19,6 +19,7 @@ from _vpn_test_actions import (
     handle_check_vxlan_interface,
     handle_get_container_env,
     handle_get_external_ip,
+    handle_get_gateway_client_config,
     handle_get_statefulset_containers,
 )
 from charmarr_lib.core import (
@@ -82,6 +83,9 @@ class CharmarrMultimeterCharm(ops.CharmBase):
             self.on.check_network_policy_action, self._on_check_network_policy_action
         )
         framework.observe(self.on.check_configmap_action, self._on_check_configmap_action)
+        framework.observe(
+            self.on.get_gateway_client_config_action, self._on_get_gateway_client_config_action
+        )
 
     @property
     def k8s(self) -> K8sResourceManager:
@@ -285,6 +289,9 @@ class CharmarrMultimeterCharm(ops.CharmBase):
 
     def _on_check_configmap_action(self, event: ops.ActionEvent) -> None:
         handle_check_configmap(event, self.k8s)
+
+    def _on_get_gateway_client_config_action(self, event: ops.ActionEvent) -> None:
+        handle_get_gateway_client_config(event, self.k8s, self.app.name, self.model.name)
 
 
 if __name__ == "__main__":

@@ -175,3 +175,5 @@ actions:
         type: string
         description: ConfigMap name
     required: [namespace, name]
+  get-gateway-client-config:
+    description: Get parsed gateway client config (vxlan-id, k8s-dns-ips, etc.)

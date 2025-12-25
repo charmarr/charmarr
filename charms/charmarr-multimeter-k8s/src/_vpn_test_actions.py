@@ -146,3 +146,24 @@ def handle_check_configmap(event: ops.ActionEvent, k8s: K8sResourceManager) -> N
         event.set_results({"exists": "true"})
     except ApiError:
         event.set_results({"exists": "false"})
+
+
+def handle_get_gateway_client_config(
+    event: ops.ActionEvent, k8s: K8sResourceManager, app_name: str, namespace: str
+) -> None:
+    """Get gateway client config from the pod-gateway ConfigMap."""
+    configmap_name = f"{app_name}-gateway-client-config"
+    try:
+        cm = k8s.get(ConfigMap, configmap_name, namespace)
+        if not cm.data or "settings.sh" not in cm.data:
+            event.fail(f"ConfigMap {configmap_name} has no settings.sh")
+            return
+        settings = cm.data["settings.sh"]
+        result: dict[str, str] = {}
+        for line in settings.strip().split("\n"):
+            if "=" in line:
+                key, val = line.split("=", 1)
+                result[key.lower().replace("_", "-")] = val.strip('"')
+        event.set_results(result)
+    except ApiError as e:
+        event.fail(f"Failed to get ConfigMap: {e}")
