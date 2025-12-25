@@ -18,6 +18,7 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_ex
 
 from charmarr_lib.core import K8sResourceManager, observe_events, reconcilable_events_k8s
 from charmarr_lib.vpn import (
+    ISTIO_ZTUNNEL_LINK_LOCAL,
     get_cluster_dns_ip,
     reconcile_gateway,
 )
@@ -268,7 +269,9 @@ class GluetunCharm(ops.CharmBase):
         self, health: VPNHealthStatus, cluster_dns_ip: str
     ) -> VPNGatewayProviderData:
         """Build VPN gateway provider data for relation."""
-        cluster_cidrs = self._get_config_str("cluster-cidrs")
+        # Include ztunnel IP so clients in Istio ambient mesh can respond to probes.
+        # Harmless without Istio since link-local addresses are reserved (RFC 3927).
+        cluster_cidrs = f"{self._get_config_str('cluster-cidrs')},{ISTIO_ZTUNNEL_LINK_LOCAL}"
         vxlan_id = int(self.config.get("vxlan-id", 42))
 
         return VPNGatewayProviderData(
