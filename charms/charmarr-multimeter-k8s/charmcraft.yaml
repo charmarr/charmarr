@@ -177,3 +177,34 @@ actions:
     required: [namespace, name]
   get-gateway-client-config:
     description: Get parsed gateway client config (vxlan-id, k8s-dns-ips, etc.)
+  http-request:
+    description: Make HTTP request from within the cluster (retries 3x with backoff)
+    params:
+      url:
+        type: string
+        description: Target URL
+      method:
+        type: string
+        default: GET
+        description: HTTP method (GET, POST, PUT, DELETE)
+      body:
+        type: string
+        description: Request body (for POST/PUT)
+      content-type:
+        type: string
+        default: application/x-www-form-urlencoded
+        description: Content-Type header for body
+      headers:
+        type: string
+        description: Additional headers as JSON object
+      basic-auth:
+        type: string
+        description: "Basic auth as username:password"
+      cookies:
+        type: string
+        description: Cookies to send as JSON object
+      timeout:
+        type: integer
+        default: 10
+        description: Request timeout in seconds
+    required: [url]

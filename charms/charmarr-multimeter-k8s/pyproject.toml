@@ -74,7 +74,7 @@ log_cli_level = "INFO"
 
 [tool.coverage.run]
 source = ["src"]
-omit = ["tests/**", "src/_mock_nfs.py"]
+omit = ["tests/**", "src/_mock_nfs.py", "src/_http_actions.py"]
 
 [tool.coverage.report]
 show_missing = true

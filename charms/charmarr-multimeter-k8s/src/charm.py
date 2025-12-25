@@ -11,6 +11,7 @@ from charms.istio_beacon_k8s.v0.service_mesh import ServiceMeshConsumer
 from lightkube import ApiError
 from lightkube.resources.core_v1 import PersistentVolume, PersistentVolumeClaim
 
+from _http_actions import handle_http_request
 from _mock_nfs import cleanup_nfs_server, deploy_nfs_server
 from _vpn_test_actions import (
     handle_check_configmap,
@@ -86,6 +87,7 @@ class CharmarrMultimeterCharm(ops.CharmBase):
         framework.observe(
             self.on.get_gateway_client_config_action, self._on_get_gateway_client_config_action
         )
+        framework.observe(self.on.http_request_action, self._on_http_request_action)
 
     @property
     def k8s(self) -> K8sResourceManager:
@@ -292,6 +294,9 @@ class CharmarrMultimeterCharm(ops.CharmBase):
 
     def _on_get_gateway_client_config_action(self, event: ops.ActionEvent) -> None:
         handle_get_gateway_client_config(event, self.k8s, self.app.name, self.model.name)
+
+    def _on_http_request_action(self, event: ops.ActionEvent) -> None:
+        handle_http_request(event)
 
 
 if __name__ == "__main__":
