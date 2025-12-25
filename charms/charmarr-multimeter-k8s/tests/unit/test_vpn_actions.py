@@ -15,6 +15,7 @@ from _vpn_test_actions import (
     handle_check_vxlan_interface,
     handle_get_container_env,
     handle_get_external_ip,
+    handle_get_gateway_client_config,
     handle_get_statefulset_containers,
 )
 
@@ -187,3 +188,19 @@ def test_get_container_env_returns_specific_var(mock_event):
     handle_get_container_env(mock_event, k8s)
 
     mock_event.set_results.assert_called_with({"value": "42"})
+
+
+def test_get_gateway_client_config_parses_settings(mock_event):
+    k8s = MagicMock()
+    cm = MagicMock()
+    cm.data = {"settings.sh": 'VXLAN_ID="42"\nK8S_DNS_IPS="10.152.183.10"'}
+    k8s.get.return_value = cm
+
+    handle_get_gateway_client_config(mock_event, k8s, "myapp", "myns")
+
+    mock_event.set_results.assert_called_with(
+        {
+            "vxlan-id": "42",
+            "k8s-dns-ips": "10.152.183.10",
+        }
+    )
