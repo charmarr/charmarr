@@ -147,6 +147,19 @@ class GluetunCharm(ops.CharmBase):
         rules = "\n".join(f"iptables -I INPUT -s {cidr} -j ACCEPT" for cidr in cidrs)
         self._container.push("/iptables/post-rules.txt", rules, make_dirs=True)
 
+    def _build_readiness_check(self) -> dict:
+        """Build readiness check definition for Pebble layer."""
+        return {
+            f"{GLUETUN_CONTAINER_NAME}-ready": {
+                "override": "replace",
+                "level": "ready",
+                "http": {"url": f"http://localhost:{GLUETUN_HTTP_PORT}/v1/publicip/ip"},
+                "period": "10s",
+                "timeout": "3s",
+                "threshold": 3,
+            }
+        }
+
     def _build_pebble_layer(self, private_key: str) -> Layer:
         """Build Pebble layer for gluetun service."""
         provider = self._get_config_str("vpn-provider", lowercase=True)
@@ -185,7 +198,8 @@ class GluetunCharm(ops.CharmBase):
                         "startup": "enabled",
                         "environment": env,
                     }
-                }
+                },
+                "checks": self._build_readiness_check(),
             }
         )
 
@@ -270,7 +284,7 @@ class GluetunCharm(ops.CharmBase):
     ) -> VPNGatewayProviderData:
         """Build VPN gateway provider data for relation."""
         # Include ztunnel IP so clients in Istio ambient mesh can respond to probes.
-        # Harmless without Istio since link-local addresses are reserved (RFC 3927).
+        # Harmless even without Istio since link-local addresses are reserved (RFC 3927).
         cluster_cidrs = f"{self._get_config_str('cluster-cidrs')},{ISTIO_ZTUNNEL_LINK_LOCAL}"
         vxlan_id = int(self.config.get("vxlan-id", 42))
 
@@ -287,18 +301,41 @@ class GluetunCharm(ops.CharmBase):
     def _reconcile(self, event: ops.EventBase) -> None:
         """Reconcile charm state with desired configuration.
 
-        Early returns when: non-leader, scaled beyond 1, invalid config,
-        privilege patch applied (pod restarting), pebble not ready, or missing secret.
+        Reconciliation steps:
+        1. Non-leader: register readiness check (for K8s probe) and exit
+        2. Validate charm config (returns error string if invalid)
+        3. Ensure container is privileged (patches StatefulSet, pod restarts)
+        4. Wait for Pebble connection
+        5. Retrieve WireGuard private key from Juju secret
+        6. Push iptables rules and configure Pebble layer
+        7. Check VPN health and publish provider data
         """
+        # NOTE: charmarr v1 does not support scaling.
+        # Non-leader: register readiness check so K8s removes them from Service endpoints.
+        # This acts as a guardrail if someone scales the application beyond 1.
         if not self.unit.is_leader():
+            if self._container.can_connect():
+                self._container.add_layer(
+                    f"{GLUETUN_CONTAINER_NAME}-check",
+                    Layer({"checks": self._build_readiness_check()}),
+                    combine=True,
+                )
             return
 
+        # Warn if scaled beyond 1 (leader still runs, non-leaders idle)
         if self.app.planned_units() > 1:
+            logger.warning(
+                "Scaling > 1 not supported. Non-leader units are idle. "
+                "Run: juju scale-application %s 1",
+                self.app.name,
+            )
+
+        # Returns error string if invalid, None if valid
+        if config_error := self._validate_config():
+            logger.debug("Config validation failed: %s", config_error)
             return
 
-        if self._validate_config():
-            return
-
+        # Returns True if patch applied (pod restarting), False if already privileged
         if self._ensure_gluetun_privileged():
             return
 
@@ -309,11 +346,13 @@ class GluetunCharm(ops.CharmBase):
         if not private_key:
             return
 
+        # Configure Pebble layer and start service
         self._push_iptables_post_rules()
         layer = self._build_pebble_layer(private_key)
         self._container.add_layer("gluetun", layer, combine=True)
         self._container.replan()
 
+        # Check VPN status and publish to relations
         health = self._check_vpn_health()
         cluster_dns_ip = get_cluster_dns_ip(self.k8s)
         provider_data = self._build_provider_data(health, cluster_dns_ip)
@@ -339,10 +378,10 @@ class GluetunCharm(ops.CharmBase):
         self._collect_vpn_status(event)
 
     def _collect_scaling_status(self, event: ops.CollectStatusEvent) -> None:
-        """Block if scaled beyond 1 unit (VXLAN ID conflicts)."""
-        if self.app.planned_units() > 1:
+        """Block non-leader units when scaled beyond 1."""
+        if self.app.planned_units() > 1 and not self.unit.is_leader():
             event.add_status(
-                ops.BlockedStatus("Scale to 1 unit (multiple gateways cause VXLAN conflicts)")
+                ops.BlockedStatus("Scaling not supported - only leader runs workload")
             )
 
     def _collect_leader_status(self, event: ops.CollectStatusEvent) -> None:

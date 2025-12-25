@@ -128,8 +128,23 @@ def test_blocked_when_secret_missing_private_key(ctx, mock_k8s):
     assert state.unit_status == ops.BlockedStatus("Secret not found or missing private-key")
 
 
-def test_blocked_when_scaled_beyond_one(ctx):
-    """Charm blocks when scaled to more than 1 unit."""
+def test_non_leader_blocked_when_scaled_beyond_one(ctx):
+    """Non-leader unit is blocked when scaled beyond 1."""
+    state = ctx.run(
+        ctx.on.config_changed(),
+        State(
+            leader=False,
+            containers=[GLUETUN_CONTAINER],
+            planned_units=2,
+        ),
+    )
+    assert state.unit_status == ops.BlockedStatus(
+        "Scaling not supported - only leader runs workload"
+    )
+
+
+def test_leader_continues_when_scaled_beyond_one(ctx):
+    """Leader continues running when scaled beyond 1 (logs warning)."""
     state = ctx.run(
         ctx.on.config_changed(),
         State(
@@ -138,6 +153,5 @@ def test_blocked_when_scaled_beyond_one(ctx):
             planned_units=2,
         ),
     )
-    assert state.unit_status == ops.BlockedStatus(
-        "Scale to 1 unit (multiple gateways cause VXLAN conflicts)"
-    )
+    # Leader continues with normal status (config validation in this case)
+    assert state.unit_status == ops.BlockedStatus("cluster-cidrs config is required")
