@@ -114,3 +114,64 @@ actions:
     description: Remove the mock NFS server
   get-mounts:
     description: Get list of mount paths in the workload container
+  get-external-ip:
+    description: Get external IP from within the container (via ifconfig.me)
+  check-vxlan-interface:
+    description: Check if vxlan interface exists and get its IP
+  check-connectivity:
+    description: Check if container can reach a target
+    params:
+      target:
+        type: string
+        description: Target host/IP to check connectivity
+      timeout:
+        type: integer
+        description: Timeout in seconds (default 5)
+        default: 5
+    required: [target]
+  get-statefulset-containers:
+    description: Get container names from a StatefulSet
+    params:
+      namespace:
+        type: string
+        description: Kubernetes namespace
+      name:
+        type: string
+        description: StatefulSet name
+    required: [namespace, name]
+  get-container-env:
+    description: Get environment variables from a container in a StatefulSet
+    params:
+      namespace:
+        type: string
+        description: Kubernetes namespace
+      name:
+        type: string
+        description: StatefulSet name
+      container:
+        type: string
+        description: Container name
+      var:
+        type: string
+        description: Optional specific variable name to retrieve
+    required: [namespace, name, container]
+  check-network-policy:
+    description: Check if a NetworkPolicy exists and get its egress CIDRs
+    params:
+      namespace:
+        type: string
+        description: Kubernetes namespace
+      name:
+        type: string
+        description: NetworkPolicy name
+    required: [namespace, name]
+  check-configmap:
+    description: Check if a ConfigMap exists
+    params:
+      namespace:
+        type: string
+        description: Kubernetes namespace
+      name:
+        type: string
+        description: ConfigMap name
+    required: [namespace, name]

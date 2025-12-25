@@ -12,6 +12,15 @@ from lightkube import ApiError
 from lightkube.resources.core_v1 import PersistentVolume, PersistentVolumeClaim
 
 from _mock_nfs import cleanup_nfs_server, deploy_nfs_server
+from _vpn_test_actions import (
+    handle_check_configmap,
+    handle_check_connectivity,
+    handle_check_network_policy,
+    handle_check_vxlan_interface,
+    handle_get_container_env,
+    handle_get_external_ip,
+    handle_get_statefulset_containers,
+)
 from charmarr_lib.core import (
     K8sResourceManager,
     MediaManager,
@@ -59,6 +68,20 @@ class CharmarrMultimeterCharm(ops.CharmBase):
         framework.observe(self.on.deploy_nfs_server_action, self._on_deploy_nfs_server_action)
         framework.observe(self.on.cleanup_nfs_server_action, self._on_cleanup_nfs_server_action)
         framework.observe(self.on.get_mounts_action, self._on_get_mounts_action)
+        # VPN testing actions
+        framework.observe(self.on.get_external_ip_action, self._on_get_external_ip_action)
+        framework.observe(
+            self.on.check_vxlan_interface_action, self._on_check_vxlan_interface_action
+        )
+        framework.observe(self.on.check_connectivity_action, self._on_check_connectivity_action)
+        framework.observe(
+            self.on.get_statefulset_containers_action, self._on_get_statefulset_containers_action
+        )
+        framework.observe(self.on.get_container_env_action, self._on_get_container_env_action)
+        framework.observe(
+            self.on.check_network_policy_action, self._on_check_network_policy_action
+        )
+        framework.observe(self.on.check_configmap_action, self._on_check_configmap_action)
 
     @property
     def k8s(self) -> K8sResourceManager:
@@ -239,6 +262,29 @@ class CharmarrMultimeterCharm(ops.CharmBase):
             event.set_results({"mounts": ",".join(mounts)})
         except Exception as e:
             event.fail(f"Failed to get mounts: {e}")
+
+    # VPN testing actions
+
+    def _on_get_external_ip_action(self, event: ops.ActionEvent) -> None:
+        handle_get_external_ip(event, self.unit.get_container(CONTAINER_NAME))
+
+    def _on_check_vxlan_interface_action(self, event: ops.ActionEvent) -> None:
+        handle_check_vxlan_interface(event, self.unit.get_container(CONTAINER_NAME))
+
+    def _on_check_connectivity_action(self, event: ops.ActionEvent) -> None:
+        handle_check_connectivity(event, self.unit.get_container(CONTAINER_NAME))
+
+    def _on_get_statefulset_containers_action(self, event: ops.ActionEvent) -> None:
+        handle_get_statefulset_containers(event, self.k8s)
+
+    def _on_get_container_env_action(self, event: ops.ActionEvent) -> None:
+        handle_get_container_env(event, self.k8s)
+
+    def _on_check_network_policy_action(self, event: ops.ActionEvent) -> None:
+        handle_check_network_policy(event, self.k8s)
+
+    def _on_check_configmap_action(self, event: ops.ActionEvent) -> None:
+        handle_check_configmap(event, self.k8s)
 
 
 if __name__ == "__main__":
