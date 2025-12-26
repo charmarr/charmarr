@@ -64,18 +64,20 @@ wheels = [
 
 [[package]]
 name = "charmarr-lib-testing"
-version = "0.2.3"
+version = "0.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jubilant" },
     { name = "ops" },
+    { name = "pydantic" },
     { name = "pytest" },
     { name = "pytest-bdd" },
     { name = "pytest-jubilant" },
+    { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/44/e7/b2e15f4a7e3e91c1b597b87b55eb6b39eaa42ee65e31e45d9d63b73971c4/charmarr_lib_testing-0.2.3.tar.gz", hash = "sha256:bcbf06c622e902700de3a973a8b3804a05f6ea67c51802d3f9d75940cbc3f667", size = 6153, upload-time = "2025-12-22T01:35:49.742Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/76/42/872eda059a4af1e7807ff43ca339a97cf9320e8ca05b3733cbe73452416a/charmarr_lib_testing-0.4.0.tar.gz", hash = "sha256:4be097e719121e09bb9f1bc29104f7fbab48225ad895fbcc5c4bb3755ba5b13f", size = 9824, upload-time = "2025-12-26T11:59:35.464Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5d/97/37f4e082ea84a9f9444bc37214c9567f78964deecdb08b8445283b638643/charmarr_lib_testing-0.2.3-py3-none-any.whl", hash = "sha256:a32432e8f35d62e17e612fa65b2319a26d3331fd9a05d2ff4bc295f6905dfb3b", size = 4996, upload-time = "2025-12-22T01:35:48.777Z" },
+    { url = "https://files.pythonhosted.org/packages/dd/f2/4ec799dd4ecddc82957eb113b57eaab44f7b297a3b3837b27d3a414474c5/charmarr_lib_testing-0.4.0-py3-none-any.whl", hash = "sha256:7db6db26170841e7f5a83aa44a904379c8d1df2242d0b7046dfdfdb6f769e6a3", size = 12065, upload-time = "2025-12-26T11:59:34.053Z" },
 ]
 
 [[package]]
@@ -110,7 +112,7 @@ integration = [
 requires-dist = [
     { name = "charmarr-lib-core" },
     { name = "charmarr-lib-krm" },
-    { name = "charmarr-lib-testing", marker = "extra == 'integration'" },
+    { name = "charmarr-lib-testing", marker = "extra == 'integration'", specifier = ">=0.4.0" },
     { name = "codespell", marker = "extra == 'dev'", specifier = ">=2.0" },
     { name = "coverage", extras = ["toml"], marker = "extra == 'dev'", specifier = ">=7.0" },
     { name = "jubilant", marker = "extra == 'integration'", specifier = ">=1.6" },

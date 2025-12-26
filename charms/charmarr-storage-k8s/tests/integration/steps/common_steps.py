@@ -12,7 +12,7 @@ import pytest
 from pytest_bdd import given, parsers, then, when
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from charmarr_lib.testing import deploy_multimeter, get_app_relation_data, wait_for_active_idle
+from charmarr_lib.testing import get_app_relation_data, wait_for_active_idle
 from tests.integration.helpers import deploy_storage_charm, pack_storage_charm
 
 logger = logging.getLogger(__name__)
@@ -75,15 +75,6 @@ def deploy_native_nfs_backend(
     wait_for_active_idle(juju)
 
 
-@given("the charmarr-multimeter charm is deployed")
-def deploy_multimeter_charm(juju: jubilant.Juju):
-    """Deploy charmarr-multimeter from Charmhub."""
-    status = juju.status()
-    if "charmarr-multimeter" not in status.apps:
-        deploy_multimeter(juju)
-        wait_for_active_idle(juju)
-
-
 @given("charmarr-multimeter is related to charmarr-storage via media-storage")
 @when("charmarr-multimeter is related to charmarr-storage via media-storage")
 def integrate_multimeter_storage(juju: jubilant.Juju):
@@ -111,16 +102,6 @@ def storage_charm_active(juju: jubilant.Juju):
     app = status.apps["charmarr-storage"]
     assert app.app_status.current == "active", (
         f"Storage charm status: {app.app_status.current} - {app.app_status.message}"
-    )
-
-
-@then("the multimeter charm should be active")
-def multimeter_charm_active(juju: jubilant.Juju):
-    """Verify multimeter charm is active."""
-    status = juju.status()
-    app = status.apps["charmarr-multimeter"]
-    assert app.app_status.current == "active", (
-        f"Multimeter charm status: {app.app_status.current} - {app.app_status.message}"
     )
 
 
