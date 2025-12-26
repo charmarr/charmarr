@@ -3,7 +3,7 @@ Feature: VPN through Istio Ambient Mesh
 
   Background:
     Given istio-k8s is deployed
-    And istio-beacon-k8s is deployed
+    And istio-beacon is deployed
     And the gluetun-k8s charm is deployed with valid VPN config
     And the charmarr-multimeter charm is deployed
     And charmarr-multimeter is related to istio-beacon via service-mesh

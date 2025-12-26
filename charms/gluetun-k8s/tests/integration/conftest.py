@@ -11,7 +11,7 @@ from pathlib import Path
 import jubilant
 import pytest
 
-from charmarr_lib.testing import deploy_multimeter, wait_for_active_idle
+from charmarr_lib.testing import wait_for_active_idle
 from tests.integration.helpers import (
     create_vpn_secret,
     deploy_gluetun_charm,
@@ -22,11 +22,12 @@ from tests.integration.helpers import (
 logger = logging.getLogger(__name__)
 
 pytest_plugins = [
+    "charmarr_lib.testing.steps.multimeter",
+    "charmarr_lib.testing.steps.mesh",
     "tests.integration.steps.common_steps",
     "tests.integration.steps.vpn_steps",
     "tests.integration.steps.vxlan_steps",
     "tests.integration.steps.cleanup_steps",
-    "tests.integration.steps.istio_steps",
 ]
 
 POD_CIDR = "10.1.0.0/16"
@@ -123,26 +124,4 @@ def gluetun_deployed(
     secret_uri = create_vpn_secret(juju, wireguard_private_key)
     deploy_gluetun_charm(juju, charm_path, vpn_config, secret_uri)
     grant_secret_to_app(juju, "vpn-key", "gluetun")
-    wait_for_active_idle(juju)
-
-
-@pytest.fixture(scope="module")
-def multimeter_deployed(juju: jubilant.Juju) -> None:
-    """Ensure charmarr-multimeter is deployed."""
-    status = juju.status()
-    if "charmarr-multimeter" not in status.apps:
-        deploy_multimeter(juju)
-        wait_for_active_idle(juju)
-
-
-@pytest.fixture(scope="module")
-def multimeter_related_to_gluetun(
-    juju: jubilant.Juju, gluetun_deployed: None, multimeter_deployed: None
-) -> None:
-    """Ensure multimeter is related to gluetun via vpn-gateway."""
-    status = juju.status()
-    app = status.apps.get("charmarr-multimeter")
-    if app and "vpn-gateway" in app.relations:
-        return
-    juju.integrate("charmarr-multimeter:vpn-gateway", "gluetun:vpn-gateway")
     wait_for_active_idle(juju)

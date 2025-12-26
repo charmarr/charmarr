@@ -19,14 +19,17 @@ def deploy_gluetun(gluetun_deployed: None) -> None:
     """Deploy gluetun with VPN configuration (uses fixture)."""
 
 
-@given("the charmarr-multimeter charm is deployed")
-def deploy_multimeter(multimeter_deployed: None) -> None:
-    """Deploy charmarr-multimeter (uses fixture)."""
-
-
 @given("charmarr-multimeter is related to gluetun via vpn-gateway")
-def relate_multimeter_gluetun(multimeter_related_to_gluetun: None) -> None:
-    """Integrate multimeter with gluetun (uses fixture)."""
+def relate_multimeter_gluetun(juju: jubilant.Juju) -> None:
+    """Integrate multimeter with gluetun via vpn-gateway."""
+    from charmarr_lib.testing import wait_for_active_idle
+
+    status = juju.status()
+    app = status.apps.get("charmarr-multimeter")
+    if app and "vpn-gateway" in app.relations:
+        return
+    juju.integrate("charmarr-multimeter:vpn-gateway", "gluetun:vpn-gateway")
+    wait_for_active_idle(juju)
 
 
 @then("the gluetun charm should be active")
@@ -42,16 +45,6 @@ def gluetun_has_vpn_ip(juju: jubilant.Juju) -> None:
     _, message = get_gluetun_status(juju)
     ip = extract_vpn_ip_from_status(message)
     assert ip is not None, f"No VPN IP in status message: {message}"
-
-
-@then("the multimeter charm should be active")
-def multimeter_active(juju: jubilant.Juju) -> None:
-    """Verify multimeter charm is active."""
-    status = juju.status()
-    app = status.apps["charmarr-multimeter"]
-    assert app.app_status.current == "active", (
-        f"Multimeter status: {app.app_status.current} - {app.app_status.message}"
-    )
 
 
 @then("the multimeter external IP should match the gluetun VPN IP")

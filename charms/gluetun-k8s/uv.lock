@@ -53,7 +53,7 @@ wheels = [
 
 [[package]]
 name = "charmarr-lib-core"
-version = "0.3.2"
+version = "0.6.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "charmarr-lib-krm" },
@@ -62,9 +62,9 @@ dependencies = [
     { name = "ops" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/86/be/47436cc9664a0dbeab230ee305d73d71085033f849d690ddac0f0d845ff8/charmarr_lib_core-0.3.2.tar.gz", hash = "sha256:8588fd7e3b488d6bc6bd344722b8969b1eb746a1ef0a6a73669d182dccf2faf9", size = 28175, upload-time = "2025-12-24T23:31:01.482Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1d/b0/ae8ff48b0bfe5338345ade07e8e7eb16053a462a9f26f2b04988a32b5675/charmarr_lib_core-0.6.1.tar.gz", hash = "sha256:9714ac16576791bf3da29dde64364d0c36e67c55fa8100199a8e4fbdcf196473", size = 30432, upload-time = "2025-12-26T08:32:06.716Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/55/59/d7dd91fa7e8901a874821b856e1bce2e985200f9760fa576ccff69505e5f/charmarr_lib_core-0.3.2-py3-none-any.whl", hash = "sha256:13e775d6db72b54a14f8b85f2e11fca15858ea5509317343e88e4b59f4db87b3", size = 26336, upload-time = "2025-12-24T23:30:59.859Z" },
+    { url = "https://files.pythonhosted.org/packages/21/f9/d92cbb0889bbae17a6f503f6d68680f17a486f6226cd5a6999ae8012d07e/charmarr_lib_core-0.6.1-py3-none-any.whl", hash = "sha256:1e4497cd34ce76aa6f2a373ddbdab4b0caf076c655d8bcad7b5346582b1c615a", size = 28671, upload-time = "2025-12-26T08:32:05.245Z" },
 ]
 
 [[package]]
@@ -82,18 +82,20 @@ wheels = [
 
 [[package]]
 name = "charmarr-lib-testing"
-version = "0.3.0"
+version = "0.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jubilant" },
     { name = "ops" },
+    { name = "pydantic" },
     { name = "pytest" },
     { name = "pytest-bdd" },
     { name = "pytest-jubilant" },
+    { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/fa/48/048e4d398b019450c8ee1da851b4ce339b9429e1878cc56730954629173b/charmarr_lib_testing-0.3.0.tar.gz", hash = "sha256:a5d1549dc20c71e44c4be3ee2a1fdc33da7379f22fd3a68f5fec391de1a1419c", size = 6603, upload-time = "2025-12-25T04:05:19.561Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/76/42/872eda059a4af1e7807ff43ca339a97cf9320e8ca05b3733cbe73452416a/charmarr_lib_testing-0.4.0.tar.gz", hash = "sha256:4be097e719121e09bb9f1bc29104f7fbab48225ad895fbcc5c4bb3755ba5b13f", size = 9824, upload-time = "2025-12-26T11:59:35.464Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/86/f6/486f554c510eac3084a98dddfc7355aebb31bb2de120ec30577ac8599889/charmarr_lib_testing-0.3.0-py3-none-any.whl", hash = "sha256:394b5a26d008f55965491c6faaa8d9f43c79dc332ac7b7fd45d98e9a9bcb4014", size = 5668, upload-time = "2025-12-25T04:05:18.491Z" },
+    { url = "https://files.pythonhosted.org/packages/dd/f2/4ec799dd4ecddc82957eb113b57eaab44f7b297a3b3837b27d3a414474c5/charmarr_lib_testing-0.4.0-py3-none-any.whl", hash = "sha256:7db6db26170841e7f5a83aa44a904379c8d1df2242d0b7046dfdfdb6f769e6a3", size = 12065, upload-time = "2025-12-26T11:59:34.053Z" },
 ]
 
 [[package]]
@@ -268,7 +270,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "charmarr-lib-core" },
-    { name = "charmarr-lib-testing", marker = "extra == 'integration'" },
+    { name = "charmarr-lib-testing", marker = "extra == 'integration'", specifier = ">=0.4.0" },
     { name = "charmarr-lib-vpn" },
     { name = "codespell", marker = "extra == 'dev'", specifier = ">=2.0" },
     { name = "coverage", extras = ["toml"], marker = "extra == 'dev'", specifier = ">=7.0" },
@@ -422,11 +424,11 @@ wheels = [
 
 [[package]]
 name = "lightkube-models"
-version = "1.34.0.8"
+version = "1.35.0.8"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/39/b6/306ed471d79768052b5c2139e45f7eb91f00e45612ee9dace2d7ce40a568/lightkube-models-1.34.0.8.tar.gz", hash = "sha256:eb23c762a87bb63e274d8f6ad50b84aa99ccadf4221868fc3b75ab8982ec015a", size = 242698, upload-time = "2025-08-31T09:47:12.242Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c8/03/36ecf94356f5dc40c76d9f9732eba3e33e8b873d9e6a874f25ad0504be21/lightkube_models-1.35.0.8.tar.gz", hash = "sha256:dbc624596a7d94e6c43c5deda972be964202e0e8f26e2ab8e61d589d710b5e22", size = 244553, upload-time = "2025-12-25T22:30:58.526Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d8/16/e1e9103d66a9d442824d6a478462620bec3b5bc7b5efe9a85a0e1b82fc4d/lightkube_models-1.34.0.8-py3-none-any.whl", hash = "sha256:7731233ff4e69b6ffd8f7c6dde0788196a0adb76ac7eedc8383f88d4545ff19c", size = 304175, upload-time = "2025-08-31T09:46:59.681Z" },
+    { url = "https://files.pythonhosted.org/packages/a1/1d/8f77a83dcfedac74248af3b65390b2f5bca65ca8131ee18a1895cd10d4a7/lightkube_models-1.35.0.8-py3-none-any.whl", hash = "sha256:d01fce42f96baf47a77a571bff59d6a513e96ae043fc03cfaaaaf79c609c4441", size = 305779, upload-time = "2025-12-25T22:30:57.192Z" },
 ]
 
 [[package]]
