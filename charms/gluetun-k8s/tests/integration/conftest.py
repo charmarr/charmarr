@@ -3,27 +3,25 @@
 
 """Pytest configuration for gluetun-k8s integration tests."""
 
-import logging
 import os
-import subprocess
 from pathlib import Path
 
 import jubilant
 import pytest
 
-from charmarr_lib.testing import wait_for_active_idle
-from tests.integration.helpers import (
+from charmarr_lib.testing import (
     create_vpn_secret,
-    deploy_gluetun_charm,
+    get_node_cidr,
     grant_secret_to_app,
-    pack_gluetun_charm,
+    vpn_creds_available,
+    wait_for_active_idle,
 )
-
-logger = logging.getLogger(__name__)
+from tests.integration.helpers import deploy_gluetun_charm, pack_gluetun_charm
 
 pytest_plugins = [
     "charmarr_lib.testing.steps.multimeter",
     "charmarr_lib.testing.steps.mesh",
+    "charmarr_lib.testing.steps.gluetun",
     "tests.integration.steps.common_steps",
     "tests.integration.steps.vpn_steps",
     "tests.integration.steps.vxlan_steps",
@@ -34,14 +32,9 @@ POD_CIDR = "10.1.0.0/16"
 SERVICE_CIDR = "10.152.183.0/24"
 
 
-def _vpn_creds_available() -> bool:
-    """Check if VPN credentials are available in environment."""
-    return bool(os.environ.get("WIREGUARD_PRIVATE_KEY"))
-
-
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     """Mark all integration tests as xfail if VPN credentials not available."""
-    if _vpn_creds_available():
+    if vpn_creds_available():
         return
 
     xfail_marker = pytest.mark.xfail(
@@ -52,39 +45,10 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         item.add_marker(xfail_marker)
 
 
-def _get_node_cidr() -> str:
-    """Get node CIDR from environment or discover from Kubernetes.
-
-    Returns a /24 CIDR covering the first node's internal IP.
-    """
-    if cidr := os.environ.get("NODE_CIDR"):
-        return cidr
-
-    result = subprocess.run(
-        [
-            "kubectl",
-            "get",
-            "nodes",
-            "-o",
-            "jsonpath={.items[0].status.addresses[?(@.type=='InternalIP')].address}",
-        ],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    node_ip = result.stdout.strip()
-    if not node_ip:
-        logger.warning("Could not discover node IP, using 10.0.0.0/8 as fallback")
-        return "10.0.0.0/8"
-
-    octets = node_ip.split(".")
-    return f"{octets[0]}.{octets[1]}.{octets[2]}.0/24"
-
-
 @pytest.fixture(scope="module")
 def cluster_cidrs() -> str:
     """Build cluster CIDRs string including pod, service, and node networks."""
-    node_cidr = _get_node_cidr()
+    node_cidr = get_node_cidr()
     return f"{POD_CIDR},{SERVICE_CIDR},{node_cidr}"
 
 
@@ -105,7 +69,9 @@ def wireguard_private_key() -> str:
 
 @pytest.fixture(scope="module")
 def charm_path() -> Path:
-    """Pack the gluetun charm once per test module."""
+    """Get charm path from CI or pack locally."""
+    if env_path := os.environ.get("CHARM_PATH"):
+        return Path(env_path)
     return pack_gluetun_charm()
 
 

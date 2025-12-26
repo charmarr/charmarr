@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 pytest_plugins = [
     "charmarr_lib.testing.steps.multimeter",
+    "charmarr_lib.testing.steps.storage",
     "tests.integration.steps.common_steps",
     "tests.integration.steps.storage_class_steps",
     "tests.integration.steps.native_nfs_steps",

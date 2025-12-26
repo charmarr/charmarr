@@ -32,13 +32,6 @@ def relate_multimeter_gluetun(juju: jubilant.Juju) -> None:
     wait_for_active_idle(juju)
 
 
-@then("the gluetun charm should be active")
-def gluetun_active(juju: jubilant.Juju) -> None:
-    """Verify gluetun charm is active."""
-    current, message = get_gluetun_status(juju)
-    assert current == "active", f"Gluetun status: {current} - {message}"
-
-
 @then("the gluetun charm status should show a VPN IP")
 def gluetun_has_vpn_ip(juju: jubilant.Juju) -> None:
     """Verify gluetun status message contains VPN IP."""

@@ -4,6 +4,7 @@
 """Common step definitions for charmarr-storage-k8s integration tests."""
 
 import logging
+import os
 from pathlib import Path
 from typing import Any
 
@@ -20,7 +21,9 @@ logger = logging.getLogger(__name__)
 
 @pytest.fixture(scope="module")
 def charm_path() -> Path:
-    """Pack the charm once per test module."""
+    """Get charm path from CI or pack locally."""
+    if env_path := os.environ.get("CHARM_PATH"):
+        return Path(env_path)
     return pack_storage_charm()
 
 
@@ -93,16 +96,6 @@ def set_storage_config(juju: jubilant.Juju, key: str, value: str, storage_config
     juju.cli("config", "charmarr-storage", f"{key}={value}")
     storage_config[key] = value
     wait_for_active_idle(juju)
-
-
-@then("the storage charm should be active")
-def storage_charm_active(juju: jubilant.Juju):
-    """Verify storage charm is active."""
-    status = juju.status()
-    app = status.apps["charmarr-storage"]
-    assert app.app_status.current == "active", (
-        f"Storage charm status: {app.app_status.current} - {app.app_status.message}"
-    )
 
 
 # PVC steps common to both backends

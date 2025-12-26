@@ -6,11 +6,10 @@
 import jubilant
 from pytest_bdd import then, when
 
-from charmarr_lib.testing import wait_for_active_idle
+from charmarr_lib.testing import get_container_info, wait_for_active_idle
 from tests.integration.helpers import (
     check_connectivity,
     configmap_exists,
-    get_container_info,
     get_network_policy_info,
 )
 
