@@ -15,9 +15,9 @@ from charmarr_lib.core.interfaces import (
 from charmarr_lib.vpn.interfaces import VPNGatewayProviderData, VPNGatewayRequirerData
 
 
-def test_active_status_no_relations(ctx):
+def test_active_status_no_relations(ctx, multimeter_container):
     """Charm is active with no relations."""
-    state = ctx.run(ctx.on.start(), State(leader=True))
+    state = ctx.run(ctx.on.start(), State(leader=True, containers=[multimeter_container]))
     assert state.unit_status == ops.ActiveStatus("Ready (no relations)")
 
 
@@ -27,10 +27,10 @@ def test_non_leader_standby_status(ctx):
     assert state.unit_status == ops.ActiveStatus("Standby (leader manages relations)")
 
 
-def test_publishes_media_storage_requirer_data(ctx):
+def test_publishes_media_storage_requirer_data(ctx, multimeter_container):
     """Charm publishes requirer data when media-storage relation exists."""
     relation = Relation(endpoint="media-storage", interface="media-storage")
-    state_in = State(leader=True, relations=[relation])
+    state_in = State(leader=True, relations=[relation], containers=[multimeter_container])
 
     state_out = ctx.run(ctx.on.relation_joined(relation), state_in)
 
@@ -40,7 +40,7 @@ def test_publishes_media_storage_requirer_data(ctx):
     assert data.instance_name == "charmarr-multimeter-k8s"
 
 
-def test_counts_connected_providers(ctx):
+def test_counts_connected_providers(ctx, multimeter_container):
     """Charm shows count of connected providers in status."""
     provider_data = MediaStorageProviderData(pvc_name="charmarr-shared")
     relation = Relation(
@@ -48,7 +48,7 @@ def test_counts_connected_providers(ctx):
         interface="media-storage",
         remote_app_data={"config": provider_data.model_dump_json()},
     )
-    state_in = State(leader=True, relations=[relation])
+    state_in = State(leader=True, relations=[relation], containers=[multimeter_container])
 
     state_out = ctx.run(ctx.on.relation_changed(relation), state_in)
 
@@ -156,10 +156,10 @@ def test_get_mounts_action_returns_mounts(ctx, mock_k8s):
     )
 
 
-def test_publishes_vpn_gateway_requirer_data(ctx):
+def test_publishes_vpn_gateway_requirer_data(ctx, multimeter_container):
     """Charm publishes requirer data when vpn-gateway relation exists."""
     relation = Relation(endpoint="vpn-gateway", interface="vpn-gateway")
-    state_in = State(leader=True, relations=[relation])
+    state_in = State(leader=True, relations=[relation], containers=[multimeter_container])
 
     state_out = ctx.run(ctx.on.relation_joined(relation), state_in)
 
@@ -169,7 +169,7 @@ def test_publishes_vpn_gateway_requirer_data(ctx):
     assert data.instance_name == "charmarr-multimeter-k8s"
 
 
-def test_reconcile_vpn_when_gateway_ready(ctx):
+def test_reconcile_vpn_when_gateway_ready(ctx, multimeter_container):
     """Charm reconciles VPN client when gateway is ready and connected."""
     provider_data = VPNGatewayProviderData(
         gateway_dns_name="gluetun.vpn-gateway.svc.cluster.local",
@@ -184,7 +184,7 @@ def test_reconcile_vpn_when_gateway_ready(ctx):
         interface="vpn-gateway",
         remote_app_data={"config": provider_data.model_dump_json()},
     )
-    state_in = State(leader=True, relations=[relation])
+    state_in = State(leader=True, relations=[relation], containers=[multimeter_container])
 
     with patch("charm.reconcile_gateway_client") as mock_gw_client:
         ctx.run(ctx.on.relation_changed(relation), state_in)
@@ -194,7 +194,7 @@ def test_reconcile_vpn_when_gateway_ready(ctx):
         assert call_kwargs["data"].vpn_connected is True
 
 
-def test_reconcile_vpn_when_vpn_not_connected(ctx):
+def test_reconcile_vpn_when_vpn_not_connected(ctx, multimeter_container):
     """Charm reconciles VPN client even when VPN is not connected."""
     provider_data = VPNGatewayProviderData(
         gateway_dns_name="gluetun.vpn-gateway.svc.cluster.local",
@@ -208,7 +208,7 @@ def test_reconcile_vpn_when_vpn_not_connected(ctx):
         interface="vpn-gateway",
         remote_app_data={"config": provider_data.model_dump_json()},
     )
-    state_in = State(leader=True, relations=[relation])
+    state_in = State(leader=True, relations=[relation], containers=[multimeter_container])
 
     with patch("charm.reconcile_gateway_client") as mock_gw_client:
         ctx.run(ctx.on.relation_changed(relation), state_in)

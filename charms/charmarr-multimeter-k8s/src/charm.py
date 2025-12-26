@@ -8,11 +8,15 @@ import logging
 
 import ops
 from charms.istio_beacon_k8s.v0.service_mesh import ServiceMeshConsumer
-from lightkube import ApiError
-from lightkube.resources.core_v1 import PersistentVolume, PersistentVolumeClaim
 
 from _http_actions import handle_http_request
 from _mock_nfs import cleanup_nfs_server, deploy_nfs_server
+from _storage_actions import (
+    handle_get_mounts,
+    handle_get_pv,
+    handle_get_pvc,
+    handle_get_security_context,
+)
 from _vpn_test_actions import (
     handle_check_configmap,
     handle_check_connectivity,
@@ -70,6 +74,9 @@ class CharmarrMultimeterCharm(ops.CharmBase):
         framework.observe(self.on.deploy_nfs_server_action, self._on_deploy_nfs_server_action)
         framework.observe(self.on.cleanup_nfs_server_action, self._on_cleanup_nfs_server_action)
         framework.observe(self.on.get_mounts_action, self._on_get_mounts_action)
+        framework.observe(
+            self.on.get_security_context_action, self._on_get_security_context_action
+        )
         # VPN testing actions
         framework.observe(self.on.get_external_ip_action, self._on_get_external_ip_action)
         framework.observe(
@@ -101,6 +108,7 @@ class CharmarrMultimeterCharm(ops.CharmBase):
             return
 
         self._reconcile_storage()
+        self._reconcile_pebble()
 
         instance_name = self.app.name
 
@@ -148,7 +156,30 @@ class CharmarrMultimeterCharm(ops.CharmBase):
             container_name=CONTAINER_NAME,
             pvc_name=storage_data.pvc_name if storage_data else None,
             mount_path=storage_data.mount_path if storage_data else "/data",
+            pgid=storage_data.pgid if storage_data else None,
         )
+
+    def _reconcile_pebble(self) -> None:
+        """Configure Pebble layer with user-id/group-id from storage relation."""
+        container = self.unit.get_container(CONTAINER_NAME)
+        if not container.can_connect():
+            return
+
+        storage_data = self._media_storage.get_provider()
+
+        service: dict = {
+            "override": "replace",
+            "command": "sleep infinity",
+            "startup": "enabled",
+        }
+
+        if storage_data:
+            service["user-id"] = storage_data.puid
+            service["group-id"] = storage_data.pgid
+
+        layer: ops.pebble.LayerDict = {"services": {"workload": service}}  # type: ignore[typeddict-item]
+        container.add_layer("workload", layer, combine=True)
+        container.replan()
 
     def _reconcile_vpn(self) -> None:
         """Reconcile VPN client-side patching based on gateway state."""
@@ -192,49 +223,10 @@ class CharmarrMultimeterCharm(ops.CharmBase):
         return count
 
     def _on_get_pvc_action(self, event: ops.ActionEvent) -> None:
-        """Return PVC details."""
-        namespace = event.params["namespace"]
-        name = event.params["name"]
-        try:
-            pvc = self.k8s.get(PersistentVolumeClaim, name, namespace)
-            phase = pvc.status.phase if pvc.status else None
-            event.set_results(
-                {
-                    "storage-class": pvc.spec.storageClassName or "",
-                    "access-modes": ",".join(pvc.spec.accessModes or []),
-                    "capacity": pvc.spec.resources.requests.get("storage", "")
-                    if pvc.spec.resources
-                    else "",
-                    "volume-name": pvc.spec.volumeName or "",
-                    "phase": phase or "",
-                }
-            )
-        except ApiError as e:
-            event.fail(f"Failed to get PVC: {e}")
+        handle_get_pvc(event, self.k8s)
 
     def _on_get_pv_action(self, event: ops.ActionEvent) -> None:
-        """Return PV details."""
-        name = event.params["name"]
-        try:
-            pv = self.k8s.get(PersistentVolume, name, namespace=None)
-            phase = pv.status.phase if pv.status else None
-            nfs_server = ""
-            nfs_path = ""
-            if pv.spec.nfs:
-                nfs_server = pv.spec.nfs.server or ""
-                nfs_path = pv.spec.nfs.path or ""
-            event.set_results(
-                {
-                    "capacity": pv.spec.capacity.get("storage", "") if pv.spec.capacity else "",
-                    "access-modes": ",".join(pv.spec.accessModes or []),
-                    "nfs-server": nfs_server,
-                    "nfs-path": nfs_path,
-                    "reclaim-policy": pv.spec.persistentVolumeReclaimPolicy or "",
-                    "phase": phase or "",
-                }
-            )
-        except ApiError as e:
-            event.fail(f"Failed to get PV: {e}")
+        handle_get_pv(event, self.k8s)
 
     def _on_deploy_nfs_server_action(self, event: ops.ActionEvent) -> None:
         """Deploy a mock NFS server for testing."""
@@ -256,18 +248,10 @@ class CharmarrMultimeterCharm(ops.CharmBase):
             event.fail(f"Failed to cleanup NFS server: {e}")
 
     def _on_get_mounts_action(self, event: ops.ActionEvent) -> None:
-        """Return list of mount paths in the workload container."""
-        try:
-            container = self.unit.get_container(CONTAINER_NAME)
-            if not container.can_connect():
-                event.fail("Cannot connect to container")
-                return
-            process = container.exec(["cat", "/proc/mounts"])
-            output, _ = process.wait_output()
-            mounts = [line.split()[1] for line in output.strip().split("\n") if line]
-            event.set_results({"mounts": ",".join(mounts)})
-        except Exception as e:
-            event.fail(f"Failed to get mounts: {e}")
+        handle_get_mounts(event, self.unit.get_container(CONTAINER_NAME))
+
+    def _on_get_security_context_action(self, event: ops.ActionEvent) -> None:
+        handle_get_security_context(event, self.k8s, self.app.name, self.model.name)
 
     # VPN testing actions
 

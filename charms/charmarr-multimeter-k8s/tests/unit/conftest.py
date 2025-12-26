@@ -8,7 +8,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-from ops.testing import Context
+from ops.testing import Container, Context
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
@@ -37,3 +37,9 @@ def mock_k8s():
 def ctx() -> Context[CharmarrMultimeterCharm]:
     """Create a testing context for CharmarrMultimeterCharm."""
     return Context(CharmarrMultimeterCharm)
+
+
+@pytest.fixture
+def multimeter_container() -> Container:
+    """Default multimeter container for Pebble operations."""
+    return Container(name="multimeter", can_connect=True)

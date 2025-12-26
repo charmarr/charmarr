@@ -114,6 +114,8 @@ actions:
     description: Remove the mock NFS server
   get-mounts:
     description: Get list of mount paths in the workload container
+  get-security-context:
+    description: Get SecurityContext (runAsUser, runAsGroup, fsGroup) from charm's StatefulSet
   get-external-ip:
     description: Get external IP from within the container (via ifconfig.me)
   check-vxlan-interface:

@@ -35,7 +35,7 @@ wheels = [
 
 [[package]]
 name = "charmarr-lib-core"
-version = "0.3.1"
+version = "0.4.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "charmarr-lib-krm" },
@@ -44,9 +44,9 @@ dependencies = [
     { name = "ops" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/90/80/711212f5aaea0e5a8d029b168fc94ea9df6fe6bbc34eda1361ec879bf45a/charmarr_lib_core-0.3.1.tar.gz", hash = "sha256:3d9291d8a2fed878a48e08afa678ab210e7ca819d1c22c7f900f71633b49dd2a", size = 28184, upload-time = "2025-12-22T01:35:52.25Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fd/0f/2c1fea8723243be6cff5bab92921b3587d96d99cb53392a905eeb77343df/charmarr_lib_core-0.4.2.tar.gz", hash = "sha256:f2d4c6c97f20955360ad68762cfb14d660e4fa16d826ad408b868e8f7d6b6858", size = 28916, upload-time = "2025-12-26T04:05:31.735Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8e/88/09ed93654ae089c4cb344bc695113964a9031eaf5e3fc0d19391dfd80cd9/charmarr_lib_core-0.3.1-py3-none-any.whl", hash = "sha256:c478ff6ace506bb3363f89c8c8e09557c53ff1648cfd29f637b48f9538807449", size = 26597, upload-time = "2025-12-22T01:35:50.918Z" },
+    { url = "https://files.pythonhosted.org/packages/27/4a/4d607bfc3bf6665f6b3e308cc2a7a3bcaa1ffed55293cf3d8adee4a4ad81/charmarr_lib_core-0.4.2-py3-none-any.whl", hash = "sha256:0a07217f2de305873cf40fd0ff6bf812841667b62db3e07d41768d9bcb1fb3d4", size = 26572, upload-time = "2025-12-26T04:05:30.189Z" },
 ]
 
 [[package]]
@@ -64,7 +64,7 @@ wheels = [
 
 [[package]]
 name = "charmarr-lib-vpn"
-version = "0.4.0"
+version = "0.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "charmarr-lib-krm" },
@@ -72,9 +72,9 @@ dependencies = [
     { name = "ops" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/de/cb/d3dd2092b87e187ec91609b51dfd272339f022462f9ca1ba0b40730e2743/charmarr_lib_vpn-0.4.0.tar.gz", hash = "sha256:0b7ce242823a0339eea486ff3344dc8b749cfcb8cc4e827c44f7592307b4a235", size = 15844, upload-time = "2025-12-24T07:19:15.488Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a6/5c/0e9b2e182ae91ddfb40dd0bbb1cc59d04227486e7a199e8fdbac6f88ec3b/charmarr_lib_vpn-0.5.0.tar.gz", hash = "sha256:237e8da865716cf94ea5802e6bd4de434784da3965b8239ceb6ee8ce7cfbab74", size = 15952, upload-time = "2025-12-24T23:31:02.363Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/93/86/50d40909402485253e0079b8775379676c009e73a6934a735d8739eba2ca/charmarr_lib_vpn-0.4.0-py3-none-any.whl", hash = "sha256:d2f9c98cb7d6944434a1d11c85581ec7a13546ed4acbe2de007299ba2649d40b", size = 14025, upload-time = "2025-12-24T07:19:14.143Z" },
+    { url = "https://files.pythonhosted.org/packages/49/32/89756e5c9666a91ae195f0e53028b45744d3fe0fd102224afb148d3c820c/charmarr_lib_vpn-0.5.0-py3-none-any.whl", hash = "sha256:5725582a86fa4a3b269d482756dd821f1ef4d5bb908e972f4b3758798181f5b2", size = 14246, upload-time = "2025-12-24T23:31:00.141Z" },
 ]
 
 [[package]]
@@ -102,7 +102,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "charmarr-lib-core" },
+    { name = "charmarr-lib-core", specifier = ">=0.4.2" },
     { name = "charmarr-lib-vpn" },
     { name = "charmed-service-mesh-helpers" },
     { name = "codespell", marker = "extra == 'dev'", specifier = ">=2.0" },
@@ -367,11 +367,11 @@ wheels = [
 
 [[package]]
 name = "lightkube-models"
-version = "1.34.0.8"
+version = "1.35.0.8"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/39/b6/306ed471d79768052b5c2139e45f7eb91f00e45612ee9dace2d7ce40a568/lightkube-models-1.34.0.8.tar.gz", hash = "sha256:eb23c762a87bb63e274d8f6ad50b84aa99ccadf4221868fc3b75ab8982ec015a", size = 242698, upload-time = "2025-08-31T09:47:12.242Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c8/03/36ecf94356f5dc40c76d9f9732eba3e33e8b873d9e6a874f25ad0504be21/lightkube_models-1.35.0.8.tar.gz", hash = "sha256:dbc624596a7d94e6c43c5deda972be964202e0e8f26e2ab8e61d589d710b5e22", size = 244553, upload-time = "2025-12-25T22:30:58.526Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d8/16/e1e9103d66a9d442824d6a478462620bec3b5bc7b5efe9a85a0e1b82fc4d/lightkube_models-1.34.0.8-py3-none-any.whl", hash = "sha256:7731233ff4e69b6ffd8f7c6dde0788196a0adb76ac7eedc8383f88d4545ff19c", size = 304175, upload-time = "2025-08-31T09:46:59.681Z" },
+    { url = "https://files.pythonhosted.org/packages/a1/1d/8f77a83dcfedac74248af3b65390b2f5bca65ca8131ee18a1895cd10d4a7/lightkube_models-1.35.0.8-py3-none-any.whl", hash = "sha256:d01fce42f96baf47a77a571bff59d6a513e96ae043fc03cfaaaaf79c609c4441", size = 305779, upload-time = "2025-12-25T22:30:57.192Z" },
 ]
 
 [[package]]
