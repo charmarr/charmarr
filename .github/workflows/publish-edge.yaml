@@ -13,6 +13,7 @@ on:
           - multimeter
           - storage
           - gluetun
+          - qbittorrent
           - all
         default: auto
       dry-run:
@@ -31,6 +32,7 @@ jobs:
       multimeter: ${{ steps.check.outputs.multimeter }}
       storage: ${{ steps.check.outputs.storage }}
       gluetun: ${{ steps.check.outputs.gluetun }}
+      qbittorrent: ${{ steps.check.outputs.qbittorrent }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -50,6 +52,9 @@ jobs:
           if [[ "$CHARM_INPUT" == "gluetun" || "$CHARM_INPUT" == "all" ]]; then
             echo "gluetun=true" >> "$GITHUB_OUTPUT"
           fi
+          if [[ "$CHARM_INPUT" == "qbittorrent" || "$CHARM_INPUT" == "all" ]]; then
+            echo "qbittorrent=true" >> "$GITHUB_OUTPUT"
+          fi
 
           # Auto-detect from changes (push or workflow_dispatch with auto)
           if [[ -z "$CHARM_INPUT" || "$CHARM_INPUT" == "auto" ]]; then
@@ -63,6 +68,9 @@ jobs:
             fi
             if echo "$changed" | grep -q "^charms/gluetun-k8s/"; then
               echo "gluetun=true" >> "$GITHUB_OUTPUT"
+            fi
+            if echo "$changed" | grep -q "^charms/qbittorrent-k8s/"; then
+              echo "qbittorrent=true" >> "$GITHUB_OUTPUT"
             fi
           fi
 
@@ -89,6 +97,15 @@ jobs:
     needs: detect
     if: needs.detect.outputs.gluetun == 'true'
     uses: ./.github/workflows/gluetun-k8s-publish-edge.yaml
+    with:
+      dry-run: ${{ inputs.dry-run || false }}
+    secrets: inherit
+
+  qbittorrent:
+    name: qBittorrent
+    needs: detect
+    if: needs.detect.outputs.qbittorrent == 'true'
+    uses: ./.github/workflows/qbittorrent-k8s-publish-edge.yaml
     with:
       dry-run: ${{ inputs.dry-run || false }}
     secrets: inherit

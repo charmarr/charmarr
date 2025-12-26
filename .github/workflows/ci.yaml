@@ -11,6 +11,7 @@ jobs:
       multimeter: ${{ steps.check.outputs.multimeter }}
       storage: ${{ steps.check.outputs.storage }}
       gluetun: ${{ steps.check.outputs.gluetun }}
+      qbittorrent: ${{ steps.check.outputs.qbittorrent }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -33,6 +34,10 @@ jobs:
             echo "gluetun=true" >> "$GITHUB_OUTPUT"
           fi
 
+          if echo "$changed" | grep -q "^charms/qbittorrent-k8s/"; then
+            echo "qbittorrent=true" >> "$GITHUB_OUTPUT"
+          fi
+
   multimeter:
     name: Multimeter
     needs: detect
@@ -50,3 +55,9 @@ jobs:
     needs: detect
     if: needs.detect.outputs.gluetun == 'true'
     uses: ./.github/workflows/gluetun-k8s-ci.yaml
+
+  qbittorrent:
+    name: qBittorrent
+    needs: detect
+    if: needs.detect.outputs.qbittorrent == 'true'
+    uses: ./.github/workflows/qbittorrent-k8s-ci.yaml
