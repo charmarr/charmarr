@@ -17,6 +17,7 @@
 | **charmarr-storage-k8s** | Shared PVC provider for hardlinks across media apps | [![CharmHub](https://charmhub.io/charmarr-storage-k8s/badge.svg)](https://charmhub.io/charmarr-storage-k8s) |
 | **charmarr-multimeter-k8s** | Test utility charm for validating interface providers | [![CharmHub](https://charmhub.io/charmarr-multimeter-k8s/badge.svg)](https://charmhub.io/charmarr-multimeter-k8s) |
 | **gluetun-k8s** | VPN gateway with pod-gateway for routing client traffic | [![CharmHub](https://charmhub.io/gluetun-k8s/badge.svg)](https://charmhub.io/gluetun-k8s) |
+| **qbittorrent-k8s** | qBittorrent torrent client with VPN integration | [![CharmHub](https://charmhub.io/qbittorrent-k8s/badge.svg)](https://charmhub.io/qbittorrent-k8s) |
 
 ## Development
 
