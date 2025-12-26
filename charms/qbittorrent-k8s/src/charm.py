@@ -309,7 +309,7 @@ class QBittorrentCharm(ops.CharmBase):
             listeners=[listener],
             http_routes=[
                 HTTPRoute(
-                    name="webui",
+                    name="qbittorrent",
                     listener=listener,
                     matches=[
                         HTTPRouteMatch(
