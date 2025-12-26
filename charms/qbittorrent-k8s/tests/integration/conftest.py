@@ -9,7 +9,7 @@ from pathlib import Path
 import jubilant
 import pytest
 
-from charmarr_lib.testing import wait_for_active_idle
+from charmarr_lib.testing import vpn_creds_available, wait_for_active_idle
 from tests.integration.helpers import Credentials, deploy_qbittorrent_charm, pack_qbittorrent_charm
 
 pytest_plugins = [
@@ -21,14 +21,9 @@ pytest_plugins = [
 ]
 
 
-def _vpn_creds_available() -> bool:
-    """Check if VPN credentials are available."""
-    return bool(os.environ.get("WIREGUARD_PRIVATE_KEY"))
-
-
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     """Mark VPN tests as xfail if credentials not available."""
-    if _vpn_creds_available():
+    if vpn_creds_available():
         return
 
     for item in items:
@@ -43,7 +38,9 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 
 @pytest.fixture(scope="module")
 def charm_path() -> Path:
-    """Pack the qbittorrent charm once per test module."""
+    """Get charm path from CI or pack locally."""
+    if env_path := os.environ.get("CHARM_PATH"):
+        return Path(env_path)
     return pack_qbittorrent_charm()
 
 

@@ -3,10 +3,10 @@ type: charm
 title: qBittorrent
 summary: Torrent download client for Charmarr media automation
 description: |
-  qBittorrent BitTorrent client with WebUI.
+  qBittorrent download client with WebUI.
 
   Features:
-  - Automatic credential management
+  - Automatic credential rotation
   - VPN integration via vpn-gateway relation
   - Shared storage via media-storage relation
 
