@@ -17,6 +17,7 @@ pytest_plugins = [
     "charmarr_lib.testing.steps.storage",
     "charmarr_lib.testing.steps.gluetun",
     "charmarr_lib.testing.steps.mesh",
+    "charmarr_lib.testing.steps.download_client",
     "tests.integration.steps.qbittorrent_steps",
 ]
 
