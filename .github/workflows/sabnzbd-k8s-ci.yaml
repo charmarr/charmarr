@@ -1,0 +1,10 @@
+name: "SABnzbd K8s: CI"
+
+on:
+  workflow_call:
+
+jobs:
+  quality:
+    uses: charmarr/.github/.github/workflows/charm-ci.yaml@v1
+    with:
+      charm-path: charms/sabnzbd-k8s
