@@ -13,6 +13,7 @@ Where:
 
 import base64
 import hashlib
+import re
 import secrets
 
 from _qbittorrent._constants import PASSWORD_BYTES, PBKDF2_ITERATIONS, SALT_BYTES
@@ -57,3 +58,42 @@ WebUI\\LocalHostAuth=false
 WebUI\\CSRFProtection=false
 WebUI\\HostHeaderValidation=false
 """
+
+
+def _set_ini_value(content: str, section: str, key: str, value: str) -> str:
+    """Set or update an INI key in a section."""
+    escaped_key = re.escape(key)
+    pattern = rf"^({escaped_key})=.*$"
+
+    if re.search(pattern, content, re.MULTILINE):
+        return re.sub(pattern, rf"\1={value}", content, flags=re.MULTILINE)
+
+    section_pattern = rf"(\[{re.escape(section)}\])"
+    if re.search(section_pattern, content):
+        return re.sub(section_pattern, rf"\1\n{key}={value}", content)
+
+    return f"[{section}]\n{key}={value}\n" + content
+
+
+def reconcile_qbittorrent_config(
+    content: str | None,
+    *,
+    username: str,
+    password_hash: str,
+) -> str:
+    """Reconcile qBittorrent.conf idempotently, preserving user settings."""
+    if content is None:
+        return build_qbittorrent_config(username, password_hash)
+
+    managed_keys = {
+        "WebUI\\\\Username": username,
+        "WebUI\\\\Password_PBKDF2": password_hash,
+        "WebUI\\\\LocalHostAuth": "false",
+        "WebUI\\\\CSRFProtection": "false",
+        "WebUI\\\\HostHeaderValidation": "false",
+    }
+
+    for key, value in managed_keys.items():
+        content = _set_ini_value(content, "Preferences", key, value)
+
+    return content

@@ -46,6 +46,9 @@ charm-libs:
 containers:
   qbittorrent:
     resource: qbittorrent-image
+    mounts:
+      - storage: config
+        location: /config
 
 resources:
   qbittorrent-image:
@@ -97,6 +100,13 @@ requires:
 
 config:
   options:
+    unsafe-mode:
+      type: boolean
+      default: false
+      description: |
+        Allow workload to run without VPN protection.
+        When false (default), the charm blocks until a vpn-gateway relation is added.
+        When true, the charm reconciles without requiring VPN, exposing your IP to trackers.
     log-level:
       type: string
       default: "info"

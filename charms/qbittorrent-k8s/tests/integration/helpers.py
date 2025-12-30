@@ -40,6 +40,7 @@ def deploy_qbittorrent_charm(juju: jubilant.Juju, charm_path: Path) -> None:
         app="qbittorrent",
         trust=True,
         resources=get_oci_resources(CHARM_DIR),
+        config={"unsafe-mode": True},
     )
     juju.integrate("qbittorrent:media-storage", "charmarr-storage:media-storage")
     wait_for_active_idle(juju)

@@ -39,9 +39,9 @@ from _qbittorrent import (
     SERVICE_NAME,
     WEBUI_PORT,
     QBittorrentApi,
-    build_qbittorrent_config,
     compute_pbkdf2_hash,
     generate_password,
+    reconcile_qbittorrent_config,
 )
 from charmarr_lib.core import (
     DownloadClient,
@@ -159,21 +159,25 @@ class QBittorrentCharm(ops.CharmBase):
             secret_id=self._get_secret_id(secret),
         )
 
-    def _write_config_file(self, credentials: Credentials) -> None:
-        """Write qBittorrent.conf with PBKDF2-hashed credentials."""
+    def _reconcile_config(self, credentials: Credentials) -> None:
+        """Reconcile qBittorrent.conf with expected values, preserving user settings."""
+        content = None
+        if self._container.exists(CONFIG_FILE):
+            content = self._container.pull(CONFIG_FILE).read()
+
         password_hash = compute_pbkdf2_hash(credentials.password)
-        config_content = build_qbittorrent_config(credentials.username, password_hash)
-        self._container.push(CONFIG_FILE, config_content, make_dirs=True)
-        logger.info("Wrote qBittorrent config file")
+        updated = reconcile_qbittorrent_config(
+            content,
+            username=credentials.username,
+            password_hash=password_hash,
+        )
+
+        if content != updated:
+            self._container.push(CONFIG_FILE, updated, make_dirs=True)
+            logger.info("Reconciled qBittorrent config")
 
     def _prepare_config_directory(self, puid: int, pgid: int) -> None:
         self._container.exec(["chown", "-R", f"{puid}:{pgid}", "/config/qBittorrent"]).wait()
-
-    def _config_has_credentials(self, username: str) -> bool:
-        if not self._container.exists(CONFIG_FILE):
-            return False
-        content = self._container.pull(CONFIG_FILE).read()
-        return f"WebUI\\Username={username}" in content and "WebUI\\LocalHostAuth=false" in content
 
     def _is_service_running(self) -> bool:
         services = self._container.get_services(SERVICE_NAME)
@@ -291,6 +295,7 @@ class QBittorrentCharm(ops.CharmBase):
             client_type=DownloadClientType.TORRENT,
             instance_name=self.app.name,
         )
+        # NOTE: We intentionally don't publish the base path as qBittorrent serves endpoints at root.
         self._download_client.publish_data(data)
         logger.info("Published download client provider data")
 
@@ -358,7 +363,7 @@ class QBittorrentCharm(ops.CharmBase):
             password=new_password,
             secret_id=self._get_secret_id(event.secret),
         )
-        self._write_config_file(new_credentials)
+        self._reconcile_config(new_credentials)
         self._container.replan()
 
     def _reconcile(self, event: ops.EventBase) -> None:
@@ -400,17 +405,17 @@ class QBittorrentCharm(ops.CharmBase):
         if not storage:
             return
 
+        if self._is_vpn_required():
+            return
+
         # Ensure credentials exist
         credentials = self._get_credentials() or self._create_credentials()
 
         # Publish download client data to related media managers
         self._publish_download_client(credentials)
 
-        # Stop first: qBittorrent saves config on SIGTERM
-        if not self._config_has_credentials(credentials.username):
-            if self._is_service_running():
-                self._container.stop(SERVICE_NAME)
-            self._write_config_file(credentials)
+        # Reconcile config (preserves user settings like download paths)
+        self._reconcile_config(credentials)
 
         # Fix config directory ownership for PUID/PGID
         self._prepare_config_directory(storage.puid, storage.pgid)
@@ -451,6 +456,7 @@ class QBittorrentCharm(ops.CharmBase):
         self._collect_leader_status(event)
         self._collect_pebble_status(event)
         self._collect_storage_status(event)
+        self._collect_vpn_requirement_status(event)
         self._collect_credentials_status(event)
         self._collect_vpn_status(event)
         self._collect_workload_status(event)
@@ -476,6 +482,19 @@ class QBittorrentCharm(ops.CharmBase):
         """Add status for storage relation."""
         if not self._media_storage.is_ready():
             event.add_status(ops.BlockedStatus("Waiting for media-storage relation"))
+
+    def _is_vpn_required(self) -> bool:
+        """Check if VPN is required based on unsafe-mode config."""
+        unsafe_mode = bool(self.config.get("unsafe-mode", False))
+        has_vpn_relation = self.model.get_relation("vpn-gateway") is not None
+        return not unsafe_mode and not has_vpn_relation
+
+    def _collect_vpn_requirement_status(self, event: ops.CollectStatusEvent) -> None:
+        """Block when VPN is required but not configured."""
+        if self._is_vpn_required():
+            event.add_status(
+                ops.BlockedStatus("Waiting for vpn-gateway relation (or set unsafe-mode=true)")
+            )
 
     def _collect_vpn_status(self, event: ops.CollectStatusEvent) -> None:
         """Add status for VPN relation (optional)."""

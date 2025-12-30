@@ -34,6 +34,7 @@ def test_reconcile_creates_credentials_secret(ctx, mock_k8s):
                 leader=True,
                 containers=[QBITTORRENT_CONTAINER],
                 relations=[storage_relation],
+                config={"unsafe-mode": True},
             ),
         )
 
@@ -62,6 +63,7 @@ def test_reconcile_builds_pebble_layer(ctx, mock_k8s):
                 leader=True,
                 containers=[QBITTORRENT_CONTAINER],
                 relations=[storage_relation],
+                config={"unsafe-mode": True},
             ),
         )
 
@@ -96,6 +98,7 @@ def test_reconcile_calls_storage_volume(ctx, mock_k8s):
                 leader=True,
                 containers=[QBITTORRENT_CONTAINER],
                 relations=[storage_relation],
+                config={"unsafe-mode": True},
             ),
         )
         mock_storage.assert_called_once()
@@ -179,6 +182,7 @@ def test_ensure_user_exists_adds_user_and_group(ctx, mock_k8s):
                     leader=True,
                     containers=[container],
                     relations=[storage_relation],
+                    config={"unsafe-mode": True},
                 ),
             )
 

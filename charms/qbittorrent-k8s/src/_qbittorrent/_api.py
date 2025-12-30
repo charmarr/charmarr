@@ -9,8 +9,6 @@ import httpx
 
 from _qbittorrent._constants import API_BASE_PATH
 
-API_V2 = API_BASE_PATH
-
 
 class QBittorrentApiError(Exception):
     """Base exception for qBittorrent API errors."""
@@ -29,7 +27,7 @@ class QBittorrentApi:
 
     def _url(self, path: str) -> str:
         """Build full API URL for given path."""
-        return f"{self._base_url}{API_V2}{path}"
+        return f"{self._base_url}{API_BASE_PATH}{path}"
 
     def authenticate(self, username: str, password: str) -> None:
         """Authenticate and store session cookie."""

@@ -14,9 +14,9 @@ from _qbittorrent._constants import (
     WEBUI_PORT,
 )
 from _qbittorrent._credentials import (
-    build_qbittorrent_config,
     compute_pbkdf2_hash,
     generate_password,
+    reconcile_qbittorrent_config,
 )
 
 __all__ = [
@@ -29,7 +29,7 @@ __all__ = [
     "WEBUI_PORT",
     "QBittorrentApi",
     "QBittorrentApiError",
-    "build_qbittorrent_config",
     "compute_pbkdf2_hash",
     "generate_password",
+    "reconcile_qbittorrent_config",
 ]
