@@ -3,8 +3,6 @@
 
 """SABnzbd-specific constants."""
 
-API_KEY_BYTES = 16
-
 CONTAINER_NAME = "sabnzbd"
 CONFIG_FILE = "/config/sabnzbd.ini"
 API_KEY_SECRET_LABEL = "api-key"

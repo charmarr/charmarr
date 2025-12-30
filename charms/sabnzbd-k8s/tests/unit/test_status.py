@@ -25,7 +25,12 @@ def test_waiting_for_pebble(ctx, mock_k8s):
     )
     state = ctx.run(
         ctx.on.start(),
-        State(leader=True, containers=[container], relations=[storage_relation]),
+        State(
+            leader=True,
+            containers=[container],
+            relations=[storage_relation],
+            config={"unsafe-mode": True},
+        ),
     )
     assert state.unit_status == ops.WaitingStatus("Waiting for Pebble")
 
@@ -53,6 +58,7 @@ def test_non_leader_standby_status(ctx, mock_k8s):
             leader=False,
             containers=[SABNZBD_CONTAINER],
             relations=[storage_relation],
+            config={"unsafe-mode": True},
         ),
     )
     assert state.unit_status == ops.WaitingStatus("Standby (non-leader)")
@@ -120,3 +126,87 @@ def test_waiting_for_vpn_when_related_but_not_connected(ctx, mock_k8s):
             ),
         )
     assert state.unit_status == ops.WaitingStatus("Waiting for VPN connection")
+
+
+def test_blocked_without_vpn_gateway_by_default(ctx, mock_k8s):
+    """Charm is blocked without vpn-gateway relation when unsafe-mode is false (default)."""
+    storage_data = MediaStorageProviderData(pvc_name="charmarr-shared")
+    storage_relation = Relation(
+        endpoint="media-storage",
+        interface="media-storage",
+        remote_app_data={"config": storage_data.model_dump_json()},
+    )
+    state = ctx.run(
+        ctx.on.config_changed(),
+        State(
+            leader=True,
+            containers=[SABNZBD_CONTAINER],
+            relations=[storage_relation],
+        ),
+    )
+    assert state.unit_status == ops.BlockedStatus(
+        "Waiting for vpn-gateway relation (or set unsafe-mode=true)"
+    )
+
+
+def test_not_blocked_when_unsafe_mode_enabled(ctx, mock_k8s):
+    """Charm proceeds without vpn-gateway when unsafe-mode is true."""
+    storage_data = MediaStorageProviderData(pvc_name="charmarr-shared")
+    storage_relation = Relation(
+        endpoint="media-storage",
+        interface="media-storage",
+        remote_app_data={"config": storage_data.model_dump_json()},
+    )
+
+    with (
+        patch("charm.SABnzbdCharm._is_workload_ready", return_value=False),
+        patch("charm.ensure_pebble_user"),
+    ):
+        state = ctx.run(
+            ctx.on.config_changed(),
+            State(
+                leader=True,
+                containers=[SABNZBD_CONTAINER],
+                relations=[storage_relation],
+                config={"unsafe-mode": True},
+            ),
+        )
+    assert state.unit_status == ops.WaitingStatus("Waiting for workload")
+
+
+def test_not_blocked_when_vpn_gateway_related(ctx, mock_k8s):
+    """Charm proceeds when vpn-gateway is related (regardless of unsafe-mode)."""
+    storage_data = MediaStorageProviderData(pvc_name="charmarr-shared")
+    storage_relation = Relation(
+        endpoint="media-storage",
+        interface="media-storage",
+        remote_app_data={"config": storage_data.model_dump_json()},
+    )
+    vpn_data = VPNGatewayProviderData(
+        gateway_dns_name="gluetun.vpn.svc.cluster.local",
+        cluster_cidrs="10.1.0.0/16",
+        cluster_dns_ip="10.152.183.10",
+        vpn_connected=True,
+        instance_name="gluetun",
+    )
+    vpn_relation = Relation(
+        endpoint="vpn-gateway",
+        interface="vpn-gateway",
+        remote_app_data={"config": vpn_data.model_dump_json()},
+    )
+
+    with (
+        patch("charm.SABnzbdCharm._is_workload_ready", return_value=True),
+        patch("charm.SABnzbdCharm._configure_app"),
+        patch("charm.SABnzbdCharm._sync_categories"),
+        patch("charm.ensure_pebble_user"),
+    ):
+        state = ctx.run(
+            ctx.on.config_changed(),
+            State(
+                leader=True,
+                containers=[SABNZBD_CONTAINER],
+                relations=[storage_relation, vpn_relation],
+            ),
+        )
+    assert state.unit_status == ops.ActiveStatus()

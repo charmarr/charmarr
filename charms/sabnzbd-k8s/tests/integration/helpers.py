@@ -39,6 +39,7 @@ def deploy_sabnzbd_charm(juju: jubilant.Juju, charm_path: Path) -> None:
         app="sabnzbd",
         trust=True,
         resources=get_oci_resources(CHARM_DIR),
+        config={"unsafe-mode": True},
     )
     juju.integrate("sabnzbd:media-storage", "charmarr-storage:media-storage")
     wait_for_active_idle(juju)

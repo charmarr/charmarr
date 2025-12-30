@@ -12,7 +12,7 @@ from _sabnzbd._constants import (
     SERVICE_NAME,
     WEBUI_PORT,
 )
-from _sabnzbd._credentials import build_sabnzbd_config, generate_api_key
+from _sabnzbd._credentials import reconcile_sabnzbd_config
 
 __all__ = [
     "API_KEY_SECRET_LABEL",
@@ -23,6 +23,5 @@ __all__ = [
     "WEBUI_PORT",
     "SABnzbdApi",
     "SABnzbdApiError",
-    "build_sabnzbd_config",
-    "generate_api_key",
+    "reconcile_sabnzbd_config",
 ]

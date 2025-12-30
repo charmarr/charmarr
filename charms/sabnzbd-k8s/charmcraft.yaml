@@ -46,6 +46,9 @@ charm-libs:
 containers:
   sabnzbd:
     resource: sabnzbd-image
+    mounts:
+      - storage: config
+        location: /config
 
 resources:
   sabnzbd-image:
@@ -97,6 +100,13 @@ requires:
 
 config:
   options:
+    unsafe-mode:
+      type: boolean
+      default: false
+      description: |
+        Allow workload to run without VPN protection.
+        When false (default), the charm blocks until a vpn-gateway relation is added.
+        When true, the charm reconciles without requiring VPN, exposing your IP to indexers.
     log-level:
       type: string
       default: "info"
@@ -106,10 +116,7 @@ config:
     ingress-path:
       type: string
       default: "/sabnzbd"
-      description: |
-        URL path prefix for ingress routing.
-        Requests to this path are rewritten to / before forwarding to SABnzbd.
-        Example: /sabnzbd means access via https://gateway.example.com/sabnzbd
+      description: URL path prefix for ingress routing
     timezone:
       type: string
       default: "Etc/UTC"

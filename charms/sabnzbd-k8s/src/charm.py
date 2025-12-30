@@ -22,11 +22,7 @@ from charms.istio_ingress_k8s.v0.istio_ingress_route import (
     IstioIngressRouteConfig,
     IstioIngressRouteRequirer,
     Listener,
-    PathModifier,
-    PathModifierType,
     ProtocolType,
-    URLRewriteFilter,
-    URLRewriteSpec,
 )
 from charms.velero_libs.v0.velero_backup_config import VeleroBackupProvider, VeleroBackupSpec
 
@@ -38,14 +34,14 @@ from _sabnzbd import (
     SERVICE_NAME,
     WEBUI_PORT,
     SABnzbdApi,
-    build_sabnzbd_config,
-    generate_api_key,
+    reconcile_sabnzbd_config,
 )
 from charmarr_lib.core import (
     DownloadClient,
     DownloadClientType,
     K8sResourceManager,
     ensure_pebble_user,
+    generate_api_key,
     get_secret_rotation_policy,
     observe_events,
     reconcilable_events_k8s,
@@ -124,6 +120,11 @@ class SABnzbdCharm(ops.CharmBase):
             return secret.id
         return secret.get_info().id
 
+    def _get_url_base(self) -> str | None:
+        """Get URL base path from config, or None if root/empty."""
+        url_base = str(self.config.get("ingress-path", "/sabnzbd"))
+        return url_base if url_base and url_base != "/" else None
+
     def _get_api_key(self) -> ApiKey | None:
         """Retrieve API key from Juju Secret, or None if not yet created."""
         try:
@@ -153,20 +154,25 @@ class SABnzbdCharm(ops.CharmBase):
             secret_id=self._get_secret_id(secret),
         )
 
-    def _write_config_file(self, api_key: ApiKey) -> None:
-        """Write sabnzbd.ini with API key."""
-        config_content = build_sabnzbd_config(api_key.api_key, self.app.name)
-        self._container.push(CONFIG_FILE, config_content, make_dirs=True)
-        logger.info("Wrote SABnzbd config file")
+    def _reconcile_config(self, api_key: str) -> None:
+        """Reconcile sabnzbd.ini with expected values, preserving user settings."""
+        content = None
+        if self._container.exists(CONFIG_FILE):
+            content = self._container.pull(CONFIG_FILE).read()
+
+        updated = reconcile_sabnzbd_config(
+            content,
+            api_key=api_key,
+            app_name=self.app.name,
+            url_base=self._get_url_base(),
+        )
+
+        if content != updated:
+            self._container.push(CONFIG_FILE, updated, make_dirs=True)
+            logger.info("Reconciled sabnzbd.ini")
 
     def _prepare_config_directory(self, puid: int, pgid: int) -> None:
         self._container.exec(["chown", "-R", f"{puid}:{pgid}", "/config"]).wait()
-
-    def _config_has_api_key(self, api_key: str) -> bool:
-        if not self._container.exists(CONFIG_FILE):
-            return False
-        content = self._container.pull(CONFIG_FILE).read()
-        return f"api_key = {api_key}" in content
 
     def _is_service_running(self) -> bool:
         services = self._container.get_services(SERVICE_NAME)
@@ -279,6 +285,7 @@ class SABnzbdCharm(ops.CharmBase):
             client=DownloadClient.SABNZBD,
             client_type=DownloadClientType.USENET,
             instance_name=self.app.name,
+            base_path=self._get_url_base(),
         )
         self._download_client.publish_data(data)
         logger.info("Published download client provider data")
@@ -309,16 +316,6 @@ class SABnzbdCharm(ops.CharmBase):
                         )
                     ],
                     backends=[BackendRef(service=self.app.name, port=WEBUI_PORT)],
-                    filters=[
-                        URLRewriteFilter(
-                            urlRewrite=URLRewriteSpec(
-                                path=PathModifier(
-                                    type=PathModifierType.ReplacePrefixMatch,
-                                    value="/",
-                                )
-                            )
-                        )
-                    ],
                 ),
             ],
         )
@@ -342,11 +339,7 @@ class SABnzbdCharm(ops.CharmBase):
         if self._is_service_running():
             self._container.stop(SERVICE_NAME)
 
-        new_key = ApiKey(
-            api_key=new_api_key,
-            secret_id=self._get_secret_id(event.secret),
-        )
-        self._write_config_file(new_key)
+        self._reconcile_config(new_api_key)
         self._container.replan()
 
     def _reconcile(self, event: ops.EventBase) -> None:
@@ -388,17 +381,19 @@ class SABnzbdCharm(ops.CharmBase):
         if not storage:
             return
 
+        if self._is_vpn_required():
+            return
+
         # Ensure API key exists
         api_key = self._get_api_key() or self._create_api_key()
 
         # Publish download client data to related media managers
         self._publish_download_client(api_key)
 
-        # Stop first: SABnzbd may save config on shutdown
-        if not self._config_has_api_key(api_key.api_key):
-            if self._is_service_running():
-                self._container.stop(SERVICE_NAME)
-            self._write_config_file(api_key)
+        # Reconcile config - stops service if changes needed
+        if self._is_service_running():
+            self._container.stop(SERVICE_NAME)
+        self._reconcile_config(api_key.api_key)
 
         # Fix config directory ownership for PUID/PGID
         self._prepare_config_directory(storage.puid, storage.pgid)
@@ -439,6 +434,7 @@ class SABnzbdCharm(ops.CharmBase):
         self._collect_leader_status(event)
         self._collect_pebble_status(event)
         self._collect_storage_status(event)
+        self._collect_vpn_requirement_status(event)
         self._collect_api_key_status(event)
         self._collect_vpn_status(event)
         self._collect_workload_status(event)
@@ -464,6 +460,19 @@ class SABnzbdCharm(ops.CharmBase):
         """Add status for storage relation."""
         if not self._media_storage.is_ready():
             event.add_status(ops.BlockedStatus("Waiting for media-storage relation"))
+
+    def _is_vpn_required(self) -> bool:
+        """Check if VPN is required based on unsafe-mode config."""
+        unsafe_mode = bool(self.config.get("unsafe-mode", False))
+        has_vpn_relation = self.model.get_relation("vpn-gateway") is not None
+        return not unsafe_mode and not has_vpn_relation
+
+    def _collect_vpn_requirement_status(self, event: ops.CollectStatusEvent) -> None:
+        """Block when VPN is required but not configured."""
+        if self._is_vpn_required():
+            event.add_status(
+                ops.BlockedStatus("Waiting for vpn-gateway relation (or set unsafe-mode=true)")
+            )
 
     def _collect_vpn_status(self, event: ops.CollectStatusEvent) -> None:
         """Add status for VPN relation (optional)."""
