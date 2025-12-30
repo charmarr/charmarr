@@ -16,6 +16,8 @@ on:
           - qbittorrent
           - sabnzbd
           - flaresolverr
+          - prowlarr
+          - radarr
           - all
         default: auto
       dry-run:
@@ -37,6 +39,8 @@ jobs:
       qbittorrent: ${{ steps.check.outputs.qbittorrent }}
       sabnzbd: ${{ steps.check.outputs.sabnzbd }}
       flaresolverr: ${{ steps.check.outputs.flaresolverr }}
+      prowlarr: ${{ steps.check.outputs.prowlarr }}
+      radarr: ${{ steps.check.outputs.radarr }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -65,6 +69,12 @@ jobs:
           if [[ "$CHARM_INPUT" == "flaresolverr" || "$CHARM_INPUT" == "all" ]]; then
             echo "flaresolverr=true" >> "$GITHUB_OUTPUT"
           fi
+          if [[ "$CHARM_INPUT" == "prowlarr" || "$CHARM_INPUT" == "all" ]]; then
+            echo "prowlarr=true" >> "$GITHUB_OUTPUT"
+          fi
+          if [[ "$CHARM_INPUT" == "radarr" || "$CHARM_INPUT" == "all" ]]; then
+            echo "radarr=true" >> "$GITHUB_OUTPUT"
+          fi
 
           # Auto-detect from changes (push or workflow_dispatch with auto)
           if [[ -z "$CHARM_INPUT" || "$CHARM_INPUT" == "auto" ]]; then
@@ -87,6 +97,12 @@ jobs:
             fi
             if echo "$changed" | grep -q "^charms/flaresolverr-k8s/"; then
               echo "flaresolverr=true" >> "$GITHUB_OUTPUT"
+            fi
+            if echo "$changed" | grep -q "^charms/prowlarr-k8s/"; then
+              echo "prowlarr=true" >> "$GITHUB_OUTPUT"
+            fi
+            if echo "$changed" | grep -q "^charms/radarr-k8s/"; then
+              echo "radarr=true" >> "$GITHUB_OUTPUT"
             fi
           fi
 
@@ -140,6 +156,24 @@ jobs:
     needs: detect
     if: needs.detect.outputs.flaresolverr == 'true'
     uses: ./.github/workflows/flaresolverr-k8s-publish-edge.yaml
+    with:
+      dry-run: ${{ inputs.dry-run || false }}
+    secrets: inherit
+
+  prowlarr:
+    name: Prowlarr
+    needs: detect
+    if: needs.detect.outputs.prowlarr == 'true'
+    uses: ./.github/workflows/prowlarr-k8s-publish-edge.yaml
+    with:
+      dry-run: ${{ inputs.dry-run || false }}
+    secrets: inherit
+
+  radarr:
+    name: Radarr
+    needs: detect
+    if: needs.detect.outputs.radarr == 'true'
+    uses: ./.github/workflows/radarr-k8s-publish-edge.yaml
     with:
       dry-run: ${{ inputs.dry-run || false }}
     secrets: inherit

@@ -14,6 +14,8 @@ jobs:
       qbittorrent: ${{ steps.check.outputs.qbittorrent }}
       sabnzbd: ${{ steps.check.outputs.sabnzbd }}
       flaresolverr: ${{ steps.check.outputs.flaresolverr }}
+      prowlarr: ${{ steps.check.outputs.prowlarr }}
+      radarr: ${{ steps.check.outputs.radarr }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -46,6 +48,14 @@ jobs:
 
           if echo "$changed" | grep -q "^charms/flaresolverr-k8s/"; then
             echo "flaresolverr=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          if echo "$changed" | grep -q "^charms/prowlarr-k8s/"; then
+            echo "prowlarr=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          if echo "$changed" | grep -q "^charms/radarr-k8s/"; then
+            echo "radarr=true" >> "$GITHUB_OUTPUT"
           fi
 
   multimeter:
@@ -83,3 +93,15 @@ jobs:
     needs: detect
     if: needs.detect.outputs.flaresolverr == 'true'
     uses: ./.github/workflows/flaresolverr-k8s-ci.yaml
+
+  prowlarr:
+    name: Prowlarr
+    needs: detect
+    if: needs.detect.outputs.prowlarr == 'true'
+    uses: ./.github/workflows/prowlarr-k8s-ci.yaml
+
+  radarr:
+    name: Radarr
+    needs: detect
+    if: needs.detect.outputs.radarr == 'true'
+    uses: ./.github/workflows/radarr-k8s-ci.yaml
