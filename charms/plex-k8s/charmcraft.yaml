@@ -1,0 +1,129 @@
+name: plex-k8s
+type: charm
+title: Plex Media Server
+summary: Media streaming server for Charmarr
+description: |
+  Plex Media Server streams your media to devices anywhere.
+
+  This charm provides automated deployment on Kubernetes with:
+  - Automatic media storage integration via relation
+  - Optional hardware transcoding (Intel QuickSync)
+  - Ingress integration for remote access
+
+  After deployment:
+  1. Access Plex UI via ingress or port-forward
+  2. Sign in with your Plex account (or use claim-token config)
+  3. Configure libraries pointing to /data/media
+  4. (Optional) Configure custom server access URL for remote access
+
+  Note: Plex is automatically discovered by Overseerr via plex.tv
+  after OAuth - no manual URL configuration needed.
+
+  Requires --trust for RBAC permissions.
+
+links:
+  documentation: https://github.com/charmarr/charmarr
+  source: https://github.com/charmarr/charmarr
+  issues: https://github.com/charmarr/charmarr/issues
+
+assumes:
+  - k8s-api
+  - juju >= 3.6
+
+base: ubuntu@24.04
+platforms:
+  amd64:
+
+parts:
+  charm:
+    source: .
+    plugin: uv
+    build-packages: [git]
+    build-snaps: [astral-uv]
+
+charm-libs:
+  - lib: istio_beacon_k8s.service_mesh
+    version: "0"
+  - lib: istio_ingress_k8s.istio_ingress_route
+    version: "0"
+
+containers:
+  plex:
+    resource: plex-image
+    mounts:
+      - storage: config
+        location: /config
+
+resources:
+  plex-image:
+    type: oci-image
+    description: OCI image for Plex Media Server (LinuxServer)
+    upstream-source: lscr.io/linuxserver/plex:latest
+
+storage:
+  config:
+    type: filesystem
+    location: /config
+    minimum-size: 10G
+    description: |
+      Plex configuration and metadata database.
+      Recommend 10GB+ for large libraries (thumbnails, metadata).
+
+provides:
+  provide-cmr-mesh:
+    interface: cross_model_mesh
+    optional: true
+    description: Access cross-model applications via service mesh
+
+requires:
+  require-cmr-mesh:
+    interface: cross_model_mesh
+    optional: true
+    description: Allow cross-model access via service mesh
+  media-storage:
+    interface: media-storage
+    limit: 1
+  service-mesh:
+    interface: service_mesh
+    limit: 1
+    optional: true
+    description: Subscribe this charm into a service mesh
+  istio-ingress-route:
+    interface: istio_ingress_route
+    limit: 1
+    optional: true
+    description: Ingress routing via Istio gateway
+
+config:
+  options:
+    claim-token:
+      type: string
+      default: ""
+      description: |
+        Plex claim token for automated server setup.
+
+        Get token from https://plex.tv/claim
+        Token expires in 4 minutes and is single-use.
+
+        Leave empty to claim manually via web UI after deployment.
+
+        Note: Token is only used if server is not already claimed.
+
+    hardware-transcoding:
+      type: boolean
+      default: false
+      description: |
+        Enable hardware transcoding using Intel QuickSync.
+
+        Requires:
+        - Intel CPU with integrated graphics (most non-F SKUs)
+        - Node must have /dev/dri available
+        - Plex Pass subscription
+        - Charm deployed with --trust flag
+
+        When enabled, the charm mounts /dev/dri into the container.
+
+    timezone:
+      type: string
+      default: "Etc/UTC"
+      description: IANA timezone (e.g., America/New_York, Europe/London)
