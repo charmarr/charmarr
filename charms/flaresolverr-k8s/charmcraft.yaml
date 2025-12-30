@@ -1,0 +1,79 @@
+name: flaresolverr-k8s
+type: charm
+title: FlareSolverr
+summary: Cloudflare bypass proxy for Prowlarr and other indexer managers
+description: |
+  FlareSolverr is a proxy server that bypasses Cloudflare and other anti-bot
+  protections. It enables indexer managers like Prowlarr to access sites that
+  use Cloudflare protection.
+
+  This charm provides automated deployment on Kubernetes with Prowlarr
+  integration via the flaresolverr relation.
+
+links:
+  documentation: https://github.com/charmarr/charmarr
+  source: https://github.com/charmarr/charmarr
+  issues: https://github.com/charmarr/charmarr/issues
+
+assumes:
+  - k8s-api
+  - juju >= 3.6
+
+base: ubuntu@24.04
+platforms:
+  amd64:
+
+parts:
+  charm:
+    source: .
+    plugin: uv
+    build-packages: [git]
+    build-snaps: [astral-uv]
+
+charm-libs:
+  - lib: istio_beacon_k8s.service_mesh
+    version: "0"
+
+containers:
+  flaresolverr:
+    resource: flaresolverr-image
+
+resources:
+  flaresolverr-image:
+    type: oci-image
+    description: FlareSolverr container image
+    upstream-source: ghcr.io/flaresolverr/flaresolverr:latest
+
+provides:
+  flaresolverr:
+    interface: flaresolverr
+  provide-cmr-mesh:
+    interface: cross_model_mesh
+    optional: true
+    description: Access cross-model applications via service mesh
+
+requires:
+  require-cmr-mesh:
+    interface: cross_model_mesh
+    optional: true
+    description: Allow cross-model access via service mesh
+  service-mesh:
+    interface: service_mesh
+    limit: 1
+    optional: true
+    description: Subscribe to Istio service mesh for mTLS
+
+config:
+  options:
+    log-level:
+      type: string
+      default: "info"
+      description: |
+        Log level for FlareSolverr.
+        One of: debug, info, warning, error
+    timeout:
+      type: int
+      default: 60000
+      description: |
+        Maximum timeout in milliseconds for browser navigation.
+        Default is 60000 (60 seconds).
