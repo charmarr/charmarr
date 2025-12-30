@@ -1,0 +1,178 @@
+name: sonarr-k8s
+type: charm
+title: Sonarr
+summary: TV series collection manager for Usenet and BitTorrent users
+description: |
+  Sonarr is a TV series collection manager for Usenet and BitTorrent users.
+
+  This charm provides automated deployment on Kubernetes with:
+  - Automatic indexer sync via Prowlarr integration
+  - Automatic download client configuration
+  - Trash Guides quality profiles via embedded Recyclarr
+  - Shared media storage for hardlinks
+  - Optional VPN integration for privacy
+  - Istio ingress integration
+  - Juju-native credential management
+
+  Requires --trust for RBAC permissions.
+
+links:
+  documentation: https://github.com/charmarr/charmarr
+  source: https://github.com/charmarr/charmarr
+  issues: https://github.com/charmarr/charmarr/issues
+
+assumes:
+  - k8s-api
+  - juju >= 3.6
+
+base: ubuntu@24.04
+platforms:
+  amd64:
+
+parts:
+  charm:
+    source: .
+    plugin: uv
+    build-packages: [git]
+    build-snaps: [astral-uv]
+
+charm-libs:
+  - lib: istio_beacon_k8s.service_mesh
+    version: "0"
+  - lib: istio_ingress_k8s.istio_ingress_route
+    version: "0"
+  # FIXME: velero_libs.velero_backup_config not yet on Charmhub.
+  # Check with Kubeflow team when it's published, then fetch via charmcraft fetch-libs.
+  # Currently vendored from https://github.com/canonical/velero-operator
+  # - lib: velero_libs.velero_backup_config
+  #   version: "0"
+
+containers:
+  sonarr:
+    resource: sonarr-image
+    mounts:
+      - storage: config
+        location: /config
+  recyclarr:
+    resource: recyclarr-image
+
+resources:
+  sonarr-image:
+    type: oci-image
+    description: OCI image for Sonarr (LinuxServer)
+    upstream-source: lscr.io/linuxserver/sonarr:latest
+  recyclarr-image:
+    type: oci-image
+    description: OCI image for Recyclarr
+    upstream-source: ghcr.io/recyclarr/recyclarr:latest
+
+storage:
+  config:
+    type: filesystem
+    location: /config
+    minimum-size: 1G
+
+provides:
+  media-manager:
+    interface: media-manager
+  provide-cmr-mesh:
+    interface: cross_model_mesh
+    optional: true
+    description: Access cross-model applications via service mesh
+
+requires:
+  require-cmr-mesh:
+    interface: cross_model_mesh
+    optional: true
+    description: Allow cross-model access via service mesh
+  media-indexer:
+    interface: media-indexer
+    limit: 1
+    optional: true
+  download-client:
+    interface: download-client
+    optional: true
+  media-storage:
+    interface: media-storage
+    limit: 1
+  vpn-gateway:
+    interface: vpn-gateway
+    limit: 1
+    optional: true
+  service-mesh:
+    interface: service_mesh
+    limit: 1
+    optional: true
+    description: Subscribe this charm into a service mesh for policy-driven traffic management
+  velero-backup-config:
+    interface: velero_backup_config
+    limit: 1
+    optional: true
+    description: Configure Velero backups for config storage
+  istio-ingress-route:
+    interface: istio_ingress_route
+    limit: 1
+    optional: true
+    description: Ingress routing via Istio gateway
+
+config:
+  options:
+    trash-profiles:
+      type: string
+      default: ""
+      description: |
+        Comma-separated list of Trash Guide profile templates to sync via Recyclarr.
+
+        Leave empty to skip auto-configuration (manual profile management).
+
+        Examples:
+          - web-1080p (1080p WEB-DL)
+          - web-2160p (4K WEB-DL)
+          - remux-web-1080p (1080p Remux + WEB-DL)
+          - remux-web-2160p (4K Remux + WEB-DL)
+          - anime (Anime-optimized)
+
+        WARNING: Do not mix 1080p and 4K profiles. Deploy separate instances instead.
+
+        See: https://trash-guides.info/Sonarr/
+    log-level:
+      type: string
+      default: "info"
+      description: |
+        Application log level.
+        One of: trace, debug, info, warn, error
+    ingress-path:
+      type: string
+      default: "/sonarr"
+      description: |
+        URL path prefix for ingress routing.
+        Example: /sonarr means access via https://gateway.example.com/sonarr
+    timezone:
+      type: string
+      default: "Etc/UTC"
+      description: IANA timezone (e.g., America/New_York, Europe/London)
+    api-key-rotation:
+      type: string
+      default: "disabled"
+      description: |
+        Auto-rotate API key and sync to related apps.
+        Options: disabled, daily, monthly, yearly
+    is-4k:
+      type: boolean
+      default: false
+      description: |
+        Whether this instance handles 4K content.
+        Sets root folder to /data/media/tv-uhd (vs /data/media/tv).
+        Used by request managers (Overseerr) to distinguish between quality tiers.
+
+actions:
+  sync-trash-profiles:
+    description: |
+      Manually sync quality profiles and custom formats from Trash Guides via Recyclarr.
+      Requires trash-profiles config to be set.
+
+  rotate-api-key:
+    description: |
+      Rotate the Sonarr API key.
+      Generates new key, restarts Sonarr, updates Juju secret.
+      Related applications update automatically via secret-changed event.
