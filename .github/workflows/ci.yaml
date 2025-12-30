@@ -16,6 +16,7 @@ jobs:
       flaresolverr: ${{ steps.check.outputs.flaresolverr }}
       prowlarr: ${{ steps.check.outputs.prowlarr }}
       radarr: ${{ steps.check.outputs.radarr }}
+      sonarr: ${{ steps.check.outputs.sonarr }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -56,6 +57,10 @@ jobs:
 
           if echo "$changed" | grep -q "^charms/radarr-k8s/"; then
             echo "radarr=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          if echo "$changed" | grep -q "^charms/sonarr-k8s/"; then
+            echo "sonarr=true" >> "$GITHUB_OUTPUT"
           fi
 
   multimeter:
@@ -105,3 +110,9 @@ jobs:
     needs: detect
     if: needs.detect.outputs.radarr == 'true'
     uses: ./.github/workflows/radarr-k8s-ci.yaml
+
+  sonarr:
+    name: Sonarr
+    needs: detect
+    if: needs.detect.outputs.sonarr == 'true'
+    uses: ./.github/workflows/sonarr-k8s-ci.yaml
