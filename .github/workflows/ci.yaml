@@ -13,6 +13,7 @@ jobs:
       gluetun: ${{ steps.check.outputs.gluetun }}
       qbittorrent: ${{ steps.check.outputs.qbittorrent }}
       sabnzbd: ${{ steps.check.outputs.sabnzbd }}
+      flaresolverr: ${{ steps.check.outputs.flaresolverr }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -41,6 +42,10 @@ jobs:
 
           if echo "$changed" | grep -q "^charms/sabnzbd-k8s/"; then
             echo "sabnzbd=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          if echo "$changed" | grep -q "^charms/flaresolverr-k8s/"; then
+            echo "flaresolverr=true" >> "$GITHUB_OUTPUT"
           fi
 
   multimeter:
@@ -72,3 +77,9 @@ jobs:
     needs: detect
     if: needs.detect.outputs.sabnzbd == 'true'
     uses: ./.github/workflows/sabnzbd-k8s-ci.yaml
+
+  flaresolverr:
+    name: FlareSolverr
+    needs: detect
+    if: needs.detect.outputs.flaresolverr == 'true'
+    uses: ./.github/workflows/flaresolverr-k8s-ci.yaml
