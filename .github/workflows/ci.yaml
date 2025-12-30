@@ -17,6 +17,7 @@ jobs:
       prowlarr: ${{ steps.check.outputs.prowlarr }}
       radarr: ${{ steps.check.outputs.radarr }}
       sonarr: ${{ steps.check.outputs.sonarr }}
+      plex: ${{ steps.check.outputs.plex }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -61,6 +62,10 @@ jobs:
 
           if echo "$changed" | grep -q "^charms/sonarr-k8s/"; then
             echo "sonarr=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          if echo "$changed" | grep -q "^charms/plex-k8s/"; then
+            echo "plex=true" >> "$GITHUB_OUTPUT"
           fi
 
   multimeter:
@@ -116,3 +121,9 @@ jobs:
     needs: detect
     if: needs.detect.outputs.sonarr == 'true'
     uses: ./.github/workflows/sonarr-k8s-ci.yaml
+
+  plex:
+    name: Plex
+    needs: detect
+    if: needs.detect.outputs.plex == 'true'
+    uses: ./.github/workflows/plex-k8s-ci.yaml
