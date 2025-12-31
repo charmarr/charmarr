@@ -20,6 +20,7 @@ on:
           - radarr
           - sonarr
           - plex
+          - overseerr
           - all
         default: auto
       dry-run:
@@ -45,6 +46,7 @@ jobs:
       radarr: ${{ steps.check.outputs.radarr }}
       sonarr: ${{ steps.check.outputs.sonarr }}
       plex: ${{ steps.check.outputs.plex }}
+      overseerr: ${{ steps.check.outputs.overseerr }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -85,6 +87,9 @@ jobs:
           if [[ "$CHARM_INPUT" == "plex" || "$CHARM_INPUT" == "all" ]]; then
             echo "plex=true" >> "$GITHUB_OUTPUT"
           fi
+          if [[ "$CHARM_INPUT" == "overseerr" || "$CHARM_INPUT" == "all" ]]; then
+            echo "overseerr=true" >> "$GITHUB_OUTPUT"
+          fi
 
           # Auto-detect from changes (push or workflow_dispatch with auto)
           if [[ -z "$CHARM_INPUT" || "$CHARM_INPUT" == "auto" ]]; then
@@ -119,6 +124,9 @@ jobs:
             fi
             if echo "$changed" | grep -q "^charms/plex-k8s/"; then
               echo "plex=true" >> "$GITHUB_OUTPUT"
+            fi
+            if echo "$changed" | grep -q "^charms/overseerr-k8s/"; then
+              echo "overseerr=true" >> "$GITHUB_OUTPUT"
             fi
           fi
 
@@ -208,6 +216,15 @@ jobs:
     needs: detect
     if: needs.detect.outputs.plex == 'true'
     uses: ./.github/workflows/plex-k8s-publish-edge.yaml
+    with:
+      dry-run: ${{ inputs.dry-run || false }}
+    secrets: inherit
+
+  overseerr:
+    name: Overseerr
+    needs: detect
+    if: needs.detect.outputs.overseerr == 'true'
+    uses: ./.github/workflows/overseerr-k8s-publish-edge.yaml
     with:
       dry-run: ${{ inputs.dry-run || false }}
     secrets: inherit

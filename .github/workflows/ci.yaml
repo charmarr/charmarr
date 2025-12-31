@@ -18,6 +18,7 @@ jobs:
       radarr: ${{ steps.check.outputs.radarr }}
       sonarr: ${{ steps.check.outputs.sonarr }}
       plex: ${{ steps.check.outputs.plex }}
+      overseerr: ${{ steps.check.outputs.overseerr }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -66,6 +67,10 @@ jobs:
 
           if echo "$changed" | grep -q "^charms/plex-k8s/"; then
             echo "plex=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          if echo "$changed" | grep -q "^charms/overseerr-k8s/"; then
+            echo "overseerr=true" >> "$GITHUB_OUTPUT"
           fi
 
   multimeter:
@@ -127,3 +132,9 @@ jobs:
     needs: detect
     if: needs.detect.outputs.plex == 'true'
     uses: ./.github/workflows/plex-k8s-ci.yaml
+
+  overseerr:
+    name: Overseerr
+    needs: detect
+    if: needs.detect.outputs.overseerr == 'true'
+    uses: ./.github/workflows/overseerr-k8s-ci.yaml
