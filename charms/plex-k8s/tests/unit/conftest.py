@@ -15,7 +15,7 @@ PLEX_CONTAINER = Container(
     can_connect=True,
     execs={
         Exec(["chown", "-R", "1000:1000", "/config"]),
-        Exec(["mkdir", "-p", "/config/Library/Application Support/Plex Media Server"]),
+        Exec(["mkdir", "-p", "/config/Library/Application Support"]),
         Exec(["mkdir", "-p", "/run/plex-temp"]),
         Exec(["chown", "1000:1000", "/run/plex-temp"]),
     },

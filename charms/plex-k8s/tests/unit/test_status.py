@@ -77,8 +77,8 @@ def test_status_active_when_claimed(ctx, mock_k8s):
     assert state.unit_status == ops.ActiveStatus()
 
 
-def test_status_active_unclaimed_message(ctx, mock_k8s):
-    """Status shows unclaimed message when server not claimed."""
+def test_status_blocked_unclaimed_no_token(ctx, mock_k8s):
+    """Status blocked when server unclaimed and no claim token configured."""
     with (
         patch("charm.PlexCharm._is_service_running", return_value=True),
         patch("charm.PlexCharm._is_server_claimed", return_value=False),
@@ -92,7 +92,7 @@ def test_status_active_unclaimed_message(ctx, mock_k8s):
             ),
         )
 
-    assert state.unit_status == ops.ActiveStatus("Running (unclaimed - sign in via web UI)")
+    assert state.unit_status == ops.BlockedStatus("Set claim-token config (plex.tv/claim)")
 
 
 def test_status_non_leader_standby(ctx, mock_k8s):
