@@ -1,0 +1,96 @@
+name: overseerr-k8s
+type: charm
+title: Overseerr
+summary: Content request management for Plex
+description: |
+  Overseerr charm with automatic Radarr/Sonarr configuration via relations.
+
+links:
+  documentation: https://github.com/charmarr/charmarr
+  source: https://github.com/charmarr/charmarr
+  issues: https://github.com/charmarr/charmarr/issues
+
+assumes:
+  - k8s-api
+  - juju >= 3.6
+
+base: ubuntu@24.04
+platforms:
+  amd64:
+
+parts:
+  charm:
+    source: .
+    plugin: uv
+    build-packages: [git]
+    build-snaps: [astral-uv]
+
+charm-libs:
+  - lib: istio_beacon_k8s.service_mesh
+    version: "0"
+  - lib: istio_ingress_k8s.istio_ingress_route
+    version: "0"
+
+containers:
+  overseerr:
+    resource: overseerr-image
+    mounts:
+      - storage: config
+        location: /config
+
+resources:
+  overseerr-image:
+    type: oci-image
+    description: OCI image for Overseerr (LinuxServer)
+    upstream-source: lscr.io/linuxserver/overseerr:latest
+
+storage:
+  config:
+    type: filesystem
+    location: /config
+    minimum-size: 1G
+    description: Overseerr configuration and database.
+
+provides:
+  provide-cmr-mesh:
+    interface: cross_model_mesh
+    optional: true
+    description: Access cross-model applications via service mesh
+
+requires:
+  require-cmr-mesh:
+    interface: cross_model_mesh
+    optional: true
+    description: Allow cross-model access via service mesh
+  media-manager:
+    interface: media-manager
+    description: Connection to media managers (Radarr, Sonarr)
+  media-server:
+    interface: media-server
+    description: Connection to media servers (Plex, Jellyfin) for service mesh
+  service-mesh:
+    interface: service_mesh
+    limit: 1
+    optional: true
+    description: Subscribe this charm into a service mesh
+  istio-ingress-route:
+    interface: istio_ingress_route
+    limit: 1
+    optional: true
+    description: Ingress routing via Istio gateway
+
+config:
+  options:
+    log-level:
+      type: string
+      default: "info"
+      description: |
+        Application log level.
+        One of: debug, info, warn, error
+
+actions:
+  rotate-api-key:
+    description: |
+      Rotate Overseerr API key.
+      Note: This regenerates the key in Overseerr and updates the Juju secret.
+      External integrations using the old key will need to be updated manually.
