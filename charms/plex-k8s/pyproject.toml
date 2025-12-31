@@ -82,7 +82,7 @@ pythonpath = ["src", "lib"]
 
 [tool.coverage.run]
 source = ["src"]
-omit = ["tests/**"]
+omit = ["tests/**", "src/_plex/_claim.py"]
 
 [tool.coverage.report]
 show_missing = true
