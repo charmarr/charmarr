@@ -74,6 +74,9 @@ provides:
     interface: cross_model_mesh
     optional: true
     description: Access cross-model applications via service mesh
+  media-server:
+    interface: media-server
+    description: Publish Plex API endpoint for request managers (Overseerr)
 
 requires:
   require-cmr-mesh:
@@ -127,3 +130,15 @@ config:
       type: string
       default: "Etc/UTC"
       description: IANA timezone (e.g., America/New_York, Europe/London)
+
+actions:
+  force-reclaim:
+    description: |
+      Force reclaim the Plex server with a new account.
+      Use this to transfer the server to a different Plex account.
+    params:
+      claim-token:
+        type: string
+        description: Plex claim token from https://plex.tv/claim
+    required:
+      - claim-token

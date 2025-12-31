@@ -3,6 +3,12 @@
 
 """Plex-specific utilities."""
 
+from _plex._claim import (
+    ensure_custom_connection,
+    exchange_claim_token,
+    extract_machine_identifier,
+    inject_online_token,
+)
 from _plex._constants import (
     CONTAINER_NAME,
     PLEX_BINARY,
@@ -19,4 +25,8 @@ __all__ = [
     "PREFERENCES_FILE",
     "SERVICE_NAME",
     "WEBUI_PORT",
+    "ensure_custom_connection",
+    "exchange_claim_token",
+    "extract_machine_identifier",
+    "inject_online_token",
 ]

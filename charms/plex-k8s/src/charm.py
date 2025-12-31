@@ -7,7 +7,11 @@
 import logging
 
 import ops
-from charms.istio_beacon_k8s.v0.service_mesh import ServiceMeshConsumer
+from charms.istio_beacon_k8s.v0.service_mesh import (
+    AppPolicy,
+    Endpoint,
+    ServiceMeshConsumer,
+)
 from charms.istio_ingress_k8s.v0.istio_ingress_route import (
     BackendRef,
     HTTPPathMatch,
@@ -27,6 +31,10 @@ from _plex import (
     PREFERENCES_FILE,
     SERVICE_NAME,
     WEBUI_PORT,
+    ensure_custom_connection,
+    exchange_claim_token,
+    extract_machine_identifier,
+    inject_online_token,
 )
 from charmarr_lib.core import (
     K8sResourceManager,
@@ -36,7 +44,11 @@ from charmarr_lib.core import (
     reconcile_hardware_transcoding,
     reconcile_storage_volume,
 )
-from charmarr_lib.core.interfaces import MediaStorageRequirer
+from charmarr_lib.core.interfaces import (
+    MediaServerProvider,
+    MediaServerProviderData,
+    MediaStorageRequirer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -50,13 +62,23 @@ class PlexCharm(ops.CharmBase):
         self._k8s: K8sResourceManager | None = None
 
         self._media_storage = MediaStorageRequirer(self, "media-storage")
-        self._service_mesh = ServiceMeshConsumer(self, policies=[])
+        self._media_server = MediaServerProvider(self, "media-server")
+        self._service_mesh = ServiceMeshConsumer(
+            self,
+            policies=[
+                AppPolicy(
+                    relation="media-server",
+                    endpoints=[Endpoint(ports=[WEBUI_PORT])],
+                ),
+            ],
+        )
         self._ingress = IstioIngressRouteRequirer(self, relation_name="istio-ingress-route")
 
         observe_events(self, reconcilable_events_k8s, self._reconcile)
         framework.observe(self._media_storage.on.changed, self._reconcile)
         framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
         framework.observe(self._ingress.on.ready, self._configure_ingress)
+        framework.observe(self.on.force_reclaim_action, self._on_force_reclaim_action)
 
     @property
     def k8s(self) -> K8sResourceManager:
@@ -93,10 +115,61 @@ class PlexCharm(ops.CharmBase):
         token = str(self.config.get("claim-token", "")).strip()
         return token if token else None
 
+    def _claim_server(self, claim_token: str, force: bool = False) -> tuple[bool, str]:
+        """Claim server using the provided claim token.
+
+        Args:
+            claim_token: Plex claim token from plex.tv/claim
+            force: If True, overwrite existing PlexOnlineToken
+
+        Returns:
+            Tuple of (success, message)
+        """
+        if not self._container.can_connect():
+            return False, "Container not ready"
+
+        if self._is_server_claimed() and not force:
+            return True, "Server already claimed"
+
+        try:
+            content = self._container.pull(PREFERENCES_FILE).read()
+        except (ops.pebble.PathError, FileNotFoundError):
+            return False, "Preferences.xml not found - wait for Plex to initialize"
+
+        machine_id = extract_machine_identifier(content)
+        if not machine_id:
+            return False, "ProcessedMachineIdentifier not found - wait for Plex to initialize"
+
+        online_token = exchange_claim_token(claim_token, machine_id)
+        if not online_token:
+            return False, "Failed to exchange claim token - token may be expired or invalid"
+
+        updated_content = inject_online_token(content, online_token)
+        self._container.push(PREFERENCES_FILE, updated_content)
+        logger.info("Server claimed successfully")
+        return True, "Server claimed successfully"
+
     def _is_service_running(self) -> bool:
         """Check if Plex service is running."""
         services = self._container.get_services(SERVICE_NAME)
         return bool(services) and services[SERVICE_NAME].is_running()
+
+    @property
+    def _internal_url(self) -> str:
+        """Internal K8s service URL for Plex."""
+        return f"http://{self.app.name}.{self.model.name}.svc.cluster.local:{WEBUI_PORT}"
+
+    def _ensure_internal_url(self) -> None:
+        """Ensure internal K8s service URL is in Plex custom connections."""
+        try:
+            content = self._container.pull(PREFERENCES_FILE).read()
+        except (ops.pebble.PathError, FileNotFoundError):
+            return
+
+        updated = ensure_custom_connection(content, self._internal_url)
+        if updated != content:
+            self._container.push(PREFERENCES_FILE, updated)
+            logger.info("Added internal URL to custom connections: %s", self._internal_url)
 
     def _build_readiness_check(self) -> dict:
         """Build Pebble readiness check using /identity endpoint."""
@@ -261,7 +334,34 @@ class PlexCharm(ops.CharmBase):
         self._container.add_layer(SERVICE_NAME, layer, combine=True)
         self._container.replan()
 
+        # Claim server if token configured and server is unclaimed
+        claim_token = self._get_claim_token()
+        if claim_token:
+            self._claim_server(claim_token)
+
+        # Ensure internal URL is in custom connections for service discovery
+        self._ensure_internal_url()
+
         self.unit.set_ports(WEBUI_PORT)
+
+        # Publish media-server data for request managers (Overseerr)
+        self._media_server.publish_data(
+            MediaServerProviderData(
+                name=self.app.name,
+                api_url=self._internal_url,
+            )
+        )
+
+    def _on_force_reclaim_action(self, event: ops.ActionEvent) -> None:
+        """Handle force-reclaim action to reclaim server with new account."""
+        claim_token = event.params.get("claim-token", "").strip()
+        if not claim_token:
+            event.fail("claim-token parameter is required")
+            return
+
+        success, message = self._claim_server(claim_token, force=True)
+        if not success:
+            event.fail(message)
 
     def _on_collect_unit_status(self, event: ops.CollectStatusEvent) -> None:
         """Collect all unit statuses. Framework picks the worst."""
@@ -308,8 +408,10 @@ class PlexCharm(ops.CharmBase):
 
         if self._is_server_claimed():
             event.add_status(ops.ActiveStatus())
+        elif self.config.get("claim-token"):
+            event.add_status(ops.WaitingStatus("Claiming server"))
         else:
-            event.add_status(ops.ActiveStatus("Running (unclaimed - sign in via web UI)"))
+            event.add_status(ops.BlockedStatus("Set claim-token config (plex.tv/claim)"))
 
 
 if __name__ == "__main__":
