@@ -121,6 +121,11 @@ class QBittorrentCharm(ops.CharmBase):
             self._k8s = K8sResourceManager()
         return self._k8s
 
+    @property
+    def _internal_url(self) -> str:
+        """Internal K8s service URL for cross-namespace communication."""
+        return f"http://{self.app.name}.{self.model.name}.svc.cluster.local:{WEBUI_PORT}"
+
     def _get_secret_id(self, secret: ops.Secret) -> str:
         """Get secret ID reliably (handles ops 2.x quirk with labeled secrets)."""
         if secret.id:
@@ -289,7 +294,7 @@ class QBittorrentCharm(ops.CharmBase):
                 secret.grant(relation)
 
         data = DownloadClientProviderData(
-            api_url=f"http://{self.app.name}:{WEBUI_PORT}",
+            api_url=self._internal_url,
             credentials_secret_id=credentials.secret_id,
             client=DownloadClient.QBITTORRENT,
             client_type=DownloadClientType.TORRENT,

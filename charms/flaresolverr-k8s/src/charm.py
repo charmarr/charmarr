@@ -41,6 +41,11 @@ class FlareSolverrCharm(ops.CharmBase):
         observe_events(self, reconcilable_events_k8s, self._reconcile)
         framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
 
+    @property
+    def _internal_url(self) -> str:
+        """Internal K8s service URL for cross-namespace communication."""
+        return f"http://{self.app.name}.{self.model.name}.svc.cluster.local:{PORT}"
+
     def _reconcile(self, event: ops.EventBase) -> None:
         """Reconcile charm state."""
         if not self._container.can_connect():
@@ -93,8 +98,7 @@ class FlareSolverrCharm(ops.CharmBase):
         if not self.unit.is_leader():
             return
 
-        url = f"http://{self.app.name}:{PORT}"
-        data = FlareSolverrProviderData(url=url)
+        data = FlareSolverrProviderData(url=self._internal_url)
         self._flaresolverr.publish_data(data)
 
     def _is_workload_ready(self) -> bool:

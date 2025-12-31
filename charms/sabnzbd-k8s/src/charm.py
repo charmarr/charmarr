@@ -125,6 +125,11 @@ class SABnzbdCharm(ops.CharmBase):
         url_base = str(self.config.get("ingress-path", "/sabnzbd"))
         return url_base if url_base and url_base != "/" else None
 
+    @property
+    def _internal_url(self) -> str:
+        """Internal K8s service URL for cross-namespace communication."""
+        return f"http://{self.app.name}.{self.model.name}.svc.cluster.local:{WEBUI_PORT}"
+
     def _get_api_key(self) -> ApiKey | None:
         """Retrieve API key from Juju Secret, or None if not yet created."""
         try:
@@ -280,7 +285,7 @@ class SABnzbdCharm(ops.CharmBase):
                 secret.grant(relation)
 
         data = DownloadClientProviderData(
-            api_url=f"http://{self.app.name}:{WEBUI_PORT}",
+            api_url=self._internal_url,
             api_key_secret_id=api_key.secret_id,
             client=DownloadClient.SABNZBD,
             client_type=DownloadClientType.USENET,

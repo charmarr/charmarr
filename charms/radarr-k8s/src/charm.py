@@ -129,9 +129,10 @@ class RadarrCharm(ops.CharmBase):
         url_base = str(self.config.get("ingress-path", "/radarr"))
         return url_base if url_base and url_base != "/" else None
 
-    def _get_internal_api_url(self) -> str:
-        """Get internal API URL for cross-service communication."""
-        return f"http://{self.app.name}:{WEBUI_PORT}"
+    @property
+    def _internal_url(self) -> str:
+        """Internal K8s service URL for cross-namespace communication."""
+        return f"http://{self.app.name}.{self.model.name}.svc.cluster.local:{WEBUI_PORT}"
 
     def _get_api_key_secret(self) -> tuple[str, str] | None:
         """Retrieve API key and secret ID from Juju Secret, or None if not yet created."""
@@ -328,7 +329,7 @@ class RadarrCharm(ops.CharmBase):
         is_4k = bool(self.config.get("is-4k", False))
 
         data = MediaManagerProviderData(
-            api_url=self._get_internal_api_url(),
+            api_url=self._internal_url,
             api_key_secret_id=secret_id,
             manager=MediaManager.RADARR,
             instance_name=self.app.name,
@@ -351,7 +352,7 @@ class RadarrCharm(ops.CharmBase):
             secret.grant(relation)
 
         data = MediaIndexerRequirerData(
-            api_url=self._get_internal_api_url(),
+            api_url=self._internal_url,
             api_key_secret_id=secret_id,
             manager=MediaManager.RADARR,
             instance_name=self.app.name,

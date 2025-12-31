@@ -120,6 +120,11 @@ class ProwlarrCharm(ops.CharmBase):
         url_base = str(self.config.get("ingress-path", "/prowlarr"))
         return url_base if url_base and url_base != "/" else None
 
+    @property
+    def _internal_url(self) -> str:
+        """Internal K8s service URL for cross-namespace communication."""
+        return f"http://{self.app.name}.{self.model.name}.svc.cluster.local:{WEBUI_PORT}"
+
     def _get_api_key_secret(self) -> tuple[str, str] | None:
         """Retrieve API key and secret ID from Juju Secret, or None if not yet created."""
         try:
@@ -241,7 +246,7 @@ class ProwlarrCharm(ops.CharmBase):
             reconcile_media_manager_connections(
                 api_client=api,
                 desired_managers=requirers,
-                indexer_url=f"http://{self.app.name}:{WEBUI_PORT}",
+                indexer_url=self._internal_url,
                 get_secret=self._get_secret_content,
             )
 
@@ -277,7 +282,7 @@ class ProwlarrCharm(ops.CharmBase):
                 secret.grant(relation)
 
         data = MediaIndexerProviderData(
-            api_url=f"http://{self.app.name}:{WEBUI_PORT}",
+            api_url=self._internal_url,
             api_key_secret_id=secret_id,
             indexer=MediaIndexer.PROWLARR,
             base_path=self._get_url_base(),
