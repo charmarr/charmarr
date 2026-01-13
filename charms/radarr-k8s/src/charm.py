@@ -85,6 +85,10 @@ class RadarrCharm(ops.CharmBase):
                     relation="media-manager",
                     endpoints=[Endpoint(ports=[WEBUI_PORT])],
                 ),
+                AppPolicy(
+                    relation="media-indexer",
+                    endpoints=[Endpoint(ports=[WEBUI_PORT])],
+                ),
             ],
         )
         self._velero_backup = VeleroBackupProvider(
