@@ -196,6 +196,10 @@ class ProwlarrCharm(ops.CharmBase):
                     "environment": {
                         "HOME": "/config",
                         "TZ": str(self.config.get("timezone", "Etc/UTC")),
+                        # Override TMPDIR - image sets it to /run/prowlarr-temp which
+                        # doesn't exist when bypassing s6-overlay; .NET needs it for
+                        # atomic writes (e.g., ASP.NET Data Protection keys)
+                        "TMPDIR": "/tmp",
                     },
                 }
             },
