@@ -22,7 +22,7 @@ dev = [
     "ops[testing]>=2.17",
 ]
 integration = [
-    "charmarr-lib-testing",
+    "charmarr-lib-testing>=0.7.1",
     "pytest-jubilant",
     "pytest-bdd>=7.0",
     "jubilant>=1.6",

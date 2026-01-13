@@ -9,11 +9,7 @@ import jubilant
 from pytest_bdd import given, then, when
 
 from _plex import WEBUI_PORT
-from charmarr_lib.testing import (
-    get_ingress_ip,
-    http_from_unit,
-    wait_for_active_idle,
-)
+from charmarr_lib.testing import get_ingress_ip, http_from_unit
 
 
 @given("plex is deployed", target_fixture="plex_deployed")
@@ -35,8 +31,10 @@ def plex_unclaimed_status(juju: jubilant.Juju) -> None:
     """Verify plex shows unclaimed status message."""
     status = juju.status()
     plex_status = status.apps["plex"]
-    message = plex_status.app_status.message or ""
-    assert "unclaimed" in message.lower() or plex_status.app_status.current == "active"
+    unit = plex_status.units.get("plex/0")
+    assert unit is not None, "plex/0 unit not found"
+    assert unit.workload_status.current == "blocked"
+    assert "claim-token" in unit.workload_status.message.lower()
 
 
 @then("plex should be accessible via ingress")
@@ -54,14 +52,14 @@ def plex_accessible_via_ingress(juju: jubilant.Juju) -> None:
 def enable_hw_transcoding(juju: jubilant.Juju) -> None:
     """Enable hardware transcoding config."""
     juju.config("plex", {"hardware-transcoding": "true"})
-    wait_for_active_idle(juju)
+    juju.wait(jubilant.all_agents_idle, delay=5, timeout=60 * 5)
 
 
 @when("hardware-transcoding is disabled")
 def disable_hw_transcoding(juju: jubilant.Juju) -> None:
     """Disable hardware transcoding config."""
     juju.config("plex", {"hardware-transcoding": "false"})
-    wait_for_active_idle(juju)
+    juju.wait(jubilant.all_agents_idle, delay=5, timeout=60 * 5)
 
 
 @then("the plex StatefulSet should have dev-dri volume mount")
