@@ -86,11 +86,11 @@ def reconcile_qbittorrent_config(
         return build_qbittorrent_config(username, password_hash)
 
     managed_keys = {
-        "WebUI\\\\Username": username,
-        "WebUI\\\\Password_PBKDF2": password_hash,
-        "WebUI\\\\LocalHostAuth": "false",
-        "WebUI\\\\CSRFProtection": "false",
-        "WebUI\\\\HostHeaderValidation": "false",
+        "WebUI\\Username": username,
+        "WebUI\\Password_PBKDF2": password_hash,
+        "WebUI\\LocalHostAuth": "false",
+        "WebUI\\CSRFProtection": "false",
+        "WebUI\\HostHeaderValidation": "false",
     }
 
     for key, value in managed_keys.items():
