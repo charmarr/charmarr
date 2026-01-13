@@ -146,3 +146,51 @@ def test_rotate_api_key_pebble_not_connected(ctx, mock_k8s):
         )
 
     assert "Pebble" in str(exc_info.value)
+
+
+def test_rotate_api_key_restarts_running_service(ctx, mock_k8s, tmp_path):
+    """Test rotate-api-key restarts service if already running."""
+    from ops.pebble import Layer
+
+    config_file = tmp_path / "config.xml"
+    config_file.write_text(CONFIG_XML)
+
+    service_layer = Layer(
+        {
+            "services": {
+                "prowlarr": {
+                    "override": "replace",
+                    "command": "/app/prowlarr/bin/Prowlarr",
+                    "startup": "enabled",
+                }
+            }
+        }
+    )
+
+    container = Container(
+        name="prowlarr",
+        can_connect=True,
+        mounts={"config": Mount(location="/config/config.xml", source=config_file)},
+        layers={"prowlarr": service_layer},
+        service_statuses={"prowlarr": ops.pebble.ServiceStatus.ACTIVE},
+    )
+
+    secret = ops.testing.Secret(
+        tracked_content={"api-key": "testkey123456789012345678901234"},
+        label="api-key",
+    )
+
+    with (
+        patch("charm.ProwlarrCharm._is_workload_ready", return_value=True),
+        patch("charm.ProwlarrCharm._is_service_running", return_value=True),
+        patch("charm.ensure_pebble_user"),
+        patch("charm.reconcile_gateway_client"),
+        patch("charm.generate_api_key", return_value="newkey__123456789012345678901234"),
+    ):
+        ctx.run(
+            ctx.on.action("rotate-api-key"),
+            State(leader=True, containers=[container], secrets=[secret]),
+        )
+
+    updated_content = config_file.read_text()
+    assert "newkey__123456789012345678901234" in updated_content

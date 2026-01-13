@@ -161,6 +161,16 @@ class ProwlarrApiClient(BaseArrApiClient):
             f"/indexerProxy/{proxy_id}", config_with_id, IndexerProxyResponse
         )
 
+    def update_flaresolverr_host(self, proxy_id: int, url: str, tags: list[int]) -> None:
+        """Update FlareSolverr proxy host URL, preserving existing fields structure."""
+        existing = self._get(f"/indexerProxy/{proxy_id}")
+        for field in existing.get("fields", []):
+            if field.get("name") == "host":
+                field["value"] = url
+                break
+        existing["tags"] = tags
+        self._put(f"/indexerProxy/{proxy_id}", existing)
+
     def delete_indexer_proxy(self, proxy_id: int) -> None:
         """Delete an indexer proxy."""
         self._delete(f"/indexerProxy/{proxy_id}")

@@ -83,7 +83,7 @@ pythonpath = ["src", "lib"]
 
 [tool.coverage.run]
 source = ["src"]
-omit = ["tests/**"]
+omit = ["tests/**", "src/_prowlarr/_api.py"]
 
 [tool.coverage.report]
 show_missing = true

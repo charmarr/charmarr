@@ -254,27 +254,55 @@ class ProwlarrCharm(ops.CharmBase):
                 get_secret=self._get_secret_content,
             )
 
+    def _configure_flaresolverr_proxy(self, api: ProwlarrApiClient, url: str, tag_id: int) -> None:
+        """Configure FlareSolverr proxy in Prowlarr."""
+        existing = api.get_indexer_proxies()
+        proxy = next(
+            (p for p in existing if p.implementation == IndexerProxyType.FLARESOLVERR),
+            None,
+        )
+        if proxy:
+            api.update_flaresolverr_host(proxy.id, url, [tag_id])
+            logger.info("Updated FlareSolverr proxy: %s", url)
+        else:
+            config = FlareSolverrProxyConfig.from_url(url, tags=[tag_id])
+            api.add_indexer_proxy(config.model_dump(by_alias=True))
+            logger.info("Added FlareSolverr proxy: %s", url)
+
     def _reconcile_flaresolverr(self, api_key: str) -> None:
         """Reconcile FlareSolverr proxy based on relation state."""
         flaresolverr_data = self._flaresolverr.get_provider()
+        if not flaresolverr_data:
+            self._remove_flaresolverr_proxy(api_key)
+            return
 
+        if self._service_mesh.mesh_type():
+            # Force mesh labels to be applied before configuring FlareSolverr.
+            # Labels are normally applied on relation_changed, but relation_created
+            # fires first - without labels, Istio blocks traffic to FlareSolverr.
+            self._service_mesh._update_labels(None)
+
+        with self._get_api_client(api_key) as api:
+            tag = api.get_or_create_tag("flaresolverr")
+            try:
+                self._configure_flaresolverr_proxy(api, flaresolverr_data.url, tag.id)
+            except Exception as e:
+                # FlareSolverr may be behind service mesh. If we're not on mesh yet,
+                # skip config - it will succeed once mesh relation is established.
+                if not self._service_mesh.mesh_type():
+                    logger.info("FlareSolverr unreachable, waiting for mesh: %s", e)
+                    return
+                raise
+
+    def _remove_flaresolverr_proxy(self, api_key: str) -> None:
+        """Remove FlareSolverr proxy if it exists."""
         with self._get_api_client(api_key) as api:
             existing = api.get_indexer_proxies()
             proxy = next(
                 (p for p in existing if p.implementation == IndexerProxyType.FLARESOLVERR),
                 None,
             )
-
-            if flaresolverr_data:
-                tag = api.get_or_create_tag("flaresolverr")
-                config = FlareSolverrProxyConfig.from_url(flaresolverr_data.url, tags=[tag.id])
-                if proxy:
-                    api.update_indexer_proxy(proxy.id, config.model_dump(by_alias=True))
-                    logger.info("Updated FlareSolverr proxy: %s", flaresolverr_data.url)
-                else:
-                    api.add_indexer_proxy(config.model_dump(by_alias=True))
-                    logger.info("Added FlareSolverr proxy: %s", flaresolverr_data.url)
-            elif proxy:
+            if proxy:
                 api.delete_indexer_proxy(proxy.id)
                 logger.info("Removed FlareSolverr proxy (relation removed)")
 
