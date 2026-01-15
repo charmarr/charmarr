@@ -213,6 +213,9 @@ class SonarrCharm(ops.CharmBase):
                         # doesn't exist when bypassing s6-overlay; .NET needs it for
                         # atomic writes (e.g., ASP.NET Data Protection keys)
                         "TMPDIR": "/tmp",
+                        # Sonarr reads url_base from config.xml, not env, but including
+                        # it here ensures Pebble restarts service when ingress-path changes
+                        "__CHARM_URL_BASE": self._get_url_base() or "",
                     },
                 }
             },

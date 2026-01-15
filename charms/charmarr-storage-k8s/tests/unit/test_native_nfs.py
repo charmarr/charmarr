@@ -45,7 +45,7 @@ def test_creates_pvc_after_pv_exists(ctx, mock_k8s):
             return make_nfs_pv("Available")
         raise make_api_error_404()
 
-    mock_k8s.get.side_effect = get_side_effect
+    mock_k8s._custom_get_side_effect = get_side_effect
 
     state = ctx.run(
         ctx.on.config_changed(),
@@ -84,7 +84,7 @@ def test_pvc_bound_status(ctx, mock_k8s):
             return make_nfs_pv("Bound")
         return make_nfs_pvc("Bound")
 
-    mock_k8s.get.side_effect = get_side_effect
+    mock_k8s._custom_get_side_effect = get_side_effect
 
     state = ctx.run(
         ctx.on.config_changed(),
@@ -102,7 +102,7 @@ def test_pvc_pending_status(ctx, mock_k8s):
             return make_nfs_pv("Available")
         return make_nfs_pvc("Pending")
 
-    mock_k8s.get.side_effect = get_side_effect
+    mock_k8s._custom_get_side_effect = get_side_effect
 
     state = ctx.run(
         ctx.on.config_changed(),
@@ -120,7 +120,7 @@ def test_pv_failed_status(ctx, mock_k8s):
             return make_nfs_pv("Failed")
         return make_nfs_pvc("Pending")
 
-    mock_k8s.get.side_effect = get_side_effect
+    mock_k8s._custom_get_side_effect = get_side_effect
 
     state = ctx.run(
         ctx.on.config_changed(),
@@ -138,7 +138,7 @@ def test_pvc_lost_status(ctx, mock_k8s):
             return make_nfs_pv("Bound")
         return make_nfs_pvc("Lost")
 
-    mock_k8s.get.side_effect = get_side_effect
+    mock_k8s._custom_get_side_effect = get_side_effect
 
     state = ctx.run(
         ctx.on.config_changed(),
@@ -156,14 +156,18 @@ def test_does_not_recreate_existing_pv(ctx, mock_k8s):
             return make_nfs_pv("Bound")
         return make_nfs_pvc("Bound")
 
-    mock_k8s.get.side_effect = get_side_effect
+    mock_k8s._custom_get_side_effect = get_side_effect
 
     ctx.run(
         ctx.on.config_changed(),
         State(leader=True, config=_nfs_config()),
     )
 
-    mock_k8s.apply.assert_not_called()
+    for call in mock_k8s.apply.call_args_list:
+        resource = call[0][0]
+        assert not isinstance(resource, (PersistentVolume, PersistentVolumeClaim)), (
+            f"PV/PVC should not be recreated, but {type(resource).__name__} was applied"
+        )
 
 
 def test_access_mode_always_rwx(ctx, mock_k8s):
@@ -190,7 +194,7 @@ def test_pv_size_updated_when_changed(ctx, mock_k8s):
             return make_nfs_pv("Bound", size="100Gi")
         return make_nfs_pvc("Bound", size="100Gi")
 
-    mock_k8s.get.side_effect = get_side_effect
+    mock_k8s._custom_get_side_effect = get_side_effect
 
     config = _nfs_config()
     config["size"] = "2Ti"
@@ -214,7 +218,7 @@ def test_pvc_size_not_patched_for_native_nfs(ctx, mock_k8s):
             return make_nfs_pv("Bound", size="100Gi")
         return make_nfs_pvc("Bound", size="100Gi")
 
-    mock_k8s.get.side_effect = get_side_effect
+    mock_k8s._custom_get_side_effect = get_side_effect
 
     config = _nfs_config()
     config["size"] = "2Ti"

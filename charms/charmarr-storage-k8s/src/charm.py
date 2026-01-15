@@ -20,6 +20,8 @@ from lightkube.resources.core_v1 import PersistentVolume, PersistentVolumeClaim
 
 from charmarr_lib.core import (
     K8sResourceManager,
+    PermissionCheckStatus,
+    check_storage_permissions,
     observe_events,
     reconcilable_events_k8s_workloadless,
 )
@@ -55,6 +57,8 @@ class CharmarrStorageCharm(ops.CharmBase):
         self._k8s: K8sResourceManager | None = None
         self._cached_pvc_backend: BackendType | None = None
         self._resize_error: str | None = None
+        self._permission_error: str | None = None
+        self._permission_check_pending: bool = False
 
         observe_events(self, reconcilable_events_k8s_workloadless, self._reconcile)
         framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
@@ -137,7 +141,52 @@ class CharmarrStorageCharm(ops.CharmBase):
         elif backend_type == BackendType.NATIVE_NFS.value:
             self._reconcile_native_nfs()
 
+        if not self._run_permission_check():
+            return
+
         self._publish_relation_data()
+
+    def _run_permission_check(self) -> bool:
+        """Run permission check when PVC exists.
+
+        For WaitForFirstConsumer storage classes, the permission check Job
+        will be the first consumer that triggers PVC binding.
+
+        Returns:
+            True if check passed, False if pending or failed.
+        """
+        pvc_phase = self._get_pvc_phase()
+        if pvc_phase is None:
+            return False
+
+        puid = int(self.config.get("puid", 1000))
+        pgid = int(self.config.get("pgid", 1000))
+
+        result = check_storage_permissions(
+            manager=self.k8s,
+            namespace=self.model.name,
+            pvc_name=self._pvc_name,
+            puid=puid,
+            pgid=pgid,
+            mount_path=self._mount_path,
+        )
+
+        if result.status == PermissionCheckStatus.FAILED:
+            self._permission_error = result.message
+            self._permission_check_pending = False
+            self._storage_provider.clear_data()
+            logger.error("Permission check failed: %s", result.message)
+            return False
+        elif result.status == PermissionCheckStatus.PASSED:
+            self._permission_error = None
+            self._permission_check_pending = False
+            logger.info("Permission check passed")
+            return True
+
+        # PENDING - don't publish yet, wait for check to complete
+        self._permission_check_pending = True
+        logger.info("Permission check in progress")
+        return False
 
     def _is_config_valid(self) -> bool:
         """Check if charm configuration is valid."""
@@ -412,6 +461,14 @@ class CharmarrStorageCharm(ops.CharmBase):
             event.add_status(ops.BlockedStatus("PVC resize failed. Check logs for details."))
             return
 
+        if self._permission_error:
+            event.add_status(ops.BlockedStatus(self._permission_error))
+            return
+
+        if self._permission_check_pending:
+            event.add_status(ops.MaintenanceStatus("Checking storage permissions"))
+            return
+
         pvc_phase = self._get_pvc_phase()
 
         if pvc_phase is None:
@@ -436,6 +493,14 @@ class CharmarrStorageCharm(ops.CharmBase):
 
         if pvc_phase is None:
             event.add_status(ops.MaintenanceStatus("Creating PVC"))
+            return
+
+        if self._permission_error:
+            event.add_status(ops.BlockedStatus(self._permission_error))
+            return
+
+        if self._permission_check_pending:
+            event.add_status(ops.MaintenanceStatus("Checking storage permissions"))
             return
 
         if pvc_phase in ("Pending", "Bound"):

@@ -212,6 +212,9 @@ class SABnzbdCharm(ops.CharmBase):
                     "environment": {
                         "HOME": "/config",
                         "TZ": str(self.config.get("timezone", "Etc/UTC")),
+                        # SABnzbd reads url_base from sabnzbd.ini, not env, but including
+                        # it here ensures Pebble restarts service when ingress-path changes
+                        "__CHARM_URL_BASE": self._get_url_base() or "",
                     },
                 }
             },

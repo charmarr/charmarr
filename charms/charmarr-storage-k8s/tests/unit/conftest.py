@@ -9,6 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from lightkube import ApiError
+from lightkube.models.batch_v1 import JobStatus
 from lightkube.models.core_v1 import (
     NFSVolumeSource,
     PersistentVolumeClaimSpec,
@@ -18,6 +19,7 @@ from lightkube.models.core_v1 import (
     VolumeResourceRequirements,
 )
 from lightkube.models.meta_v1 import ObjectMeta, Status
+from lightkube.resources.batch_v1 import Job
 from lightkube.resources.core_v1 import PersistentVolume, PersistentVolumeClaim
 from ops.testing import Context
 
@@ -34,10 +36,28 @@ def ctx() -> Context[CharmarrStorageCharm]:
 
 @pytest.fixture
 def mock_k8s():
-    """Create a mock K8sResourceManager."""
+    """Create a mock K8sResourceManager that handles PVC, PV, and Job resources."""
     with patch("charm.K8sResourceManager") as mock_class:
         mock_instance = MagicMock()
         mock_class.return_value = mock_instance
+
+        # Store custom configurations that tests can set
+        mock_instance._custom_get_return = None
+        mock_instance._custom_get_side_effect = None
+
+        def smart_get(resource_type, name, namespace=None):
+            # Job resources return a passed job by default (permission check succeeded)
+            if resource_type == Job:
+                return make_passed_job()
+            # If test set a custom side_effect, use it
+            if mock_instance._custom_get_side_effect is not None:
+                return mock_instance._custom_get_side_effect(resource_type, name, namespace)
+            # If test set a custom return value, use it
+            if mock_instance._custom_get_return is not None:
+                return mock_instance._custom_get_return
+            return MagicMock()
+
+        mock_instance.get.side_effect = smart_get
         yield mock_instance
 
 
@@ -89,4 +109,19 @@ def make_nfs_pvc(phase: str, size: str = "100Gi") -> PersistentVolumeClaim:
             volumeName="charmarr-shared-media-pv",
         ),
         status=PersistentVolumeClaimStatus(phase=phase),
+    )
+
+
+def make_passed_job() -> Job:
+    """Create a mock Job that has succeeded (permission check passed)."""
+    return Job(
+        metadata=ObjectMeta(
+            name="charmarr-permission-check-charmarr-shared-medi",
+            namespace="test-model",
+            labels={
+                "charmarr.io/puid": "1000",
+                "charmarr.io/pgid": "1000",
+            },
+        ),
+        status=JobStatus(succeeded=1),
     )

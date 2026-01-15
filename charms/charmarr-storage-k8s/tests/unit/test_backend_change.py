@@ -25,7 +25,7 @@ def test_backend_change_allowed_when_no_pvc(ctx, mock_k8s):
 
 def test_blocked_changing_from_storage_class_to_nfs(ctx, mock_k8s):
     """Charm is blocked when trying to switch from storage-class to native-nfs."""
-    mock_k8s.get.return_value = make_pvc(phase="Bound")
+    mock_k8s._custom_get_return = make_pvc(phase="Bound")
 
     state = ctx.run(
         ctx.on.config_changed(),
@@ -47,7 +47,7 @@ def test_blocked_changing_from_storage_class_to_nfs(ctx, mock_k8s):
 
 def test_blocked_changing_from_nfs_to_storage_class(ctx, mock_k8s):
     """Charm is blocked when trying to switch from native-nfs to storage-class."""
-    mock_k8s.get.return_value = make_nfs_pvc(phase="Bound")
+    mock_k8s._custom_get_return = make_nfs_pvc(phase="Bound")
 
     state = ctx.run(
         ctx.on.config_changed(),
@@ -68,7 +68,7 @@ def test_blocked_changing_from_nfs_to_storage_class(ctx, mock_k8s):
 
 def test_same_backend_type_not_blocked(ctx, mock_k8s):
     """Charm is not blocked when backend-type matches existing PVC."""
-    mock_k8s.get.return_value = make_pvc(phase="Bound")
+    mock_k8s._custom_get_return = make_pvc(phase="Bound")
 
     state = ctx.run(
         ctx.on.config_changed(),
@@ -91,7 +91,7 @@ def test_same_nfs_backend_not_blocked(ctx, mock_k8s):
             return make_nfs_pv(phase="Bound")
         raise ValueError(f"Unexpected resource type: {resource_type}")
 
-    mock_k8s.get.side_effect = mock_get
+    mock_k8s._custom_get_side_effect = mock_get
 
     state = ctx.run(
         ctx.on.config_changed(),
@@ -110,7 +110,7 @@ def test_same_nfs_backend_not_blocked(ctx, mock_k8s):
 
 def test_reconcile_blocked_on_backend_change(ctx, mock_k8s):
     """Reconcile does not proceed when backend change is blocked."""
-    mock_k8s.get.return_value = make_pvc(phase="Bound")
+    mock_k8s._custom_get_return = make_pvc(phase="Bound")
 
     ctx.run(
         ctx.on.config_changed(),

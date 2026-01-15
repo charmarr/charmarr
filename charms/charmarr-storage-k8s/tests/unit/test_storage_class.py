@@ -29,7 +29,7 @@ def test_creates_pvc_when_missing(ctx, mock_k8s):
 
 def test_pvc_pending_status(ctx, mock_k8s):
     """Shows active status when PVC is pending (WaitForFirstConsumer is expected)."""
-    mock_k8s.get.return_value = make_pvc("Pending")
+    mock_k8s._custom_get_return = make_pvc("Pending")
 
     state = ctx.run(
         ctx.on.config_changed(),
@@ -44,7 +44,7 @@ def test_pvc_pending_status(ctx, mock_k8s):
 
 def test_pvc_bound_status(ctx, mock_k8s):
     """Shows active status when PVC is bound."""
-    mock_k8s.get.return_value = make_pvc("Bound")
+    mock_k8s._custom_get_return = make_pvc("Bound")
 
     state = ctx.run(
         ctx.on.config_changed(),
@@ -59,7 +59,7 @@ def test_pvc_bound_status(ctx, mock_k8s):
 
 def test_pvc_lost_status(ctx, mock_k8s):
     """Shows blocked status when PVC is lost."""
-    mock_k8s.get.return_value = make_pvc("Lost")
+    mock_k8s._custom_get_return = make_pvc("Lost")
 
     state = ctx.run(
         ctx.on.config_changed(),
@@ -114,7 +114,7 @@ def test_pvc_created_with_custom_access_mode(ctx, mock_k8s):
 
 def test_pvc_size_updated_when_changed(ctx, mock_k8s):
     """PVC size is updated when config requests larger size."""
-    mock_k8s.get.return_value = make_pvc("Bound", size="100Gi")
+    mock_k8s._custom_get_return = make_pvc("Bound", size="100Gi")
 
     ctx.run(
         ctx.on.config_changed(),
@@ -135,7 +135,7 @@ def test_pvc_size_updated_when_changed(ctx, mock_k8s):
 
 def test_pvc_size_not_updated_when_same(ctx, mock_k8s):
     """PVC is not patched when size is unchanged."""
-    mock_k8s.get.return_value = make_pvc("Bound", size="100Gi")
+    mock_k8s._custom_get_return = make_pvc("Bound", size="100Gi")
 
     ctx.run(
         ctx.on.config_changed(),
