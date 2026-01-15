@@ -22,6 +22,7 @@ from charmarr_lib.core import (
     K8sResourceManager,
     PermissionCheckStatus,
     check_storage_permissions,
+    delete_permission_check_job,
     observe_events,
     reconcilable_events_k8s_workloadless,
 )
@@ -553,13 +554,15 @@ class CharmarrStorageCharm(ops.CharmBase):
             logger.info("Skipping cleanup (application not being removed)")
             return
 
+        delete_permission_check_job(self.k8s, self.model.name, self._pvc_name)
+
+        self.k8s.delete(PersistentVolumeClaim, self._pvc_name, self.model.name)
+        logger.info("Deleted PVC %s", self._pvc_name)
+
         backend_type = self.config.get("backend-type")
         if backend_type == BackendType.NATIVE_NFS.value:
             self.k8s.delete(PersistentVolume, self._pv_name, namespace=None)
             logger.info("Deleted PV %s", self._pv_name)
-
-        self.k8s.delete(PersistentVolumeClaim, self._pvc_name, self.model.name)
-        logger.info("Deleted PVC %s", self._pvc_name)
 
 
 if __name__ == "__main__":
