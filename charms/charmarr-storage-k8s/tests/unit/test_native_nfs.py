@@ -180,3 +180,50 @@ def test_access_mode_always_rwx(ctx, mock_k8s):
 
     applied_pv = mock_k8s.apply.call_args_list[0][0][0]
     assert applied_pv.spec.accessModes == ["ReadWriteMany"]
+
+
+def test_pv_size_updated_when_changed(ctx, mock_k8s):
+    """PV size is updated when config size changes."""
+
+    def get_side_effect(resource_type, name, namespace=None):
+        if resource_type == PersistentVolume:
+            return make_nfs_pv("Bound", size="100Gi")
+        return make_nfs_pvc("Bound", size="100Gi")
+
+    mock_k8s.get.side_effect = get_side_effect
+
+    config = _nfs_config()
+    config["size"] = "2Ti"
+
+    ctx.run(
+        ctx.on.config_changed(),
+        State(leader=True, config=config),
+    )
+
+    assert mock_k8s.apply.call_count >= 1
+    applied_pv = mock_k8s.apply.call_args_list[0][0][0]
+    assert isinstance(applied_pv, PersistentVolume)
+    assert applied_pv.spec.capacity["storage"] == "2Ti"
+
+
+def test_pvc_size_not_patched_for_native_nfs(ctx, mock_k8s):
+    """PVC size is not patched for native-nfs (K8s doesn't support static PVC resize)."""
+
+    def get_side_effect(resource_type, name, namespace=None):
+        if resource_type == PersistentVolume:
+            return make_nfs_pv("Bound", size="100Gi")
+        return make_nfs_pvc("Bound", size="100Gi")
+
+    mock_k8s.get.side_effect = get_side_effect
+
+    config = _nfs_config()
+    config["size"] = "2Ti"
+
+    ctx.run(
+        ctx.on.config_changed(),
+        State(leader=True, config=config),
+    )
+
+    # PVC patch should not be called - K8s doesn't support resizing static PVCs
+    # PV is updated via apply, not patch
+    mock_k8s.patch.assert_not_called()

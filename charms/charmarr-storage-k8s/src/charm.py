@@ -229,14 +229,38 @@ class CharmarrStorageCharm(ops.CharmBase):
         pvc = self._get_pvc()
         if pvc is None:
             self._create_nfs_pvc()
+        else:
+            self._log_pvc_size_mismatch(pvc)
+
+    def _log_pvc_size_mismatch(self, pvc: PersistentVolumeClaim) -> None:
+        """Log info if PVC size differs from config.
+
+        For native-nfs, PVC size is not enforced by Kubernetes - actual capacity
+        is determined by the NFS share. PVC resize is also not supported for
+        statically provisioned volumes, so we just log the mismatch.
+        """
+        desired_size = str(self.config.get("size", "100Gi"))
+        current_requests = pvc.spec.resources.requests if pvc.spec and pvc.spec.resources else {}
+        current_size = (current_requests or {}).get("storage", "")
+
+        if current_size and current_size != desired_size:
+            logger.info(
+                "PVC %s shows %s but config is %s. K8s does not support resizing "
+                "statically provisioned PVCs, but this is cosmetic - NFS capacity "
+                "is determined by the share, not the PVC",
+                self._pvc_name,
+                current_size,
+                desired_size,
+            )
 
     def _reconcile_existing_pv(self, pv: PersistentVolume) -> None:
         """Reconcile an existing PV with current config.
 
-        Handles Released PVs (clears claimRef) and config drift (NFS server/path changes).
+        Handles Released PVs (clears claimRef) and config drift (NFS server/path/size changes).
         """
         nfs_server = str(self.config.get("nfs-server"))
         nfs_path = str(self.config.get("nfs-path"))
+        desired_size = str(self.config.get("size", "100Gi"))
 
         needs_update = False
         reason = ""
@@ -261,6 +285,12 @@ class CharmarrStorageCharm(ops.CharmBase):
             )
             needs_update = True
             reason = "config drift"
+
+        current_size = pv.spec.capacity.get("storage", "") if pv.spec and pv.spec.capacity else ""
+        if current_size and current_size != desired_size:
+            logger.info("PV %s size changed (%s -> %s)", self._pv_name, current_size, desired_size)
+            needs_update = True
+            reason = "size change"
 
         if not needs_update:
             return
