@@ -7,14 +7,14 @@ description: |
 
   This charm provides automated deployment on Kubernetes with:
   - Automatic media storage integration via relation
+  - Automatic library creation from Radarr/Sonarr relations
   - Optional hardware transcoding (Intel QuickSync)
   - Ingress integration for remote access
 
   After deployment:
-  1. Access Plex UI via ingress or port-forward
-  2. Sign in with your Plex account (or use claim-token config)
-  3. Configure libraries pointing to /data/media
-  4. (Optional) Configure custom server access URL for remote access
+  1. Set claim-token config (from plex.tv/claim) to claim server
+  2. Relate to radarr-k8s and sonarr-k8s for automatic library setup
+  3. Libraries are created automatically based on media manager folders
 
   Note: Plex is automatically discovered by Overseerr via plex.tv
   after OAuth - no manual URL configuration needed.
@@ -86,6 +86,12 @@ requires:
   media-storage:
     interface: media-storage
     limit: 1
+  media-manager:
+    interface: media-manager
+    optional: true
+    description: |
+      Receive media manager info from Radarr/Sonarr for automatic library creation.
+      Libraries are created based on each media manager's root folders.
   service-mesh:
     interface: service_mesh
     limit: 1

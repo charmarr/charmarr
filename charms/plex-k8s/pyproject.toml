@@ -5,11 +5,12 @@ requires-python = ">=3.12"
 
 dependencies = [
     "ops>=2.17",
-    "charmarr-lib-core>=0.9.0",
+    "charmarr-lib-core>=0.11.0",
     "pydantic>=2.0",
     "lightkube>=0.15",
     "lightkube-extensions",
     "charmed-service-mesh-helpers",
+    "httpx",
 ]
 
 [project.optional-dependencies]
@@ -82,7 +83,7 @@ pythonpath = ["src", "lib"]
 
 [tool.coverage.run]
 source = ["src"]
-omit = ["tests/**", "src/_plex/_claim.py"]
+omit = ["tests/**", "src/_plex/_claim.py", "src/_plex/_api.py"]
 
 [tool.coverage.report]
 show_missing = true

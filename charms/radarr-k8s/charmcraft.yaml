@@ -117,13 +117,25 @@ requires:
 
 config:
   options:
+    variant:
+      type: string
+      default: "standard"
+      description: |
+        Content variant for this instance. Determines root folder and default
+        trash profiles.
+
+        Options:
+          - standard: Default catch-all (/data/media/movies), no default profiles
+          - 4k: UHD content (/data/media/movies-uhd), default: uhd-bluray-web
+          - anime: Anime content (/data/media/anime/movies), default: anime
     trash-profiles:
       type: string
       default: ""
       description: |
-        Comma-separated list of Trash Guide profile templates to sync via Recyclarr.
+        Override default Trash Guide profiles for this variant.
 
-        Leave empty to skip auto-configuration (manual profile management).
+        When empty, uses variant defaults (4k: uhd-bluray-web, anime: anime).
+        Set explicitly to override or use different profiles.
 
         Examples:
           - hd-bluray-web (1080p Bluray + WEB-DL)
@@ -157,19 +169,12 @@ config:
       description: |
         Auto-rotate API key and sync to related apps.
         Options: disabled, daily, monthly, yearly
-    is-4k:
-      type: boolean
-      default: false
-      description: |
-        Whether this instance handles 4K content.
-        Sets root folder to /data/media/movies-uhd (vs /data/media/movies).
-        Used by request managers (Overseerr) to distinguish between quality tiers.
 
 actions:
   sync-trash-profiles:
     description: |
       Manually sync quality profiles and custom formats from Trash Guides via Recyclarr.
-      Requires trash-profiles config to be set.
+      Uses trash-profiles config if set, otherwise variant defaults (4k/anime only).
 
   rotate-api-key:
     description: |

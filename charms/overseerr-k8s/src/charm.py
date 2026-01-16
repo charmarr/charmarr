@@ -35,6 +35,7 @@ from _overseerr import (
     OverseerrApiError,
 )
 from charmarr_lib.core import (
+    ContentVariant,
     MediaManager,
     RequestManager,
     ensure_pebble_user,
@@ -187,8 +188,11 @@ class OverseerrCharm(ops.CharmBase):
             logger.warning("Could not retrieve API key for %s", provider.instance_name)
             return None
 
+        is_4k = provider.variant == ContentVariant.UHD
+        is_anime = provider.variant == ContentVariant.ANIME
+
         has_default_for_tier = any(
-            s.get("isDefault") and s.get("is4k") == provider.is_4k
+            s.get("isDefault") and s.get("is4k") == is_4k
             for s in all_servers
             if s["name"] != provider.instance_name
         )
@@ -207,16 +211,15 @@ class OverseerrCharm(ops.CharmBase):
             "port": port,
             "apiKey": provider_api_key,
             "useSsl": use_ssl,
-            "is4k": provider.is_4k,
+            "is4k": is_4k,
+            "isAnime": is_anime,
+            "activeDirectory": provider.root_folders[0] if provider.root_folders else "",
             # User-configurable (preserved on update)
             "activeProfileId": preserve_or_default(
                 "activeProfileId", default_profile.id if default_profile else None
             ),
             "activeProfileName": preserve_or_default(
                 "activeProfileName", default_profile.name if default_profile else ""
-            ),
-            "activeDirectory": preserve_or_default(
-                "activeDirectory", provider.root_folders[0] if provider.root_folders else ""
             ),
             "minimumAvailability": preserve_or_default("minimumAvailability", "released"),
             "isDefault": preserve_or_default("isDefault", not has_default_for_tier),
@@ -332,6 +335,7 @@ class OverseerrCharm(ops.CharmBase):
             "apiKey",
             "useSsl",
             "is4k",
+            "isAnime",
             "isDefault",
             "activeProfileId",
             "activeProfileName",

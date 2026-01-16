@@ -35,11 +35,14 @@ from _sonarr import (
 from charmarr_lib.core import (
     ArrApiClient,
     ArrApiError,
+    ContentVariant,
     K8sResourceManager,
     MediaManager,
     RecyclarrError,
     ensure_pebble_user,
     generate_api_key,
+    get_default_trash_profiles,
+    get_root_folder,
     get_secret_rotation_policy,
     observe_events,
     reconcilable_events_k8s,
@@ -272,13 +275,20 @@ class SonarrCharm(ops.CharmBase):
                 get_secret=self._get_secret_content,
             )
 
+    def _get_variant(self) -> ContentVariant:
+        """Get content variant from config."""
+        value = str(self.config.get("variant", "standard"))
+        try:
+            return ContentVariant(value)
+        except ValueError:
+            return ContentVariant.STANDARD
+
     def _get_root_folder_path(self) -> str:
-        """Get root folder path based on is-4k config."""
-        is_4k = bool(self.config.get("is-4k", False))
-        return "/data/media/tv-uhd" if is_4k else "/data/media/tv"
+        """Get root folder path based on variant config."""
+        return get_root_folder(self._get_variant(), MediaManager.SONARR)
 
     def _reconcile_root_folder(self, api_key: str, puid: int, pgid: int) -> None:
-        """Ensure root folder exists in Sonarr based on is-4k config."""
+        """Ensure root folder exists in Sonarr."""
         path = self._get_root_folder_path()
         self._container.exec(
             ["mkdir", "-p", path],
@@ -290,8 +300,10 @@ class SonarrCharm(ops.CharmBase):
 
     def _sync_trash_profiles(self, api_key: str) -> None:
         """Sync Trash Guides quality profiles via Recyclarr."""
-        profiles_config = str(self.config.get("trash-profiles", ""))
-        if not profiles_config.strip():
+        profiles_config = str(self.config.get("trash-profiles", "")).strip()
+        if not profiles_config:
+            profiles_config = get_default_trash_profiles(self._get_variant())
+        if not profiles_config:
             return
 
         container = self.unit.get_container("recyclarr")
@@ -336,8 +348,7 @@ class SonarrCharm(ops.CharmBase):
                 secret.grant(relation)
 
         quality_profiles = self._get_quality_profiles(api_key)
-        root_folders = self._get_root_folders(api_key)
-        is_4k = bool(self.config.get("is-4k", False))
+        variant_root_folder = self._get_root_folder_path()
 
         data = MediaManagerProviderData(
             api_url=self._internal_url,
@@ -346,8 +357,8 @@ class SonarrCharm(ops.CharmBase):
             instance_name=self.app.name,
             base_path=self._get_url_base(),
             quality_profiles=quality_profiles,
-            root_folders=root_folders,
-            is_4k=is_4k,
+            root_folders=[variant_root_folder],
+            variant=self._get_variant(),
         )
         self._media_manager.publish_data(data)
         logger.info("Published media manager provider data")
@@ -630,9 +641,11 @@ class SonarrCharm(ops.CharmBase):
             return
 
         api_key, _ = secret_data
-        profiles_config = str(self.config.get("trash-profiles", ""))
-        if not profiles_config.strip():
-            event.fail("No trash-profiles configured")
+        profiles_config = str(self.config.get("trash-profiles", "")).strip()
+        if not profiles_config:
+            profiles_config = get_default_trash_profiles(self._get_variant())
+        if not profiles_config:
+            event.fail("No trash-profiles configured and no default for standard variant")
             return
 
         try:

@@ -24,6 +24,12 @@ def extract_machine_identifier(preferences_content: str) -> str | None:
     return match.group(1) if match else None
 
 
+def extract_online_token(preferences_content: str) -> str | None:
+    """Extract PlexOnlineToken from Preferences.xml content."""
+    match = re.search(r'PlexOnlineToken="([^"]+)"', preferences_content)
+    return match.group(1) if match else None
+
+
 def exchange_claim_token(claim_token: str, machine_identifier: str) -> str | None:
     """Exchange claim token for PlexOnlineToken via Plex API.
 

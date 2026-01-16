@@ -31,13 +31,18 @@ from _plex import (
     PREFERENCES_FILE,
     SERVICE_NAME,
     WEBUI_PORT,
+    PlexApi,
+    PlexApiError,
     ensure_custom_connection,
     exchange_claim_token,
     extract_machine_identifier,
+    extract_online_token,
     inject_online_token,
 )
 from charmarr_lib.core import (
+    ContentVariant,
     K8sResourceManager,
+    MediaManager,
     ensure_pebble_user,
     observe_events,
     reconcilable_events_k8s,
@@ -45,6 +50,8 @@ from charmarr_lib.core import (
     reconcile_storage_volume,
 )
 from charmarr_lib.core.interfaces import (
+    MediaManagerProviderData,
+    MediaManagerRequirer,
     MediaServerProvider,
     MediaServerProviderData,
     MediaStorageRequirer,
@@ -62,6 +69,7 @@ class PlexCharm(ops.CharmBase):
         self._k8s: K8sResourceManager | None = None
 
         self._media_storage = MediaStorageRequirer(self, "media-storage")
+        self._media_manager = MediaManagerRequirer(self, "media-manager")
         self._media_server = MediaServerProvider(self, "media-server")
         self._service_mesh = ServiceMeshConsumer(
             self,
@@ -76,6 +84,7 @@ class PlexCharm(ops.CharmBase):
 
         observe_events(self, reconcilable_events_k8s, self._reconcile)
         framework.observe(self._media_storage.on.changed, self._reconcile)
+        framework.observe(self._media_manager.on.changed, self._reconcile)
         framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
         framework.observe(self._ingress.on.ready, self._configure_ingress)
         framework.observe(self.on.force_reclaim_action, self._on_force_reclaim_action)
@@ -229,6 +238,71 @@ class PlexCharm(ops.CharmBase):
             enabled=enabled,
         )
 
+    def _get_online_token(self) -> str | None:  # pragma: no cover
+        """Get PlexOnlineToken from Preferences.xml for API authentication."""
+        try:
+            content = self._container.pull(PREFERENCES_FILE).read()
+            return extract_online_token(content)
+        except (ops.pebble.PathError, FileNotFoundError):
+            return None
+
+    def _get_library_name(self, provider: MediaManagerProviderData) -> str:  # pragma: no cover
+        """Generate Plex library name based on media manager provider data."""
+        base_names = {
+            MediaManager.RADARR: "Movies",
+            MediaManager.SONARR: "TV Shows",
+        }
+        base = base_names.get(provider.manager, "Media")
+
+        if provider.variant == ContentVariant.UHD:
+            return f"{base} (4K)"
+        elif provider.variant == ContentVariant.ANIME:
+            if provider.manager == MediaManager.SONARR:
+                return "Anime"
+            return "Anime Movies"
+
+        return base
+
+    def _get_library_type(self, manager: MediaManager) -> str:  # pragma: no cover
+        """Convert MediaManager to Plex library type."""
+        if manager == MediaManager.RADARR:
+            return "movie"
+        elif manager == MediaManager.SONARR:
+            return "show"
+        return "movie"
+
+    def _reconcile_libraries(self, token: str) -> None:  # pragma: no cover
+        """Reconcile Plex libraries based on media-manager relation data."""
+        providers = self._media_manager.get_providers()
+        if not providers:
+            return
+
+        try:
+            with PlexApi(f"http://localhost:{WEBUI_PORT}", token) as api:
+                if not api.is_server_ready():
+                    logger.debug("Plex server not ready for library reconciliation")
+                    return
+
+                for provider in providers:
+                    for root_folder in provider.root_folders:
+                        if api.library_exists_for_path(root_folder):
+                            logger.debug("Library already exists for path: %s", root_folder)
+                            continue
+
+                        name = self._get_library_name(provider)
+                        library_type = self._get_library_type(provider.manager)
+
+                        logger.info(
+                            "Creating Plex library '%s' (%s) at %s",
+                            name,
+                            library_type,
+                            root_folder,
+                        )
+                        api.create_library(name, library_type, root_folder)
+
+        except PlexApiError as e:
+            logger.warning("Failed to reconcile Plex libraries: %s", e)
+
     def _configure_ingress(self, _: ops.EventBase) -> None:
         """Submit ingress route config to istio-ingress gateway.
 
@@ -351,6 +425,11 @@ class PlexCharm(ops.CharmBase):
                 api_url=self._internal_url,
             )
         )
+
+        # Reconcile Plex libraries from media-manager relations (requires claimed server)
+        online_token = self._get_online_token()
+        if online_token:
+            self._reconcile_libraries(online_token)
 
     def _on_force_reclaim_action(self, event: ops.ActionEvent) -> None:
         """Handle force-reclaim action to reclaim server with new account."""
