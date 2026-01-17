@@ -51,10 +51,15 @@ def reconcile_sabnzbd_config(
     api_key: str,
     app_name: str,
     url_base: str | None = None,
-) -> str:
-    """Reconcile sabnzbd.ini idempotently, preserving user settings."""
+) -> tuple[str, bool]:
+    """Reconcile sabnzbd.ini idempotently, preserving user settings.
+
+    Returns:
+        Tuple of (config_content, changed) where changed indicates if
+        the config was modified and a service restart is needed.
+    """
     if content is None:
-        return build_sabnzbd_config(api_key, app_name, url_base)
+        return build_sabnzbd_config(api_key, app_name, url_base), True
 
     config = _parse_config(content)
 
@@ -72,4 +77,5 @@ def reconcile_sabnzbd_config(
     elif "url_base" in misc:
         del misc["url_base"]
 
-    return _serialize_config(config)
+    updated = _serialize_config(config)
+    return updated, content != updated

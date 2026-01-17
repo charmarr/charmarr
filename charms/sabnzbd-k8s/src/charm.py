@@ -42,6 +42,7 @@ from charmarr_lib.core import (
     K8sResourceManager,
     ensure_pebble_user,
     generate_api_key,
+    get_config_hash,
     get_secret_rotation_policy,
     observe_events,
     reconcilable_events_k8s,
@@ -165,14 +166,14 @@ class SABnzbdCharm(ops.CharmBase):
         if self._container.exists(CONFIG_FILE):
             content = self._container.pull(CONFIG_FILE).read()
 
-        updated = reconcile_sabnzbd_config(
+        updated, changed = reconcile_sabnzbd_config(
             content,
             api_key=api_key,
             app_name=self.app.name,
             url_base=self._get_url_base(),
         )
 
-        if content != updated:
+        if changed:
             self._container.push(CONFIG_FILE, updated, make_dirs=True)
             logger.info("Reconciled sabnzbd.ini")
 
@@ -215,6 +216,8 @@ class SABnzbdCharm(ops.CharmBase):
                         # SABnzbd reads url_base from sabnzbd.ini, not env, but including
                         # it here ensures Pebble restarts service when ingress-path changes
                         "__CHARM_URL_BASE": self._get_url_base() or "",
+                        # Config hash triggers Pebble restart when sabnzbd.ini changes
+                        "__CONFIG_HASH": get_config_hash(self._container, CONFIG_FILE),
                     },
                 }
             },
@@ -398,9 +401,7 @@ class SABnzbdCharm(ops.CharmBase):
         # Publish download client data to related media managers
         self._publish_download_client(api_key)
 
-        # Reconcile config - stops service if changes needed
-        if self._is_service_running():
-            self._container.stop(SERVICE_NAME)
+        # Reconcile config - Pebble auto-restarts via __CONFIG_HASH env var
         self._reconcile_config(api_key.api_key)
 
         # Fix config directory ownership for PUID/PGID

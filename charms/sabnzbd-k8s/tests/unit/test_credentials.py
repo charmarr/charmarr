@@ -25,8 +25,11 @@ port = 8080
     password = mypass
     ssl = 1
 """
-        result = reconcile_sabnzbd_config(content, api_key="new-key", app_name="sabnzbd-k8s")
+        result, changed = reconcile_sabnzbd_config(
+            content, api_key="new-key", app_name="sabnzbd-k8s"
+        )
 
+        assert changed is True
         assert "api_key = new-key" in result
         assert "host = news.usenetprovider.com" in result
         assert "port = 563" in result
@@ -35,11 +38,22 @@ port = 8080
 
     def test_builds_fresh_config_when_none(self):
         """Fresh config is built when content is None."""
-        result = reconcile_sabnzbd_config(None, api_key="test-key", app_name="sabnzbd-k8s")
+        result, changed = reconcile_sabnzbd_config(
+            None, api_key="test-key", app_name="sabnzbd-k8s"
+        )
 
+        assert changed is True
         assert "api_key = test-key" in result
         assert "host = 0.0.0.0" in result
         assert "sabnzbd-k8s, localhost" in result
+
+    def test_returns_unchanged_when_no_modifications(self):
+        """Returns changed=False when config already matches."""
+        content, _ = reconcile_sabnzbd_config(None, api_key="test-key", app_name="sabnzbd-k8s")
+
+        _, changed = reconcile_sabnzbd_config(content, api_key="test-key", app_name="sabnzbd-k8s")
+
+        assert changed is False
 
 
 class TestBuildSabnzbdConfig:
