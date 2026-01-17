@@ -25,6 +25,8 @@ from charms.istio_ingress_k8s.v0.istio_ingress_route import (
     PathModifier,
     PathModifierType,
     ProtocolType,
+    RequestRedirectFilter,
+    RequestRedirectSpec,
     URLRewriteFilter,
     URLRewriteSpec,
 )
@@ -312,6 +314,7 @@ class QBittorrentCharm(ops.CharmBase):
             return
 
         path = str(self.config.get("ingress-path", "/qbt"))
+        path_with_slash = path.rstrip("/") + "/"
         listener = Listener(port=443, protocol=ProtocolType.HTTP)
 
         config = IstioIngressRouteConfig(
@@ -319,13 +322,37 @@ class QBittorrentCharm(ops.CharmBase):
             listeners=[listener],
             http_routes=[
                 HTTPRoute(
+                    name="qbittorrent-redirect",
+                    listener=listener,
+                    matches=[
+                        HTTPRouteMatch(
+                            path=HTTPPathMatch(
+                                type=HTTPPathMatchType.Exact,
+                                value=path.rstrip("/"),
+                            )
+                        )
+                    ],
+                    backends=[],
+                    filters=[
+                        RequestRedirectFilter(
+                            requestRedirect=RequestRedirectSpec(
+                                path=PathModifier(
+                                    type=PathModifierType.ReplaceFullPath,
+                                    value=path_with_slash,
+                                ),
+                                statusCode=301,
+                            )
+                        )
+                    ],
+                ),
+                HTTPRoute(
                     name="qbittorrent",
                     listener=listener,
                     matches=[
                         HTTPRouteMatch(
                             path=HTTPPathMatch(
                                 type=HTTPPathMatchType.PathPrefix,
-                                value=path,
+                                value=path_with_slash,
                             )
                         )
                     ],
