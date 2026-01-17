@@ -3,41 +3,46 @@
 
 """SABnzbd config generation utilities."""
 
-import re
+from io import BytesIO, StringIO
+from typing import Any, cast
+
+from configobj import ConfigObj
 
 from _sabnzbd._constants import WEBUI_PORT
+
+IniSection = dict[str, Any]
 
 
 def build_sabnzbd_config(
     api_key: str, app_name: str = "sabnzbd-k8s", url_base: str | None = None
 ) -> str:
     """Build minimal sabnzbd.ini with API key, host/port, and URL base settings."""
-    url_base_line = f"url_base = {url_base}\n" if url_base else ""
-    return f"""[misc]
-api_key = {api_key}
-host = 0.0.0.0
-port = {WEBUI_PORT}
-host_whitelist = {app_name}, localhost
-{url_base_line}"""
+    config: ConfigObj = ConfigObj()
+    config["misc"] = {
+        "api_key": api_key,
+        "host": "0.0.0.0",
+        "port": str(WEBUI_PORT),
+        "host_whitelist": f"{app_name}, localhost",
+    }
+    if url_base:
+        misc = cast(IniSection, config["misc"])
+        misc["url_base"] = url_base
+
+    output = BytesIO()
+    config.write(output)
+    return output.getvalue().decode("utf-8")
 
 
-def _set_ini_value(content: str, section: str, key: str, value: str) -> str:
-    """Set or update an INI key in a section."""
-    pattern = rf"^({re.escape(key)}) = .*$"
-
-    if re.search(pattern, content, re.MULTILINE):
-        return re.sub(pattern, rf"\1 = {value}", content, flags=re.MULTILINE)
-
-    section_pattern = rf"(\[{re.escape(section)}\])"
-    if re.search(section_pattern, content):
-        return re.sub(section_pattern, rf"\1\n{key} = {value}", content)
-
-    return f"[{section}]\n{key} = {value}\n" + content
+def _parse_config(content: str) -> ConfigObj:
+    """Parse INI content into ConfigObj."""
+    return ConfigObj(StringIO(content))
 
 
-def _remove_ini_value(content: str, key: str) -> str:
-    """Remove an INI key if it exists."""
-    return re.sub(rf"^{re.escape(key)} = .*\n?", "", content, flags=re.MULTILINE)
+def _serialize_config(config: ConfigObj) -> str:
+    """Serialize ConfigObj to string."""
+    output = BytesIO()
+    config.write(output)
+    return output.getvalue().decode("utf-8")
 
 
 def reconcile_sabnzbd_config(
@@ -51,14 +56,20 @@ def reconcile_sabnzbd_config(
     if content is None:
         return build_sabnzbd_config(api_key, app_name, url_base)
 
-    content = _set_ini_value(content, "misc", "api_key", api_key)
-    content = _set_ini_value(content, "misc", "host", "0.0.0.0")
-    content = _set_ini_value(content, "misc", "port", str(WEBUI_PORT))
-    content = _set_ini_value(content, "misc", "host_whitelist", f"{app_name}, localhost")
+    config = _parse_config(content)
+
+    if "misc" not in config:
+        config["misc"] = {}
+
+    misc = cast(IniSection, config["misc"])
+    misc["api_key"] = api_key
+    misc["host"] = "0.0.0.0"
+    misc["port"] = str(WEBUI_PORT)
+    misc["host_whitelist"] = f"{app_name}, localhost"
 
     if url_base:
-        content = _set_ini_value(content, "misc", "url_base", url_base)
-    else:
-        content = _remove_ini_value(content, "url_base")
+        misc["url_base"] = url_base
+    elif "url_base" in misc:
+        del misc["url_base"]
 
-    return content
+    return _serialize_config(config)
