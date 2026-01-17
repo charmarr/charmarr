@@ -20,7 +20,7 @@ def test_blocked_with_invalid_backend_type(ctx):
     """Charm is blocked when backend-type is invalid."""
     state = ctx.run(ctx.on.config_changed(), State(config={"backend-type": "invalid"}))
     assert state.unit_status == ops.BlockedStatus(
-        "Invalid backend-type: invalid. Use 'storage-class' or 'native-nfs'"
+        "Invalid backend-type: invalid. Use 'storage-class', 'native-nfs', or 'hostpath'"
     )
 
 

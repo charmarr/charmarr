@@ -9,15 +9,20 @@ from enum import Enum
 
 import ops
 from lightkube import ApiError
-from lightkube.models.core_v1 import (
-    NFSVolumeSource,
-    PersistentVolumeClaimSpec,
-    PersistentVolumeSpec,
-    VolumeResourceRequirements,
-)
+from lightkube.models.core_v1 import PersistentVolumeClaimSpec, VolumeResourceRequirements
 from lightkube.models.meta_v1 import ObjectMeta
 from lightkube.resources.core_v1 import PersistentVolume, PersistentVolumeClaim
 
+from _storage import (
+    create_hostpath_pv,
+    create_nfs_pv,
+    create_static_pvc,
+    get_pv,
+    get_pvc,
+    log_static_pv_size_mismatch,
+    reconcile_existing_hostpath_pv,
+    reconcile_existing_nfs_pv,
+)
 from charmarr_lib.core import (
     K8sResourceManager,
     PermissionCheckStatus,
@@ -36,6 +41,7 @@ class BackendType(str, Enum):
 
     STORAGE_CLASS = "storage-class"
     NATIVE_NFS = "native-nfs"
+    HOSTPATH = "hostpath"
 
 
 class AccessMode(str, Enum):
@@ -80,28 +86,29 @@ class CharmarrStorageCharm(ops.CharmBase):
         if self._cached_pvc_backend is not None:
             return self._cached_pvc_backend
 
-        pvc = self._get_pvc()
+        pvc = get_pvc(self.k8s, self._pvc_name, self.model.name)
         if pvc is None:
             return None
 
         if pvc.spec is None:
             return None
 
-        # native-nfs: empty storageClassName and volumeName pointing to our PV
-        # storage-class: non-empty storageClassName
-        storage_class = pvc.spec.storageClassName
-        volume_name = pvc.spec.volumeName
-
-        if storage_class == "" and volume_name == self._pv_name:
-            self._cached_pvc_backend = BackendType.NATIVE_NFS
-        elif storage_class:
+        if pvc.spec.storageClassName:
             self._cached_pvc_backend = BackendType.STORAGE_CLASS
-        else:
-            # Edge case: empty storageClassName but no volumeName - shouldn't happen
-            # Treat as storage-class since that's more common
-            self._cached_pvc_backend = BackendType.STORAGE_CLASS
+            return self._cached_pvc_backend
 
+        self._cached_pvc_backend = self._detect_static_pv_backend()
         return self._cached_pvc_backend
+
+    def _detect_static_pv_backend(self) -> BackendType:
+        """Detect backend type from static PV (native-nfs or hostpath)."""
+        pv = get_pv(self.k8s, self._pv_name)
+        if pv and pv.spec:
+            if pv.spec.hostPath:
+                return BackendType.HOSTPATH
+            if pv.spec.nfs:
+                return BackendType.NATIVE_NFS
+        return BackendType.NATIVE_NFS
 
     def _is_backend_change_blocked(self) -> tuple[bool, str]:
         """Check if the configured backend differs from the existing PVC's backend.
@@ -141,6 +148,8 @@ class CharmarrStorageCharm(ops.CharmBase):
             self._reconcile_storage_class_pvc()
         elif backend_type == BackendType.NATIVE_NFS.value:
             self._reconcile_native_nfs()
+        elif backend_type == BackendType.HOSTPATH.value:
+            self._reconcile_hostpath()
 
         if not self._run_permission_check():
             return
@@ -163,14 +172,21 @@ class CharmarrStorageCharm(ops.CharmBase):
         puid = int(self.config.get("puid", 1000))
         pgid = int(self.config.get("pgid", 1000))
 
-        result = check_storage_permissions(
-            manager=self.k8s,
-            namespace=self.model.name,
-            pvc_name=self._pvc_name,
-            puid=puid,
-            pgid=pgid,
-            mount_path=self._mount_path,
-        )
+        try:
+            result = check_storage_permissions(
+                manager=self.k8s,
+                namespace=self.model.name,
+                pvc_name=self._pvc_name,
+                puid=puid,
+                pgid=pgid,
+                mount_path=self._mount_path,
+            )
+        except Exception:
+            self._permission_error = "Permission check failed. Bad storage backend"
+            self._permission_check_pending = False
+            self._storage_provider.clear_data()
+            logger.error("Permission check error: %s", self._permission_error)
+            return False
 
         if result.status == PermissionCheckStatus.FAILED:
             self._permission_error = result.message
@@ -202,29 +218,23 @@ class CharmarrStorageCharm(ops.CharmBase):
         if backend_type == BackendType.NATIVE_NFS.value:
             return bool(self.config.get("nfs-server") and self.config.get("nfs-path"))
 
+        if backend_type == BackendType.HOSTPATH.value:
+            return bool(self.config.get("hostpath"))
+
         return False
 
     def _reconcile_storage_class_pvc(self) -> None:
         """Reconcile PVC for storage-class backend."""
-        pvc = self._get_pvc()
+        pvc = get_pvc(self.k8s, self._pvc_name, self.model.name)
 
         if pvc is None:
-            self._create_pvc()
+            self._create_storage_class_pvc()
             return
 
         self._update_pvc_size_if_needed(pvc)
 
-    def _get_pvc(self) -> PersistentVolumeClaim | None:
-        """Get the PVC if it exists."""
-        try:
-            return self.k8s.get(PersistentVolumeClaim, self._pvc_name, self.model.name)
-        except ApiError as e:
-            if e.status.code == 404:
-                return None
-            raise
-
-    def _create_pvc(self) -> None:
-        """Create the shared media PVC."""
+    def _create_storage_class_pvc(self) -> None:
+        """Create the shared media PVC using a StorageClass."""
         storage_class = str(self.config.get("storage-class"))
         size = str(self.config.get("size", "100Gi"))
         access_mode = str(self.config.get("access-mode", AccessMode.READ_WRITE_MANY.value))
@@ -270,152 +280,59 @@ class CharmarrStorageCharm(ops.CharmBase):
 
     def _reconcile_native_nfs(self) -> None:
         """Reconcile PV and PVC for native-nfs backend."""
-        pv = self._get_pv()
+        nfs_server = str(self.config.get("nfs-server"))
+        nfs_path = str(self.config.get("nfs-path"))
+        size = str(self.config.get("size", "100Gi"))
+        access_mode = AccessMode.READ_WRITE_MANY.value
+
+        pv = get_pv(self.k8s, self._pv_name)
         if pv is None:
-            self._create_nfs_pv()
+            create_nfs_pv(self.k8s, self._pv_name, nfs_server, nfs_path, size, access_mode)
         else:
-            self._reconcile_existing_pv(pv)
+            reconcile_existing_nfs_pv(
+                self.k8s, pv, self._pv_name, nfs_server, nfs_path, size, access_mode
+            )
 
-        pvc = self._get_pvc()
+        pvc = get_pvc(self.k8s, self._pvc_name, self.model.name)
         if pvc is None:
-            self._create_nfs_pvc()
+            create_static_pvc(
+                self.k8s, self._pvc_name, self._pv_name, self.model.name, size, access_mode
+            )
         else:
-            self._log_pvc_size_mismatch(pvc)
+            log_static_pv_size_mismatch(pvc, self._pvc_name, size)
 
-    def _log_pvc_size_mismatch(self, pvc: PersistentVolumeClaim) -> None:
-        """Log info if PVC size differs from config.
+    def _reconcile_hostpath(self) -> None:
+        """Reconcile PV and PVC for hostpath backend."""
+        hostpath = str(self.config.get("hostpath"))
+        size = str(self.config.get("size", "100Gi"))
+        access_mode = AccessMode.READ_WRITE_MANY.value
 
-        For native-nfs, PVC size is not enforced by Kubernetes - actual capacity
-        is determined by the NFS share. PVC resize is also not supported for
-        statically provisioned volumes, so we just log the mismatch.
-        """
-        desired_size = str(self.config.get("size", "100Gi"))
-        current_requests = pvc.spec.resources.requests if pvc.spec and pvc.spec.resources else {}
-        current_size = (current_requests or {}).get("storage", "")
-
-        if current_size and current_size != desired_size:
-            logger.info(
-                "PVC %s shows %s but config is %s. K8s does not support resizing "
-                "statically provisioned PVCs, but this is cosmetic - NFS capacity "
-                "is determined by the share, not the PVC",
-                self._pvc_name,
-                current_size,
-                desired_size,
+        pv = get_pv(self.k8s, self._pv_name)
+        if pv is None:
+            create_hostpath_pv(self.k8s, self._pv_name, hostpath, size, access_mode)
+        else:
+            reconcile_existing_hostpath_pv(
+                self.k8s, pv, self._pv_name, hostpath, size, access_mode
             )
 
-    def _reconcile_existing_pv(self, pv: PersistentVolume) -> None:
-        """Reconcile an existing PV with current config.
-
-        Handles Released PVs (clears claimRef) and config drift (NFS server/path/size changes).
-        """
-        nfs_server = str(self.config.get("nfs-server"))
-        nfs_path = str(self.config.get("nfs-path"))
-        desired_size = str(self.config.get("size", "100Gi"))
-
-        needs_update = False
-        reason = ""
-
-        if pv.status and pv.status.phase == "Released":
-            logger.info("PV %s is Released, clearing claimRef for reuse", self._pv_name)
-            needs_update = True
-            reason = "Released state"
-
-        if (
-            pv.spec
-            and pv.spec.nfs
-            and (pv.spec.nfs.server != nfs_server or pv.spec.nfs.path != nfs_path)
-        ):
-            logger.info(
-                "PV %s NFS config changed (%s:%s -> %s:%s)",
-                self._pv_name,
-                pv.spec.nfs.server,
-                pv.spec.nfs.path,
-                nfs_server,
-                nfs_path,
+        pvc = get_pvc(self.k8s, self._pvc_name, self.model.name)
+        if pvc is None:
+            create_static_pvc(
+                self.k8s, self._pvc_name, self._pv_name, self.model.name, size, access_mode
             )
-            needs_update = True
-            reason = "config drift"
-
-        current_size = pv.spec.capacity.get("storage", "") if pv.spec and pv.spec.capacity else ""
-        if current_size and current_size != desired_size:
-            logger.info("PV %s size changed (%s -> %s)", self._pv_name, current_size, desired_size)
-            needs_update = True
-            reason = "size change"
-
-        if not needs_update:
-            return
-
-        logger.info("Updating PV %s due to %s", self._pv_name, reason)
-        size = str(self.config.get("size", "100Gi"))
-        updated_pv = PersistentVolume(
-            metadata=ObjectMeta(name=self._pv_name),
-            spec=PersistentVolumeSpec(
-                capacity={"storage": size},
-                accessModes=[AccessMode.READ_WRITE_MANY.value],
-                persistentVolumeReclaimPolicy="Retain",
-                nfs=NFSVolumeSource(server=nfs_server, path=nfs_path),
-                claimRef=None,
-            ),
-        )
-        self.k8s.apply(updated_pv, force=True)
-
-    def _get_pv(self) -> PersistentVolume | None:
-        """Get the PV if it exists."""
-        try:
-            return self.k8s.get(PersistentVolume, self._pv_name, namespace=None)
-        except ApiError as e:
-            if e.status.code == 404:
-                return None
-            raise
-
-    def _create_nfs_pv(self) -> None:
-        """Create the NFS-backed PersistentVolume."""
-        nfs_server = str(self.config.get("nfs-server"))
-        nfs_path = str(self.config.get("nfs-path"))
-        size = str(self.config.get("size", "100Gi"))
-
-        pv = PersistentVolume(
-            metadata=ObjectMeta(name=self._pv_name),
-            spec=PersistentVolumeSpec(
-                capacity={"storage": size},
-                accessModes=[AccessMode.READ_WRITE_MANY.value],
-                persistentVolumeReclaimPolicy="Retain",
-                nfs=NFSVolumeSource(server=nfs_server, path=nfs_path),
-            ),
-        )
-
-        logger.info(
-            "Creating NFS PV %s with server %s, path %s", self._pv_name, nfs_server, nfs_path
-        )
-        self.k8s.apply(pv)
-
-    def _create_nfs_pvc(self) -> None:
-        """Create PVC that binds to the NFS PV."""
-        size = str(self.config.get("size", "100Gi"))
-
-        pvc = PersistentVolumeClaim(
-            metadata=ObjectMeta(name=self._pvc_name, namespace=self.model.name),
-            spec=PersistentVolumeClaimSpec(
-                storageClassName="",
-                accessModes=[AccessMode.READ_WRITE_MANY.value],
-                resources=VolumeResourceRequirements(requests={"storage": size}),
-                volumeName=self._pv_name,
-            ),
-        )
-
-        logger.info("Creating PVC %s bound to PV %s", self._pvc_name, self._pv_name)
-        self.k8s.apply(pvc)
+        else:
+            log_static_pv_size_mismatch(pvc, self._pvc_name, size)
 
     def _get_pv_phase(self) -> str | None:
         """Get the current PV phase (Available, Bound, Released, Failed)."""
-        pv = self._get_pv()
+        pv = get_pv(self.k8s, self._pv_name)
         if pv is None or pv.status is None:
             return None
         return pv.status.phase
 
     def _get_pvc_phase(self) -> str | None:
         """Get the current PVC phase (Pending, Bound, Lost)."""
-        pvc = self._get_pvc()
+        pvc = get_pvc(self.k8s, self._pvc_name, self.model.name)
         if pvc is None or pvc.status is None:
             return None
         return pvc.status.phase
@@ -455,7 +372,11 @@ class CharmarrStorageCharm(ops.CharmBase):
         backend_type = self.config.get("backend-type")
 
         if backend_type == BackendType.NATIVE_NFS.value:
-            self._check_native_nfs_status(event)
+            self._check_static_pv_status(event, "NFS")
+            return
+
+        if backend_type == BackendType.HOSTPATH.value:
+            self._check_static_pv_status(event, "hostPath")
             return
 
         if self._resize_error:
@@ -479,17 +400,17 @@ class CharmarrStorageCharm(ops.CharmBase):
         elif pvc_phase == "Lost":
             event.add_status(ops.BlockedStatus("PVC lost. Check storage backend"))
 
-    def _check_native_nfs_status(self, event: ops.CollectStatusEvent) -> None:
-        """Check native-nfs backend status (PV and PVC)."""
+    def _check_static_pv_status(self, event: ops.CollectStatusEvent, pv_type: str) -> None:
+        """Check static PV backend status (native-nfs or hostpath)."""
         pv_phase = self._get_pv_phase()
         pvc_phase = self._get_pvc_phase()
 
         if pv_phase is None:
-            event.add_status(ops.MaintenanceStatus("Creating NFS PV"))
+            event.add_status(ops.MaintenanceStatus(f"Creating {pv_type} PV"))
             return
 
         if pv_phase == "Failed":
-            event.add_status(ops.BlockedStatus("NFS PV failed. Check NFS server"))
+            event.add_status(ops.BlockedStatus(f"{pv_type} PV failed. Check storage backend"))
             return
 
         if pvc_phase is None:
@@ -507,7 +428,7 @@ class CharmarrStorageCharm(ops.CharmBase):
         if pvc_phase in ("Pending", "Bound"):
             event.add_status(ops.ActiveStatus())
         elif pvc_phase == "Lost":
-            event.add_status(ops.BlockedStatus("PVC lost. Check NFS server"))
+            event.add_status(ops.BlockedStatus(f"PVC lost. Check {pv_type} backend"))
 
     def _check_config_status(self, event: ops.CollectStatusEvent) -> None:
         """Check configuration and add relevant statuses."""
@@ -520,7 +441,8 @@ class CharmarrStorageCharm(ops.CharmBase):
         if backend_type not in [bt.value for bt in BackendType]:
             event.add_status(
                 ops.BlockedStatus(
-                    f"Invalid backend-type: {backend_type}. Use 'storage-class' or 'native-nfs'"
+                    f"Invalid backend-type: {backend_type}. "
+                    "Use 'storage-class', 'native-nfs', or 'hostpath'"
                 )
             )
             return
@@ -539,6 +461,9 @@ class CharmarrStorageCharm(ops.CharmBase):
                 event.add_status(ops.BlockedStatus("nfs-server not configured"))
             if not self.config.get("nfs-path"):
                 event.add_status(ops.BlockedStatus("nfs-path not configured"))
+
+        elif backend_type == BackendType.HOSTPATH.value and not self.config.get("hostpath"):
+            event.add_status(ops.BlockedStatus("hostpath not configured"))
 
     def _on_remove(self, event: ops.RemoveEvent) -> None:
         """Clean up storage resources on charm removal."""
@@ -560,7 +485,7 @@ class CharmarrStorageCharm(ops.CharmBase):
         logger.info("Deleted PVC %s", self._pvc_name)
 
         backend_type = self.config.get("backend-type")
-        if backend_type == BackendType.NATIVE_NFS.value:
+        if backend_type in (BackendType.NATIVE_NFS.value, BackendType.HOSTPATH.value):
             self.k8s.delete(PersistentVolume, self._pv_name, namespace=None)
             logger.info("Deleted PV %s", self._pv_name)
 

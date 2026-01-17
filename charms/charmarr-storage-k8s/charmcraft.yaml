@@ -58,6 +58,7 @@ config:
         Options:
         - storage-class: Use existing Kubernetes StorageClass
         - native-nfs: Use Kubernetes native NFS driver (managed by charm)
+        - hostpath: Use host filesystem path (single-node clusters)
 
         Cannot be changed after initial deployment.
 
@@ -100,6 +101,17 @@ config:
         NFS export path (backend-type: native-nfs).
 
         Example: /mnt/pool/charmarr-media
+
+    hostpath:
+      type: string
+      default: ""
+      description: |
+        Host filesystem path (backend-type: hostpath).
+
+        The path must exist on the node and be accessible to pods.
+        Best for single-node clusters with existing local storage (ZFS, BTRFS).
+
+        Example: /media or /mnt/storage/charmarr
 
     access-mode:
       type: string

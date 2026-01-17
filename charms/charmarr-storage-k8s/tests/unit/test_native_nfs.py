@@ -127,7 +127,7 @@ def test_pv_failed_status(ctx, mock_k8s):
         State(leader=True, config=_nfs_config()),
     )
 
-    assert state.unit_status == ops.BlockedStatus("NFS PV failed. Check NFS server")
+    assert state.unit_status == ops.BlockedStatus("NFS PV failed. Check storage backend")
 
 
 def test_pvc_lost_status(ctx, mock_k8s):
@@ -145,7 +145,7 @@ def test_pvc_lost_status(ctx, mock_k8s):
         State(leader=True, config=_nfs_config()),
     )
 
-    assert state.unit_status == ops.BlockedStatus("PVC lost. Check NFS server")
+    assert state.unit_status == ops.BlockedStatus("PVC lost. Check NFS backend")
 
 
 def test_does_not_recreate_existing_pv(ctx, mock_k8s):

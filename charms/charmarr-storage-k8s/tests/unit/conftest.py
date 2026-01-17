@@ -112,6 +112,36 @@ def make_nfs_pvc(phase: str, size: str = "100Gi") -> PersistentVolumeClaim:
     )
 
 
+def make_hostpath_pv(phase: str, size: str = "100Gi") -> PersistentVolume:
+    """Create a mock hostPath PV with the given phase."""
+    from lightkube.models.core_v1 import HostPathVolumeSource
+
+    return PersistentVolume(
+        metadata=ObjectMeta(name="charmarr-shared-media-pv"),
+        spec=PersistentVolumeSpec(
+            capacity={"storage": size},
+            accessModes=["ReadWriteMany"],
+            persistentVolumeReclaimPolicy="Retain",
+            hostPath=HostPathVolumeSource(path="/media", type="Directory"),
+        ),
+        status=PersistentVolumeStatus(phase=phase),
+    )
+
+
+def make_hostpath_pvc(phase: str, size: str = "100Gi") -> PersistentVolumeClaim:
+    """Create a mock hostPath PVC with the given phase."""
+    return PersistentVolumeClaim(
+        metadata=ObjectMeta(name="charmarr-shared-media", namespace="test-model"),
+        spec=PersistentVolumeClaimSpec(
+            storageClassName="",
+            accessModes=["ReadWriteMany"],
+            resources=VolumeResourceRequirements(requests={"storage": size}),
+            volumeName="charmarr-shared-media-pv",
+        ),
+        status=PersistentVolumeClaimStatus(phase=phase),
+    )
+
+
 def make_passed_job() -> Job:
     """Create a mock Job that has succeeded (permission check passed)."""
     return Job(

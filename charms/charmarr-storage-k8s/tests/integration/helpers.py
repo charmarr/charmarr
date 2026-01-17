@@ -33,6 +33,7 @@ class PVData(BaseModel):
     access_modes: list[str]
     nfs_server: str
     nfs_path: str
+    hostpath: str
     reclaim_policy: str
     phase: str
 
@@ -88,6 +89,7 @@ def get_pv(juju: jubilant.Juju, name: str) -> PVData | None:
             access_modes=result.results.get("access-modes", "").split(","),
             nfs_server=result.results.get("nfs-server", ""),
             nfs_path=result.results.get("nfs-path", ""),
+            hostpath=result.results.get("hostpath", ""),
             reclaim_policy=result.results.get("reclaim-policy", ""),
             phase=result.results.get("phase", ""),
         )

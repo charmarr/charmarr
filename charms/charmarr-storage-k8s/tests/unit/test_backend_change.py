@@ -47,7 +47,15 @@ def test_blocked_changing_from_storage_class_to_nfs(ctx, mock_k8s):
 
 def test_blocked_changing_from_nfs_to_storage_class(ctx, mock_k8s):
     """Charm is blocked when trying to switch from native-nfs to storage-class."""
-    mock_k8s._custom_get_return = make_nfs_pvc(phase="Bound")
+
+    def mock_get(resource_type, name, namespace=None):
+        if resource_type.__name__ == "PersistentVolumeClaim":
+            return make_nfs_pvc(phase="Bound")
+        elif resource_type.__name__ == "PersistentVolume":
+            return make_nfs_pv(phase="Bound")
+        raise ValueError(f"Unexpected resource type: {resource_type}")
+
+    mock_k8s._custom_get_side_effect = mock_get
 
     state = ctx.run(
         ctx.on.config_changed(),

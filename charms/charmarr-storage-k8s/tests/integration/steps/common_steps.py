@@ -78,6 +78,26 @@ def deploy_native_nfs_backend(
     wait_for_active_idle(juju)
 
 
+@given("the charmarr-storage charm is deployed with hostpath backend")
+def deploy_hostpath_backend(juju: jubilant.Juju, charm_path: Path, storage_config: dict[str, Any]):
+    """Deploy charmarr-storage with hostpath backend."""
+    hostpath = "/tmp/charmarr-test-media"
+    Path(hostpath).mkdir(parents=True, exist_ok=True)
+    config = {
+        "hostpath": hostpath,
+        "size": "1Gi",
+        "puid": 1000,
+        "pgid": 1000,
+        "cleanup-on-remove": True,
+    }
+    storage_config.update(config)
+    status = juju.status()
+    if "charmarr-storage" in status.apps:
+        return
+    deploy_storage_charm(juju, charm_path, "hostpath", config)
+    wait_for_active_idle(juju)
+
+
 @given("charmarr-multimeter is related to charmarr-storage via media-storage")
 @when("charmarr-multimeter is related to charmarr-storage via media-storage")
 def integrate_multimeter_storage(juju: jubilant.Juju):
