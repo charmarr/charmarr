@@ -41,15 +41,19 @@ def handle_get_pv(event: ops.ActionEvent, k8s: K8sResourceManager) -> None:
         phase = pv.status.phase if pv.status else None
         nfs_server = ""
         nfs_path = ""
+        hostpath = ""
         if pv.spec.nfs:
             nfs_server = pv.spec.nfs.server or ""
             nfs_path = pv.spec.nfs.path or ""
+        if pv.spec.hostPath:
+            hostpath = pv.spec.hostPath.path or ""
         event.set_results(
             {
                 "capacity": pv.spec.capacity.get("storage", "") if pv.spec.capacity else "",
                 "access-modes": ",".join(pv.spec.accessModes or []),
                 "nfs-server": nfs_server,
                 "nfs-path": nfs_path,
+                "hostpath": hostpath,
                 "reclaim-policy": pv.spec.persistentVolumeReclaimPolicy or "",
                 "phase": phase or "",
             }
