@@ -27,6 +27,12 @@ variable "model" {
   type        = string
 }
 
+variable "owner" {
+  description = "Owner of the Juju model"
+  type        = string
+  default     = "admin"
+}
+
 variable "revision" {
   description = "Revision number of the charm"
   type        = number

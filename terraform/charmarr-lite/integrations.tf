@@ -3,7 +3,7 @@
 # -----------------------------------------------------------------------------
 
 resource "juju_integration" "storage_qbittorrent" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.storage.app_name
@@ -17,7 +17,7 @@ resource "juju_integration" "storage_qbittorrent" {
 }
 
 resource "juju_integration" "storage_sabnzbd" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.storage.app_name
@@ -31,7 +31,7 @@ resource "juju_integration" "storage_sabnzbd" {
 }
 
 resource "juju_integration" "storage_radarr" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.storage.app_name
@@ -45,7 +45,7 @@ resource "juju_integration" "storage_radarr" {
 }
 
 resource "juju_integration" "storage_sonarr" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.storage.app_name
@@ -59,7 +59,7 @@ resource "juju_integration" "storage_sonarr" {
 }
 
 resource "juju_integration" "storage_plex" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.storage.app_name
@@ -77,7 +77,7 @@ resource "juju_integration" "storage_plex" {
 # -----------------------------------------------------------------------------
 
 resource "juju_integration" "gluetun_qbittorrent" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.gluetun.app_name
@@ -91,7 +91,7 @@ resource "juju_integration" "gluetun_qbittorrent" {
 }
 
 resource "juju_integration" "gluetun_sabnzbd" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.gluetun.app_name
@@ -105,7 +105,7 @@ resource "juju_integration" "gluetun_sabnzbd" {
 }
 
 resource "juju_integration" "gluetun_prowlarr" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.gluetun.app_name
@@ -123,7 +123,7 @@ resource "juju_integration" "gluetun_prowlarr" {
 # -----------------------------------------------------------------------------
 
 resource "juju_integration" "prowlarr_radarr" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.prowlarr.app_name
@@ -137,7 +137,7 @@ resource "juju_integration" "prowlarr_radarr" {
 }
 
 resource "juju_integration" "prowlarr_sonarr" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.prowlarr.app_name
@@ -151,7 +151,7 @@ resource "juju_integration" "prowlarr_sonarr" {
 }
 
 resource "juju_integration" "flaresolverr_prowlarr" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.flaresolverr.app_name
@@ -169,7 +169,7 @@ resource "juju_integration" "flaresolverr_prowlarr" {
 # -----------------------------------------------------------------------------
 
 resource "juju_integration" "radarr_overseerr" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.radarr.app_name
@@ -183,7 +183,7 @@ resource "juju_integration" "radarr_overseerr" {
 }
 
 resource "juju_integration" "radarr_plex" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.radarr.app_name
@@ -197,7 +197,7 @@ resource "juju_integration" "radarr_plex" {
 }
 
 resource "juju_integration" "sonarr_overseerr" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.sonarr.app_name
@@ -211,7 +211,7 @@ resource "juju_integration" "sonarr_overseerr" {
 }
 
 resource "juju_integration" "sonarr_plex" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.sonarr.app_name
@@ -229,7 +229,7 @@ resource "juju_integration" "sonarr_plex" {
 # -----------------------------------------------------------------------------
 
 resource "juju_integration" "plex_overseerr" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.plex.app_name
@@ -247,11 +247,11 @@ resource "juju_integration" "plex_overseerr" {
 # -----------------------------------------------------------------------------
 
 resource "juju_integration" "arr_ingress_radarr" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.arr_ingress.app_name
-    endpoint = "ingress"
+    endpoint = "istio-ingress-route"
   }
 
   application {
@@ -261,11 +261,11 @@ resource "juju_integration" "arr_ingress_radarr" {
 }
 
 resource "juju_integration" "arr_ingress_sonarr" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.arr_ingress.app_name
-    endpoint = "ingress"
+    endpoint = "istio-ingress-route"
   }
 
   application {
@@ -275,11 +275,11 @@ resource "juju_integration" "arr_ingress_sonarr" {
 }
 
 resource "juju_integration" "arr_ingress_prowlarr" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.arr_ingress.app_name
-    endpoint = "ingress"
+    endpoint = "istio-ingress-route"
   }
 
   application {
@@ -289,11 +289,11 @@ resource "juju_integration" "arr_ingress_prowlarr" {
 }
 
 resource "juju_integration" "arr_ingress_qbittorrent" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.arr_ingress.app_name
-    endpoint = "ingress"
+    endpoint = "istio-ingress-route"
   }
 
   application {
@@ -303,11 +303,11 @@ resource "juju_integration" "arr_ingress_qbittorrent" {
 }
 
 resource "juju_integration" "arr_ingress_sabnzbd" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.arr_ingress.app_name
-    endpoint = "ingress"
+    endpoint = "istio-ingress-route"
   }
 
   application {
@@ -317,11 +317,11 @@ resource "juju_integration" "arr_ingress_sabnzbd" {
 }
 
 resource "juju_integration" "plex_ingress_plex" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.plex_ingress.app_name
-    endpoint = "ingress"
+    endpoint = "istio-ingress-route"
   }
 
   application {
@@ -331,11 +331,11 @@ resource "juju_integration" "plex_ingress_plex" {
 }
 
 resource "juju_integration" "overseerr_ingress_overseerr" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.overseerr_ingress.app_name
-    endpoint = "ingress"
+    endpoint = "istio-ingress-route"
   }
 
   application {

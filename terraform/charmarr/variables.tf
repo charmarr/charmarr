@@ -3,6 +3,12 @@ variable "model" {
   type        = string
 }
 
+variable "owner" {
+  description = "Owner of the Juju model"
+  type        = string
+  default     = "admin"
+}
+
 variable "channel" {
   description = "Default channel for Charmarr charms"
   type        = string

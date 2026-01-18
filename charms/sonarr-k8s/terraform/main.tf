@@ -1,5 +1,6 @@
 data "juju_model" "model" {
-  name = var.model
+  name  = var.model
+  owner = var.owner
 }
 
 resource "juju_application" "sonarr" {

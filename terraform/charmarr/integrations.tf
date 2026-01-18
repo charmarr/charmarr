@@ -633,7 +633,7 @@ resource "juju_integration" "arr_ingress_radarr_hd" {
 
   application {
     name     = module.arr_ingress.app_name
-    endpoint = "ingress"
+    endpoint = "istio-ingress-route"
   }
 
   application {
@@ -647,7 +647,7 @@ resource "juju_integration" "arr_ingress_radarr_uhd" {
 
   application {
     name     = module.arr_ingress.app_name
-    endpoint = "ingress"
+    endpoint = "istio-ingress-route"
   }
 
   application {
@@ -661,7 +661,7 @@ resource "juju_integration" "arr_ingress_radarr_anime" {
 
   application {
     name     = module.arr_ingress.app_name
-    endpoint = "ingress"
+    endpoint = "istio-ingress-route"
   }
 
   application {
@@ -675,7 +675,7 @@ resource "juju_integration" "arr_ingress_sonarr_hd" {
 
   application {
     name     = module.arr_ingress.app_name
-    endpoint = "ingress"
+    endpoint = "istio-ingress-route"
   }
 
   application {
@@ -689,7 +689,7 @@ resource "juju_integration" "arr_ingress_sonarr_uhd" {
 
   application {
     name     = module.arr_ingress.app_name
-    endpoint = "ingress"
+    endpoint = "istio-ingress-route"
   }
 
   application {
@@ -703,7 +703,7 @@ resource "juju_integration" "arr_ingress_sonarr_anime" {
 
   application {
     name     = module.arr_ingress.app_name
-    endpoint = "ingress"
+    endpoint = "istio-ingress-route"
   }
 
   application {
@@ -717,7 +717,7 @@ resource "juju_integration" "arr_ingress_prowlarr" {
 
   application {
     name     = module.arr_ingress.app_name
-    endpoint = "ingress"
+    endpoint = "istio-ingress-route"
   }
 
   application {
@@ -731,7 +731,7 @@ resource "juju_integration" "arr_ingress_qbittorrent" {
 
   application {
     name     = module.arr_ingress.app_name
-    endpoint = "ingress"
+    endpoint = "istio-ingress-route"
   }
 
   application {
@@ -745,7 +745,7 @@ resource "juju_integration" "arr_ingress_sabnzbd" {
 
   application {
     name     = module.arr_ingress.app_name
-    endpoint = "ingress"
+    endpoint = "istio-ingress-route"
   }
 
   application {
@@ -759,7 +759,7 @@ resource "juju_integration" "plex_ingress_plex" {
 
   application {
     name     = module.plex_ingress.app_name
-    endpoint = "ingress"
+    endpoint = "istio-ingress-route"
   }
 
   application {
@@ -773,7 +773,7 @@ resource "juju_integration" "overseerr_ingress_overseerr" {
 
   application {
     name     = module.overseerr_ingress.app_name
-    endpoint = "ingress"
+    endpoint = "istio-ingress-route"
   }
 
   application {

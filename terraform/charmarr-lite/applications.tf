@@ -3,7 +3,8 @@
 # -----------------------------------------------------------------------------
 
 data "juju_model" "model" {
-  name = var.model
+  name  = var.model
+  owner = var.owner
 }
 
 # -----------------------------------------------------------------------------
@@ -11,21 +12,36 @@ data "juju_model" "model" {
 # -----------------------------------------------------------------------------
 
 resource "juju_secret" "wireguard_key" {
-  model = var.model
-  name  = "wireguard-private-key"
+  model_uuid = data.juju_model.model.uuid
+  name       = "vpn-key"
 
   value = {
-    key = var.wireguard_private_key
+    private-key = var.wireguard_private_key
   }
 }
 
 resource "juju_access_secret" "gluetun_wireguard_access" {
-  model = var.model
-  name  = juju_secret.wireguard_key.name
+  model_uuid = data.juju_model.model.uuid
+  secret_id  = juju_secret.wireguard_key.secret_id
 
   applications = [module.gluetun.app_name]
 
   depends_on = [module.gluetun]
+}
+
+# HACK: Workaround for Juju secret race condition. The charm needs secret access
+# granted before the secret config is set, but Terraform can't express this ordering
+# through juju_application config. We deploy gluetun without the secret, grant access,
+# then set the config via CLI.
+resource "null_resource" "gluetun_secret_config" {
+  depends_on = [
+    module.gluetun,
+    juju_access_secret.gluetun_wireguard_access
+  ]
+
+  provisioner "local-exec" {
+    command = "juju config gluetun wireguard-private-key-secret=secret:${juju_secret.wireguard_key.secret_id} -m ${var.model}"
+  }
 }
 
 # -----------------------------------------------------------------------------
@@ -36,6 +52,7 @@ module "storage" {
   source = "git::https://github.com/charmarr/charmarr//charms/charmarr-storage-k8s/terraform?ref=main"
 
   model         = var.model
+  owner         = var.owner
   app_name      = "storage"
   channel       = var.channel
   constraints   = var.storage.constraints
@@ -53,6 +70,7 @@ module "gluetun" {
   source = "git::https://github.com/charmarr/charmarr//charms/gluetun-k8s/terraform?ref=main"
 
   model                        = var.model
+  owner                        = var.owner
   app_name                     = "gluetun"
   channel                      = var.channel
   constraints                  = var.gluetun.constraints
@@ -60,7 +78,7 @@ module "gluetun" {
   config                       = var.gluetun.config
   cluster_cidrs                = var.cluster_cidrs
   vpn_provider                 = var.vpn_provider
-  wireguard_private_key_secret = juju_secret.wireguard_key.secret_id
+  wireguard_private_key_secret = ""
   wireguard_addresses          = var.wireguard_addresses
   server_countries             = var.server_countries
   server_cities                = var.server_cities
@@ -73,6 +91,7 @@ module "qbittorrent" {
   source = "git::https://github.com/charmarr/charmarr//charms/qbittorrent-k8s/terraform?ref=main"
 
   model               = var.model
+  owner               = var.owner
   app_name            = "qbittorrent"
   channel             = var.channel
   constraints         = var.qbittorrent.constraints
@@ -86,6 +105,7 @@ module "sabnzbd" {
   source = "git::https://github.com/charmarr/charmarr//charms/sabnzbd-k8s/terraform?ref=main"
 
   model               = var.model
+  owner               = var.owner
   app_name            = "sabnzbd"
   channel             = var.channel
   constraints         = var.sabnzbd.constraints
@@ -99,6 +119,7 @@ module "prowlarr" {
   source = "git::https://github.com/charmarr/charmarr//charms/prowlarr-k8s/terraform?ref=main"
 
   model            = var.model
+  owner            = var.owner
   app_name         = "prowlarr"
   channel          = var.channel
   constraints      = var.prowlarr.constraints
@@ -112,6 +133,7 @@ module "flaresolverr" {
   source = "git::https://github.com/charmarr/charmarr//charms/flaresolverr-k8s/terraform?ref=main"
 
   model       = var.model
+  owner       = var.owner
   app_name    = "flaresolverr"
   channel     = var.channel
   constraints = var.flaresolverr.constraints
@@ -123,6 +145,7 @@ module "radarr" {
   source = "git::https://github.com/charmarr/charmarr//charms/radarr-k8s/terraform?ref=main"
 
   model            = var.model
+  owner            = var.owner
   app_name         = "radarr"
   channel          = var.channel
   constraints      = var.radarr.constraints
@@ -136,6 +159,7 @@ module "sonarr" {
   source = "git::https://github.com/charmarr/charmarr//charms/sonarr-k8s/terraform?ref=main"
 
   model            = var.model
+  owner            = var.owner
   app_name         = "sonarr"
   channel          = var.channel
   constraints      = var.sonarr.constraints
@@ -149,6 +173,7 @@ module "plex" {
   source = "git::https://github.com/charmarr/charmarr//charms/plex-k8s/terraform?ref=main"
 
   model                = var.model
+  owner                = var.owner
   app_name             = "plex"
   channel              = var.channel
   constraints          = var.plex.constraints
@@ -162,6 +187,7 @@ module "overseerr" {
   source = "git::https://github.com/charmarr/charmarr//charms/overseerr-k8s/terraform?ref=main"
 
   model       = var.model
+  owner       = var.owner
   app_name    = "overseerr"
   channel     = var.channel
   constraints = var.overseerr.constraints
@@ -176,31 +202,31 @@ module "overseerr" {
 module "istio" {
   source = "git::https://github.com/canonical/istio-k8s-operator//terraform?ref=main"
 
-  model    = var.model
-  app_name = "istio"
-  channel  = var.istio_channel
+  model_uuid = data.juju_model.model.uuid
+  app_name   = "istio"
+  channel    = var.istio_channel
 }
 
 module "arr_ingress" {
   source = "git::https://github.com/canonical/istio-ingress-k8s-operator//terraform?ref=main"
 
-  model    = var.model
-  app_name = "arr-ingress"
-  channel  = var.istio_channel
+  model_uuid = data.juju_model.model.uuid
+  app_name   = "arr-ingress"
+  channel    = var.istio_channel
 }
 
 module "plex_ingress" {
   source = "git::https://github.com/canonical/istio-ingress-k8s-operator//terraform?ref=main"
 
-  model    = var.model
-  app_name = "plex-ingress"
-  channel  = var.istio_channel
+  model_uuid = data.juju_model.model.uuid
+  app_name   = "plex-ingress"
+  channel    = var.istio_channel
 }
 
 module "overseerr_ingress" {
   source = "git::https://github.com/canonical/istio-ingress-k8s-operator//terraform?ref=main"
 
-  model    = var.model
-  app_name = "overseerr-ingress"
-  channel  = var.istio_channel
+  model_uuid = data.juju_model.model.uuid
+  app_name   = "overseerr-ingress"
+  channel    = var.istio_channel
 }

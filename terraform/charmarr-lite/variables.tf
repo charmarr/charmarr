@@ -3,6 +3,12 @@ variable "model" {
   type        = string
 }
 
+variable "owner" {
+  description = "Owner of the Juju model"
+  type        = string
+  default     = "admin"
+}
+
 variable "channel" {
   description = "Default channel for Charmarr charms"
   type        = string
@@ -146,10 +152,10 @@ variable "gluetun" {
 variable "qbittorrent" {
   description = "Override configuration for qbittorrent charm"
   type = object({
-    constraints   = optional(string, "arch=amd64")
-    revision      = optional(number, null)
-    config        = optional(map(string), {})
-    ingress_path  = optional(string, "/qbittorrent")
+    constraints  = optional(string, "arch=amd64")
+    revision     = optional(number, null)
+    config       = optional(map(string), {})
+    ingress_path = optional(string, "/qbittorrent")
   })
   default = {}
 }
@@ -157,10 +163,10 @@ variable "qbittorrent" {
 variable "sabnzbd" {
   description = "Override configuration for sabnzbd charm"
   type = object({
-    constraints   = optional(string, "arch=amd64")
-    revision      = optional(number, null)
-    config        = optional(map(string), {})
-    ingress_path  = optional(string, "/sabnzbd")
+    constraints  = optional(string, "arch=amd64")
+    revision     = optional(number, null)
+    config       = optional(map(string), {})
+    ingress_path = optional(string, "/sabnzbd")
   })
   default = {}
 }
@@ -168,10 +174,10 @@ variable "sabnzbd" {
 variable "prowlarr" {
   description = "Override configuration for prowlarr charm"
   type = object({
-    constraints   = optional(string, "arch=amd64")
-    revision      = optional(number, null)
-    config        = optional(map(string), {})
-    ingress_path  = optional(string, "/prowlarr")
+    constraints  = optional(string, "arch=amd64")
+    revision     = optional(number, null)
+    config       = optional(map(string), {})
+    ingress_path = optional(string, "/prowlarr")
   })
   default = {}
 }

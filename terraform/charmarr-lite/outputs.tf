@@ -27,8 +27,8 @@ output "applications" {
 output "ingress" {
   description = "Map of ingress application names"
   value = {
-    arr      = module.arr_ingress.app_name
-    plex     = module.plex_ingress.app_name
+    arr       = module.arr_ingress.app_name
+    plex      = module.plex_ingress.app_name
     overseerr = module.overseerr_ingress.app_name
   }
 }
