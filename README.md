@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="assets/charmarr-charmarr.png" width="350" alt="Charmarr">
-</p>
-
 <h1 align="center">Charmarr Charms</h1>
 
 <p align="center">
