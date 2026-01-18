@@ -157,7 +157,7 @@ module "radarr_hd" {
   config           = var.radarr_hd.config
   variant          = "standard"
   ingress_path     = var.radarr_hd.ingress_path
-  trash_profiles   = coalesce(var.radarr_hd.trash_profiles, "hd-bluray-web")
+  trash_profiles   = var.radarr_hd.trash_profiles
   api_key_rotation = "monthly"
 }
 
@@ -173,7 +173,7 @@ module "radarr_uhd" {
   config           = var.radarr_uhd.config
   variant          = "4k"
   ingress_path     = var.radarr_uhd.ingress_path
-  trash_profiles   = coalesce(var.radarr_uhd.trash_profiles, "")
+  trash_profiles   = var.radarr_uhd.trash_profiles
   api_key_rotation = "monthly"
 }
 
@@ -189,7 +189,7 @@ module "radarr_anime" {
   config           = var.radarr_anime.config
   variant          = "anime"
   ingress_path     = var.radarr_anime.ingress_path
-  trash_profiles   = coalesce(var.radarr_anime.trash_profiles, "")
+  trash_profiles   = var.radarr_anime.trash_profiles
   api_key_rotation = "monthly"
 }
 
@@ -209,7 +209,7 @@ module "sonarr_hd" {
   config           = var.sonarr_hd.config
   variant          = "standard"
   ingress_path     = var.sonarr_hd.ingress_path
-  trash_profiles   = coalesce(var.sonarr_hd.trash_profiles, "web-1080p")
+  trash_profiles   = var.sonarr_hd.trash_profiles
   api_key_rotation = "monthly"
 }
 
@@ -225,7 +225,7 @@ module "sonarr_uhd" {
   config           = var.sonarr_uhd.config
   variant          = "4k"
   ingress_path     = var.sonarr_uhd.ingress_path
-  trash_profiles   = coalesce(var.sonarr_uhd.trash_profiles, "")
+  trash_profiles   = var.sonarr_uhd.trash_profiles
   api_key_rotation = "monthly"
 }
 
@@ -241,7 +241,7 @@ module "sonarr_anime" {
   config           = var.sonarr_anime.config
   variant          = "anime"
   ingress_path     = var.sonarr_anime.ingress_path
-  trash_profiles   = coalesce(var.sonarr_anime.trash_profiles, "")
+  trash_profiles   = var.sonarr_anime.trash_profiles
   api_key_rotation = "monthly"
 }
 

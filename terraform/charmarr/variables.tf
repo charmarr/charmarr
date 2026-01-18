@@ -203,7 +203,7 @@ variable "radarr_hd" {
     revision       = optional(number, null)
     config         = optional(map(string), {})
     ingress_path   = optional(string, "/radarr-hd")
-    trash_profiles = optional(string)
+    trash_profiles = optional(string, "hd-bluray-web")
   })
   default = {}
 }
@@ -215,7 +215,7 @@ variable "radarr_uhd" {
     revision       = optional(number, null)
     config         = optional(map(string), {})
     ingress_path   = optional(string, "/radarr-uhd")
-    trash_profiles = optional(string)
+    trash_profiles = optional(string, "")
   })
   default = {}
 }
@@ -227,7 +227,7 @@ variable "radarr_anime" {
     revision       = optional(number, null)
     config         = optional(map(string), {})
     ingress_path   = optional(string, "/radarr-anime")
-    trash_profiles = optional(string)
+    trash_profiles = optional(string, "")
   })
   default = {}
 }
@@ -243,7 +243,7 @@ variable "sonarr_hd" {
     revision       = optional(number, null)
     config         = optional(map(string), {})
     ingress_path   = optional(string, "/sonarr-hd")
-    trash_profiles = optional(string)
+    trash_profiles = optional(string, "web-1080p")
   })
   default = {}
 }
@@ -255,7 +255,7 @@ variable "sonarr_uhd" {
     revision       = optional(number, null)
     config         = optional(map(string), {})
     ingress_path   = optional(string, "/sonarr-uhd")
-    trash_profiles = optional(string)
+    trash_profiles = optional(string, "")
   })
   default = {}
 }
@@ -267,7 +267,7 @@ variable "sonarr_anime" {
     revision       = optional(number, null)
     config         = optional(map(string), {})
     ingress_path   = optional(string, "/sonarr-anime")
-    trash_profiles = optional(string)
+    trash_profiles = optional(string, "")
   })
   default = {}
 }
