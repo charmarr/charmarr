@@ -37,7 +37,7 @@ resources:
   gluetun-image:
     type: oci-image
     description: Gluetun VPN client container
-    upstream-source: ghcr.io/qdm12/gluetun:v3.40.0
+    upstream-source: ghcr.io/qdm12/gluetun:v3.41.0
 
 provides:
   vpn-gateway:

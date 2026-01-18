@@ -42,7 +42,7 @@ resources:
   overseerr-image:
     type: oci-image
     description: OCI image for Overseerr (LinuxServer)
-    upstream-source: lscr.io/linuxserver/overseerr:latest
+    upstream-source: lscr.io/linuxserver/overseerr:1.34.0
 
 storage:
   config:

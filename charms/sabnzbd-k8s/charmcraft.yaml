@@ -54,7 +54,7 @@ resources:
   sabnzbd-image:
     type: oci-image
     description: OCI image for SABnzbd (LinuxServer)
-    upstream-source: lscr.io/linuxserver/sabnzbd:4.4.1
+    upstream-source: lscr.io/linuxserver/sabnzbd:4.5.5
 
 storage:
   config:
