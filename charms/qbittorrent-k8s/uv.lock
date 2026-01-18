@@ -53,8 +53,8 @@ wheels = [
 
 [[package]]
 name = "charmarr-lib-core"
-version = "0.12.0"
-source = { git = "https://github.com/charmarr/charmarr-lib.git?subdirectory=core&rev=main#aa5b8225c77c33250138156f1e1a8271dfceb716" }
+version = "0.12.2"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "charmarr-lib-krm" },
     { name = "httpx" },
@@ -62,14 +62,22 @@ dependencies = [
     { name = "ops" },
     { name = "pydantic" },
 ]
+sdist = { url = "https://files.pythonhosted.org/packages/fb/9b/3834d45dcbc336011c4ee53e080ddd939d6bf0b82f2e90c085390b95066c/charmarr_lib_core-0.12.2.tar.gz", hash = "sha256:904d19ce601592fd6f0c07c7ea5dfc562a7ca51b8878387a336c4ac0417cbaf8", size = 41586, upload-time = "2026-01-18T15:45:33.834Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b5/c4/a8b13f4abfa70bd868fdd44981c9fdf57af9ff30126154c9b12bbab13bd0/charmarr_lib_core-0.12.2-py3-none-any.whl", hash = "sha256:3a8a022e041e0c067b85406447201057e8e40618ef169887af22c18a3a96e338", size = 42636, upload-time = "2026-01-18T15:45:31.948Z" },
+]
 
 [[package]]
 name = "charmarr-lib-krm"
 version = "0.1.2"
-source = { git = "https://github.com/charmarr/charmarr-lib.git?subdirectory=krm&rev=main#aa5b8225c77c33250138156f1e1a8271dfceb716" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "lightkube" },
     { name = "tenacity" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/53/c2/a0cd475fa0d3a81836801825e5d2767f6cefc9238e2007ab39107731516a/charmarr_lib_krm-0.1.2.tar.gz", hash = "sha256:c3c89e665b576ef676240d29f1f4ac7d29f6ed2ee6a9d5fc720028c1776d0fd0", size = 5911, upload-time = "2026-01-15T23:04:07.918Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2f/c2/139907b494f3998940ae88465852e13475065d2cc090f7f212e4b176d3d8/charmarr_lib_krm-0.1.2-py3-none-any.whl", hash = "sha256:dcfd192777d4def6c3e8f482dbc19c6cf30ec47d78ac5c0e5b13a99d75eb5c73", size = 5004, upload-time = "2026-01-15T23:04:06.569Z" },
 ]
 
 [[package]]
@@ -831,7 +839,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "charmarr-lib-core", git = "https://github.com/charmarr/charmarr-lib.git?subdirectory=core&rev=main" },
+    { name = "charmarr-lib-core", specifier = ">=0.12.2" },
     { name = "charmarr-lib-testing", marker = "extra == 'integration'", specifier = ">=0.4.0" },
     { name = "charmarr-lib-vpn" },
     { name = "charmed-service-mesh-helpers" },
