@@ -50,6 +50,7 @@ from charmarr_lib.core import (
     reconcile_download_clients,
     reconcile_root_folder,
     reconcile_storage_volume,
+    sync_secret_rotation_policy,
     sync_trash_profiles,
 )
 from charmarr_lib.core.interfaces import (
@@ -489,6 +490,10 @@ class SonarrCharm(ops.CharmBase):
         secret_data = self._get_api_key_secret()
         if secret_data:
             api_key, secret_id = secret_data
+            secret = self.model.get_secret(label=API_KEY_SECRET_LABEL)
+            sync_secret_rotation_policy(
+                secret, str(self.config.get("api-key-rotation", "disabled"))
+            )
         else:
             api_key = generate_api_key()
             secret_id = self._create_api_key_secret(api_key)

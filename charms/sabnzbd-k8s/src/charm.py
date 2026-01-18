@@ -47,6 +47,7 @@ from charmarr_lib.core import (
     observe_events,
     reconcilable_events_k8s,
     reconcile_storage_volume,
+    sync_secret_rotation_policy,
 )
 from charmarr_lib.core.constants import MEDIA_TYPE_DOWNLOAD_PATHS
 from charmarr_lib.core.interfaces import (
@@ -396,7 +397,14 @@ class SABnzbdCharm(ops.CharmBase):
             return
 
         # Ensure API key exists
-        api_key = self._get_api_key() or self._create_api_key()
+        api_key = self._get_api_key()
+        if api_key:
+            secret = self.model.get_secret(label=API_KEY_SECRET_LABEL)
+            sync_secret_rotation_policy(
+                secret, str(self.config.get("credential-rotation", "disabled"))
+            )
+        else:
+            api_key = self._create_api_key()
 
         # Publish download client data to related media managers
         self._publish_download_client(api_key)

@@ -54,6 +54,7 @@ from charmarr_lib.core import (
     observe_events,
     reconcilable_events_k8s,
     reconcile_storage_volume,
+    sync_secret_rotation_policy,
 )
 from charmarr_lib.core.constants import MEDIA_TYPE_DOWNLOAD_PATHS
 from charmarr_lib.core.interfaces import (
@@ -441,7 +442,14 @@ class QBittorrentCharm(ops.CharmBase):
             return
 
         # Ensure credentials exist
-        credentials = self._get_credentials() or self._create_credentials()
+        credentials = self._get_credentials()
+        if credentials:
+            secret = self.model.get_secret(label=CREDENTIALS_SECRET_LABEL)
+            sync_secret_rotation_policy(
+                secret, str(self.config.get("credential-rotation", "disabled"))
+            )
+        else:
+            credentials = self._create_credentials()
 
         # Publish download client data to related media managers
         self._publish_download_client(credentials)
