@@ -64,6 +64,13 @@ variable "vpn_type" {
   }
 }
 
+variable "wireguard_private_key_secret" {
+  description = "Juju secret URI containing WireGuard private key (e.g., secret:vpn-key)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "wireguard_addresses" {
   description = "WireGuard interface address in CIDR format (required for mullvad, custom)"
   type        = string

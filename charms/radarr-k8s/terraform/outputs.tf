@@ -16,13 +16,15 @@ output "model_uuid" {
 output "provides" {
   description = "Map of provided endpoints for integration"
   value = {
-    media_manager = "media-manager"
+    media_manager    = "media-manager"
+    provide_cmr_mesh = "provide-cmr-mesh"
   }
 }
 
 output "requires" {
   description = "Map of required endpoints for integration"
   value = {
+    require_cmr_mesh     = "require-cmr-mesh"
     media_indexer        = "media-indexer"
     download_client      = "download-client"
     media_storage        = "media-storage"

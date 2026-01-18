@@ -17,8 +17,11 @@ resource "juju_application" "prowlarr" {
 
   config = merge(
     {
-      log-level    = var.log_level
-      ingress-path = var.ingress_path
+      log-level        = var.log_level
+      ingress-path     = var.ingress_path
+      timezone         = var.timezone
+      sync-level       = var.sync_level
+      api-key-rotation = var.api_key_rotation
     },
     var.config
   )

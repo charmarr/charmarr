@@ -16,13 +16,15 @@ output "model_uuid" {
 output "provides" {
   description = "Map of provided endpoints for integration"
   value = {
-    download_client = "download-client"
+    download_client  = "download-client"
+    provide_cmr_mesh = "provide-cmr-mesh"
   }
 }
 
 output "requires" {
   description = "Map of required endpoints for integration"
   value = {
+    require_cmr_mesh     = "require-cmr-mesh"
     media_storage        = "media-storage"
     vpn_gateway          = "vpn-gateway"
     service_mesh         = "service-mesh"

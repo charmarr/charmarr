@@ -17,8 +17,11 @@ resource "juju_application" "qbittorrent" {
 
   config = merge(
     {
-      log-level    = var.log_level
-      ingress-path = var.ingress_path
+      unsafe-mode         = tostring(var.unsafe_mode)
+      log-level           = var.log_level
+      ingress-path        = var.ingress_path
+      timezone            = var.timezone
+      credential-rotation = var.credential_rotation
     },
     var.config
   )

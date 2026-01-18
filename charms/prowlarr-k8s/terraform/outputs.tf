@@ -16,13 +16,16 @@ output "model_uuid" {
 output "provides" {
   description = "Map of provided endpoints for integration"
   value = {
-    media_indexer = "media-indexer"
+    media_indexer    = "media-indexer"
+    provide_cmr_mesh = "provide-cmr-mesh"
   }
 }
 
 output "requires" {
   description = "Map of required endpoints for integration"
   value = {
+    require_cmr_mesh     = "require-cmr-mesh"
+    flaresolverr         = "flaresolverr"
     vpn_gateway          = "vpn-gateway"
     service_mesh         = "service-mesh"
     velero_backup_config = "velero-backup-config"

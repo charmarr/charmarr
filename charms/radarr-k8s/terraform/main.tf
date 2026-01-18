@@ -17,10 +17,12 @@ resource "juju_application" "radarr" {
 
   config = merge(
     {
-      log-level      = var.log_level
-      ingress-path   = var.ingress_path
-      trash-profiles = var.trash_profiles
-      is-4k          = var.is_4k
+      variant          = var.variant
+      trash-profiles   = var.trash_profiles
+      log-level        = var.log_level
+      ingress-path     = var.ingress_path
+      timezone         = var.timezone
+      api-key-rotation = var.api_key_rotation
     },
     var.config
   )

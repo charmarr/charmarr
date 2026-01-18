@@ -17,6 +17,7 @@ resource "juju_application" "sabnzbd" {
 
   config = merge(
     {
+      unsafe-mode         = tostring(var.unsafe_mode)
       log-level           = var.log_level
       ingress-path        = var.ingress_path
       timezone            = var.timezone

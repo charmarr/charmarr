@@ -33,6 +33,12 @@ variable "revision" {
   default     = null
 }
 
+variable "unsafe_mode" {
+  description = "Allow workload to run without VPN protection"
+  type        = bool
+  default     = false
+}
+
 variable "log_level" {
   description = "Application log level (trace, debug, info, warn, error)"
   type        = string
@@ -45,7 +51,7 @@ variable "log_level" {
 }
 
 variable "ingress_path" {
-  description = "URL path prefix for ingress routing (requests rewritten to / before forwarding)"
+  description = "URL path prefix for ingress routing"
   type        = string
   default     = "/sabnzbd"
 

@@ -34,12 +34,12 @@ variable "revision" {
 }
 
 variable "backend_type" {
-  description = "Storage backend type: 'storage-class' or 'native-nfs'"
+  description = "Storage backend type: 'storage-class', 'native-nfs', or 'hostpath'"
   type        = string
 
   validation {
-    condition     = contains(["storage-class", "native-nfs"], var.backend_type)
-    error_message = "backend_type must be 'storage-class' or 'native-nfs'"
+    condition     = contains(["storage-class", "native-nfs", "hostpath"], var.backend_type)
+    error_message = "backend_type must be 'storage-class', 'native-nfs', or 'hostpath'"
   }
 }
 
@@ -67,6 +67,12 @@ variable "nfs_path" {
   default     = ""
 }
 
+variable "hostpath" {
+  description = "Host filesystem path (required for backend_type=hostpath)"
+  type        = string
+  default     = ""
+}
+
 variable "access_mode" {
   description = "PVC access mode: 'ReadWriteMany' or 'ReadWriteOnce'"
   type        = string
@@ -88,4 +94,10 @@ variable "pgid" {
   description = "Group ID for file ownership"
   type        = number
   default     = 1000
+}
+
+variable "cleanup_on_remove" {
+  description = "Delete charm-managed K8s storage resources when the charm is removed"
+  type        = bool
+  default     = false
 }

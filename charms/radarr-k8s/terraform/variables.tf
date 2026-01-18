@@ -33,6 +33,23 @@ variable "revision" {
   default     = null
 }
 
+variable "variant" {
+  description = "Content variant: standard (default), 4k (UHD), or anime"
+  type        = string
+  default     = "standard"
+
+  validation {
+    condition     = contains(["standard", "4k", "anime"], var.variant)
+    error_message = "variant must be one of: standard, 4k, anime"
+  }
+}
+
+variable "trash_profiles" {
+  description = "Comma-separated list of Trash Guide profile templates to sync via Recyclarr (e.g., hd-bluray-web)"
+  type        = string
+  default     = ""
+}
+
 variable "log_level" {
   description = "Application log level (trace, debug, info, warn, error)"
   type        = string
@@ -45,7 +62,7 @@ variable "log_level" {
 }
 
 variable "ingress_path" {
-  description = "URL path prefix for ingress routing (requests rewritten to / before forwarding)"
+  description = "URL path prefix for ingress routing"
   type        = string
   default     = "/radarr"
 
@@ -55,14 +72,19 @@ variable "ingress_path" {
   }
 }
 
-variable "trash_profiles" {
-  description = "Comma-separated list of Trash Guide profile templates to sync via Recyclarr (e.g., hd-bluray-web)"
+variable "timezone" {
+  description = "IANA timezone (e.g., America/New_York, Europe/London)"
   type        = string
-  default     = ""
+  default     = "Etc/UTC"
 }
 
-variable "is_4k" {
-  description = "Whether this instance handles 4K content (sets root folder to movies-uhd)"
-  type        = bool
-  default     = false
+variable "api_key_rotation" {
+  description = "Auto-rotate API key schedule (disabled, daily, monthly, yearly)"
+  type        = string
+  default     = "disabled"
+
+  validation {
+    condition     = contains(["disabled", "daily", "monthly", "yearly"], var.api_key_rotation)
+    error_message = "api_key_rotation must be one of: disabled, daily, monthly, yearly"
+  }
 }

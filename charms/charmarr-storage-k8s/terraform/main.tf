@@ -17,14 +17,16 @@ resource "juju_application" "charmarr_storage" {
 
   config = merge(
     {
-      backend-type  = var.backend_type
-      storage-class = var.storage_class
-      size          = var.size
-      nfs-server    = var.nfs_server
-      nfs-path      = var.nfs_path
-      access-mode   = var.access_mode
-      puid          = tostring(var.puid)
-      pgid          = tostring(var.pgid)
+      backend-type      = var.backend_type
+      storage-class     = var.storage_class
+      size              = var.size
+      nfs-server        = var.nfs_server
+      nfs-path          = var.nfs_path
+      hostpath          = var.hostpath
+      access-mode       = var.access_mode
+      puid              = tostring(var.puid)
+      pgid              = tostring(var.pgid)
+      cleanup-on-remove = tostring(var.cleanup_on_remove)
     },
     var.config
   )

@@ -1,7 +1,7 @@
 variable "app_name" {
   description = "Name to give the deployed application"
   type        = string
-  default     = "overseerr"
+  default     = "flaresolverr"
 }
 
 variable "channel" {
@@ -34,12 +34,18 @@ variable "revision" {
 }
 
 variable "log_level" {
-  description = "Application log level (debug, info, warn, error)"
+  description = "Log level for FlareSolverr (debug, info, warning, error)"
   type        = string
   default     = "info"
 
   validation {
-    condition     = contains(["debug", "info", "warn", "error"], var.log_level)
-    error_message = "log_level must be one of: debug, info, warn, error"
+    condition     = contains(["debug", "info", "warning", "error"], var.log_level)
+    error_message = "log_level must be one of: debug, info, warning, error"
   }
+}
+
+variable "timeout" {
+  description = "Maximum timeout in milliseconds for browser navigation"
+  type        = number
+  default     = 60000
 }

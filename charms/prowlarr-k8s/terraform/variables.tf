@@ -45,12 +45,40 @@ variable "log_level" {
 }
 
 variable "ingress_path" {
-  description = "URL path prefix for ingress routing (requests rewritten to / before forwarding)"
+  description = "URL path prefix for ingress routing"
   type        = string
   default     = "/prowlarr"
 
   validation {
     condition     = length(var.ingress_path) > 0 && substr(var.ingress_path, 0, 1) == "/"
     error_message = "ingress_path must start with /"
+  }
+}
+
+variable "timezone" {
+  description = "IANA timezone (e.g., America/New_York, Europe/London)"
+  type        = string
+  default     = "Etc/UTC"
+}
+
+variable "sync_level" {
+  description = "Sync level for connected applications (full-sync, add-remove-only, disabled)"
+  type        = string
+  default     = "full-sync"
+
+  validation {
+    condition     = contains(["full-sync", "add-remove-only", "disabled"], var.sync_level)
+    error_message = "sync_level must be one of: full-sync, add-remove-only, disabled"
+  }
+}
+
+variable "api_key_rotation" {
+  description = "Auto-rotate API key schedule (disabled, daily, monthly, yearly)"
+  type        = string
+  default     = "disabled"
+
+  validation {
+    condition     = contains(["disabled", "daily", "monthly", "yearly"], var.api_key_rotation)
+    error_message = "api_key_rotation must be one of: disabled, daily, monthly, yearly"
   }
 }

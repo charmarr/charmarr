@@ -33,6 +33,12 @@ variable "revision" {
   default     = null
 }
 
+variable "unsafe_mode" {
+  description = "Allow workload to run without VPN protection"
+  type        = bool
+  default     = false
+}
+
 variable "log_level" {
   description = "Application log level (trace, debug, info, warn, error)"
   type        = string
@@ -45,12 +51,29 @@ variable "log_level" {
 }
 
 variable "ingress_path" {
-  description = "URL path prefix for ingress routing (requests rewritten to / before forwarding)"
+  description = "URL path prefix for ingress routing"
   type        = string
   default     = "/qbt"
 
   validation {
     condition     = length(var.ingress_path) > 0 && substr(var.ingress_path, 0, 1) == "/"
     error_message = "ingress_path must start with /"
+  }
+}
+
+variable "timezone" {
+  description = "IANA timezone (e.g., America/New_York, Europe/London)"
+  type        = string
+  default     = "Etc/UTC"
+}
+
+variable "credential_rotation" {
+  description = "Auto-rotate credentials schedule (disabled, daily, monthly, yearly)"
+  type        = string
+  default     = "disabled"
+
+  validation {
+    condition     = contains(["disabled", "daily", "monthly", "yearly"], var.credential_rotation)
+    error_message = "credential_rotation must be one of: disabled, daily, monthly, yearly"
   }
 }

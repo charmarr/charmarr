@@ -1,6 +1,6 @@
 output "app_name" {
   description = "Application name"
-  value       = juju_application.qbittorrent.name
+  value       = juju_application.flaresolverr.name
 }
 
 output "model" {
@@ -16,7 +16,7 @@ output "model_uuid" {
 output "provides" {
   description = "Map of provided endpoints for integration"
   value = {
-    download_client  = "download-client"
+    flaresolverr     = "flaresolverr"
     provide_cmr_mesh = "provide-cmr-mesh"
   }
 }
@@ -24,11 +24,7 @@ output "provides" {
 output "requires" {
   description = "Map of required endpoints for integration"
   value = {
-    require_cmr_mesh     = "require-cmr-mesh"
-    media_storage        = "media-storage"
-    vpn_gateway          = "vpn-gateway"
-    service_mesh         = "service-mesh"
-    velero_backup_config = "velero-backup-config"
-    istio_ingress_route  = "istio-ingress-route"
+    require_cmr_mesh = "require-cmr-mesh"
+    service_mesh     = "service-mesh"
   }
 }
