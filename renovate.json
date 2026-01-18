@@ -43,7 +43,7 @@
     {
       "description": "LinuxServer overseerr",
       "matchPackageNames": ["lscr.io/linuxserver/overseerr"],
-      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)-ls(?<revision>\\d+)$"
+      "versioning": "regex:^v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)-ls(?<revision>\\d+)$"
     },
     {
       "description": "Exclude multimeter from OCI updates",

@@ -9,6 +9,8 @@ from pathlib import Path
 import jubilant
 from pytest_jubilant import pack
 
+from charmarr_lib.testing import get_oci_resources
+
 logger = logging.getLogger(__name__)
 
 CHARM_DIR = Path(__file__).parent.parent.parent
@@ -40,6 +42,6 @@ def deploy_overseerr_charm(juju: jubilant.Juju, charm_path: Path) -> None:
         charm_path,
         app="overseerr",
         trust=True,
-        resources={"overseerr-image": "lscr.io/linuxserver/overseerr:latest"},
+        resources=get_oci_resources(CHARM_DIR),
     )
     juju.wait(_overseerr_waiting_for_setup, delay=5, timeout=60 * 10)
