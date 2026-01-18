@@ -136,7 +136,7 @@ jobs:
     name: Multimeter
     needs: detect
     if: needs.detect.outputs.multimeter == 'true'
-    uses: ./.github/workflows/multimeter-k8s-publish.yaml
+    uses: ./.github/workflows/_multimeter-k8s-publish.yaml
     with:
       dry-run: ${{ inputs.dry-run || false }}
     secrets: inherit
@@ -145,7 +145,7 @@ jobs:
     name: Storage
     needs: detect
     if: needs.detect.outputs.storage == 'true'
-    uses: ./.github/workflows/storage-k8s-publish.yaml
+    uses: ./.github/workflows/_storage-k8s-publish.yaml
     with:
       dry-run: ${{ inputs.dry-run || false }}
     secrets: inherit
@@ -154,7 +154,7 @@ jobs:
     name: Gluetun
     needs: detect
     if: needs.detect.outputs.gluetun == 'true'
-    uses: ./.github/workflows/gluetun-k8s-publish.yaml
+    uses: ./.github/workflows/_gluetun-k8s-publish.yaml
     with:
       dry-run: ${{ inputs.dry-run || false }}
     secrets: inherit
@@ -163,7 +163,7 @@ jobs:
     name: qBittorrent
     needs: detect
     if: needs.detect.outputs.qbittorrent == 'true'
-    uses: ./.github/workflows/qbittorrent-k8s-publish.yaml
+    uses: ./.github/workflows/_qbittorrent-k8s-publish.yaml
     with:
       dry-run: ${{ inputs.dry-run || false }}
     secrets: inherit
@@ -172,7 +172,7 @@ jobs:
     name: SABnzbd
     needs: detect
     if: needs.detect.outputs.sabnzbd == 'true'
-    uses: ./.github/workflows/sabnzbd-k8s-publish.yaml
+    uses: ./.github/workflows/_sabnzbd-k8s-publish.yaml
     with:
       dry-run: ${{ inputs.dry-run || false }}
     secrets: inherit
@@ -181,7 +181,7 @@ jobs:
     name: FlareSolverr
     needs: detect
     if: needs.detect.outputs.flaresolverr == 'true'
-    uses: ./.github/workflows/flaresolverr-k8s-publish.yaml
+    uses: ./.github/workflows/_flaresolverr-k8s-publish.yaml
     with:
       dry-run: ${{ inputs.dry-run || false }}
     secrets: inherit
@@ -190,7 +190,7 @@ jobs:
     name: Prowlarr
     needs: detect
     if: needs.detect.outputs.prowlarr == 'true'
-    uses: ./.github/workflows/prowlarr-k8s-publish.yaml
+    uses: ./.github/workflows/_prowlarr-k8s-publish.yaml
     with:
       dry-run: ${{ inputs.dry-run || false }}
     secrets: inherit
@@ -199,7 +199,7 @@ jobs:
     name: Radarr
     needs: detect
     if: needs.detect.outputs.radarr == 'true'
-    uses: ./.github/workflows/radarr-k8s-publish.yaml
+    uses: ./.github/workflows/_radarr-k8s-publish.yaml
     with:
       dry-run: ${{ inputs.dry-run || false }}
     secrets: inherit
@@ -208,7 +208,7 @@ jobs:
     name: Sonarr
     needs: detect
     if: needs.detect.outputs.sonarr == 'true'
-    uses: ./.github/workflows/sonarr-k8s-publish.yaml
+    uses: ./.github/workflows/_sonarr-k8s-publish.yaml
     with:
       dry-run: ${{ inputs.dry-run || false }}
     secrets: inherit
@@ -217,7 +217,7 @@ jobs:
     name: Plex
     needs: detect
     if: needs.detect.outputs.plex == 'true'
-    uses: ./.github/workflows/plex-k8s-publish.yaml
+    uses: ./.github/workflows/_plex-k8s-publish.yaml
     with:
       dry-run: ${{ inputs.dry-run || false }}
     secrets: inherit
@@ -226,7 +226,7 @@ jobs:
     name: Overseerr
     needs: detect
     if: needs.detect.outputs.overseerr == 'true'
-    uses: ./.github/workflows/overseerr-k8s-publish.yaml
+    uses: ./.github/workflows/_overseerr-k8s-publish.yaml
     with:
       dry-run: ${{ inputs.dry-run || false }}
     secrets: inherit
