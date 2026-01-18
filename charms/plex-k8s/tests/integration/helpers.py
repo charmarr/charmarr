@@ -31,4 +31,4 @@ def deploy_plex_charm(juju: jubilant.Juju, charm_path: Path) -> None:
     resources = get_oci_resources(CHARM_DIR)
     juju.deploy(charm_path, app="plex", trust=True, resources=resources)
     juju.integrate("plex:media-storage", "charmarr-storage:media-storage")
-    wait_for_app_status(juju, "plex", "blocked", message_contains="claim-token")
+    wait_for_app_status(juju, "plex", "waiting", message_contains="claim-token")

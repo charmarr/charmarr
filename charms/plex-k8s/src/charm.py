@@ -490,7 +490,7 @@ class PlexCharm(ops.CharmBase):
         elif self.config.get("claim-token"):
             event.add_status(ops.WaitingStatus("Claiming server"))
         else:
-            event.add_status(ops.BlockedStatus("Set claim-token config (plex.tv/claim)"))
+            event.add_status(ops.WaitingStatus("Set claim-token config (plex.tv/claim)"))
 
 
 if __name__ == "__main__":

@@ -33,7 +33,7 @@ def plex_unclaimed_status(juju: jubilant.Juju) -> None:
     plex_status = status.apps["plex"]
     unit = plex_status.units.get("plex/0")
     assert unit is not None, "plex/0 unit not found"
-    assert unit.workload_status.current == "blocked"
+    assert unit.workload_status.current == "waiting"
     assert "claim-token" in unit.workload_status.message.lower()
 
 
