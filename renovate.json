@@ -1,6 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
+  "baseBranches": ["main", "/^track/.*/"],
   "schedule": ["before 9am on monday"],
   "timezone": "UTC",
   "labels": ["dependencies"],
@@ -8,39 +9,6 @@
     "enabled": true,
     "schedule": ["before 9am on monday"]
   },
-  "packageRules": [
-    {
-      "description": "Group all Python dependencies",
-      "matchManagers": ["pep621", "uv"],
-      "groupName": "python dependencies"
-    },
-    {
-      "description": "Group GitHub Actions updates",
-      "matchManagers": ["github-actions"],
-      "groupName": "github actions"
-    },
-    {
-      "description": "Group Terraform provider updates",
-      "matchManagers": ["terraform"],
-      "groupName": "terraform providers"
-    },
-    {
-      "description": "Group OCI image updates per charm",
-      "matchManagers": ["regex"],
-      "matchFileNames": ["charms/*/charmcraft.yaml"],
-      "groupName": "charm oci images"
-    },
-    {
-      "description": "Automerge minor and patch updates",
-      "matchUpdateTypes": ["minor", "patch"],
-      "automerge": true
-    },
-    {
-      "description": "Do not automerge major updates",
-      "matchUpdateTypes": ["major"],
-      "automerge": false
-    }
-  ],
   "customManagers": [
     {
       "customType": "regex",
@@ -49,6 +17,80 @@
         "upstream-source:\\s*(?<depName>[^:]+):(?<currentValue>.+)"
       ],
       "datasourceTemplate": "docker"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "LinuxServer arr images (radarr/sonarr/prowlarr)",
+      "matchPackagePatterns": ["^lscr\\.io/linuxserver/(radarr|sonarr|prowlarr)$"],
+      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)\\.(?<build>\\d+)-ls(?<revision>\\d+)$"
+    },
+    {
+      "description": "LinuxServer plex (has commit hash in tag)",
+      "matchPackageNames": ["lscr.io/linuxserver/plex"],
+      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)\\.(?<build>\\d+)-[a-f0-9]+-ls(?<revision>\\d+)$"
+    },
+    {
+      "description": "LinuxServer qbittorrent (has -r# in tag)",
+      "matchPackageNames": ["lscr.io/linuxserver/qbittorrent"],
+      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)-r(?<build>\\d+)-ls(?<revision>\\d+)$"
+    },
+    {
+      "description": "LinuxServer sabnzbd",
+      "matchPackageNames": ["lscr.io/linuxserver/sabnzbd"],
+      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)-ls(?<revision>\\d+)$"
+    },
+    {
+      "description": "LinuxServer overseerr",
+      "matchPackageNames": ["lscr.io/linuxserver/overseerr"],
+      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)-ls(?<revision>\\d+)$"
+    },
+    {
+      "description": "Exclude multimeter from OCI updates",
+      "matchFileNames": ["charms/charmarr-multimeter-k8s/**"],
+      "matchManagers": ["regex"],
+      "enabled": false
+    },
+    {
+      "description": "Group Python dependencies",
+      "matchManagers": ["pep621", "uv"],
+      "groupName": "python dependencies"
+    },
+    {
+      "description": "Group GitHub Actions",
+      "matchManagers": ["github-actions"],
+      "groupName": "github actions"
+    },
+    {
+      "description": "Group Terraform providers",
+      "matchManagers": ["terraform"],
+      "groupName": "terraform providers"
+    },
+    {
+      "description": "main: automerge minor/patch",
+      "matchBaseBranches": ["main"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
+    },
+    {
+      "description": "main: no automerge for major",
+      "matchBaseBranches": ["main"],
+      "matchUpdateTypes": ["major"],
+      "automerge": false
+    },
+    {
+      "description": "track/*: block major OCI updates",
+      "matchBaseBranches": ["/^track/.*/"],
+      "matchManagers": ["regex"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "track/*: no automerge",
+      "matchBaseBranches": ["/^track/.*/"],
+      "automerge": false
     }
   ]
 }

@@ -1,4 +1,4 @@
-name: "Storage K8s: Publish Edge"
+name: "Storage K8s: Publish"
 
 on:
   workflow_call:
@@ -15,10 +15,10 @@ jobs:
 
   publish:
     needs: quality
-    uses: charmarr/.github/.github/workflows/charm-publish-edge.yaml@v1
+    uses: charmarr/.github/.github/workflows/charm-publish.yaml@v1
     with:
       charm-path: charms/charmarr-storage-k8s
-      track: latest
+      channel: latest/edge
       dry-run: ${{ inputs.dry-run || false }}
       substrate-channel: 1.32/stable
       load-nfs-modules: true

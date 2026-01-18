@@ -1,4 +1,4 @@
-name: "Prowlarr K8s: Publish Edge"
+name: "Multimeter K8s: Publish"
 
 on:
   workflow_call:
@@ -11,15 +11,17 @@ jobs:
   quality:
     uses: charmarr/.github/.github/workflows/charm-ci.yaml@v1
     with:
-      charm-path: charms/prowlarr-k8s
+      charm-path: charms/charmarr-multimeter-k8s
+      run-terraform-validate: false
 
   publish:
     needs: quality
-    uses: charmarr/.github/.github/workflows/charm-publish-edge.yaml@v1
+    uses: charmarr/.github/.github/workflows/charm-publish.yaml@v1
     with:
-      charm-path: charms/prowlarr-k8s
-      track: latest
+      charm-path: charms/charmarr-multimeter-k8s
+      channel: latest/edge
+      run-integration: false
+      tag-terraform: false
       dry-run: ${{ inputs.dry-run || false }}
     secrets:
       CHARMHUB_TOKEN: ${{ secrets.CHARMHUB_TOKEN }}
-      WIREGUARD_PRIVATE_KEY: ${{ secrets.WIREGUARD_PRIVATE_KEY }}

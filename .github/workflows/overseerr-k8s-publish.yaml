@@ -1,4 +1,4 @@
-name: "Radarr K8s: Publish Edge"
+name: "Overseerr K8s: Publish"
 
 on:
   workflow_call:
@@ -11,14 +11,14 @@ jobs:
   quality:
     uses: charmarr/.github/.github/workflows/charm-ci.yaml@v1
     with:
-      charm-path: charms/radarr-k8s
+      charm-path: charms/overseerr-k8s
 
   publish:
     needs: quality
-    uses: charmarr/.github/.github/workflows/charm-publish-edge.yaml@v1
+    uses: charmarr/.github/.github/workflows/charm-publish.yaml@v1
     with:
-      charm-path: charms/radarr-k8s
-      track: latest
+      charm-path: charms/overseerr-k8s
+      channel: latest/edge
       dry-run: ${{ inputs.dry-run || false }}
     secrets:
       CHARMHUB_TOKEN: ${{ secrets.CHARMHUB_TOKEN }}
