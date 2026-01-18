@@ -3,7 +3,7 @@
 # -----------------------------------------------------------------------------
 
 resource "juju_integration" "storage_qbittorrent" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.storage.app_name
@@ -17,7 +17,7 @@ resource "juju_integration" "storage_qbittorrent" {
 }
 
 resource "juju_integration" "storage_sabnzbd" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.storage.app_name
@@ -31,7 +31,7 @@ resource "juju_integration" "storage_sabnzbd" {
 }
 
 resource "juju_integration" "storage_radarr_hd" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.storage.app_name
@@ -45,7 +45,7 @@ resource "juju_integration" "storage_radarr_hd" {
 }
 
 resource "juju_integration" "storage_radarr_uhd" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.storage.app_name
@@ -59,7 +59,7 @@ resource "juju_integration" "storage_radarr_uhd" {
 }
 
 resource "juju_integration" "storage_radarr_anime" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.storage.app_name
@@ -73,7 +73,7 @@ resource "juju_integration" "storage_radarr_anime" {
 }
 
 resource "juju_integration" "storage_sonarr_hd" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.storage.app_name
@@ -87,7 +87,7 @@ resource "juju_integration" "storage_sonarr_hd" {
 }
 
 resource "juju_integration" "storage_sonarr_uhd" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.storage.app_name
@@ -101,7 +101,7 @@ resource "juju_integration" "storage_sonarr_uhd" {
 }
 
 resource "juju_integration" "storage_sonarr_anime" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.storage.app_name
@@ -115,7 +115,7 @@ resource "juju_integration" "storage_sonarr_anime" {
 }
 
 resource "juju_integration" "storage_plex" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.storage.app_name
@@ -133,7 +133,7 @@ resource "juju_integration" "storage_plex" {
 # -----------------------------------------------------------------------------
 
 resource "juju_integration" "gluetun_qbittorrent" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.gluetun.app_name
@@ -147,7 +147,7 @@ resource "juju_integration" "gluetun_qbittorrent" {
 }
 
 resource "juju_integration" "gluetun_sabnzbd" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.gluetun.app_name
@@ -161,7 +161,7 @@ resource "juju_integration" "gluetun_sabnzbd" {
 }
 
 resource "juju_integration" "gluetun_prowlarr" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.gluetun.app_name
@@ -179,7 +179,7 @@ resource "juju_integration" "gluetun_prowlarr" {
 # -----------------------------------------------------------------------------
 
 resource "juju_integration" "prowlarr_radarr_hd" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.prowlarr.app_name
@@ -193,7 +193,7 @@ resource "juju_integration" "prowlarr_radarr_hd" {
 }
 
 resource "juju_integration" "prowlarr_radarr_uhd" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.prowlarr.app_name
@@ -207,7 +207,7 @@ resource "juju_integration" "prowlarr_radarr_uhd" {
 }
 
 resource "juju_integration" "prowlarr_radarr_anime" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.prowlarr.app_name
@@ -221,7 +221,7 @@ resource "juju_integration" "prowlarr_radarr_anime" {
 }
 
 resource "juju_integration" "prowlarr_sonarr_hd" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.prowlarr.app_name
@@ -235,7 +235,7 @@ resource "juju_integration" "prowlarr_sonarr_hd" {
 }
 
 resource "juju_integration" "prowlarr_sonarr_uhd" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.prowlarr.app_name
@@ -249,7 +249,7 @@ resource "juju_integration" "prowlarr_sonarr_uhd" {
 }
 
 resource "juju_integration" "prowlarr_sonarr_anime" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.prowlarr.app_name
@@ -263,7 +263,7 @@ resource "juju_integration" "prowlarr_sonarr_anime" {
 }
 
 resource "juju_integration" "flaresolverr_prowlarr" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.flaresolverr.app_name
@@ -281,7 +281,7 @@ resource "juju_integration" "flaresolverr_prowlarr" {
 # -----------------------------------------------------------------------------
 
 resource "juju_integration" "radarr_hd_overseerr" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.radarr_hd.app_name
@@ -295,7 +295,7 @@ resource "juju_integration" "radarr_hd_overseerr" {
 }
 
 resource "juju_integration" "radarr_uhd_overseerr" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.radarr_uhd.app_name
@@ -309,7 +309,7 @@ resource "juju_integration" "radarr_uhd_overseerr" {
 }
 
 resource "juju_integration" "radarr_anime_overseerr" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.radarr_anime.app_name
@@ -323,7 +323,7 @@ resource "juju_integration" "radarr_anime_overseerr" {
 }
 
 resource "juju_integration" "radarr_hd_plex" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.radarr_hd.app_name
@@ -337,7 +337,7 @@ resource "juju_integration" "radarr_hd_plex" {
 }
 
 resource "juju_integration" "radarr_uhd_plex" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.radarr_uhd.app_name
@@ -351,7 +351,7 @@ resource "juju_integration" "radarr_uhd_plex" {
 }
 
 resource "juju_integration" "radarr_anime_plex" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.radarr_anime.app_name
@@ -365,7 +365,7 @@ resource "juju_integration" "radarr_anime_plex" {
 }
 
 resource "juju_integration" "sonarr_hd_overseerr" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.sonarr_hd.app_name
@@ -379,7 +379,7 @@ resource "juju_integration" "sonarr_hd_overseerr" {
 }
 
 resource "juju_integration" "sonarr_uhd_overseerr" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.sonarr_uhd.app_name
@@ -393,7 +393,7 @@ resource "juju_integration" "sonarr_uhd_overseerr" {
 }
 
 resource "juju_integration" "sonarr_anime_overseerr" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.sonarr_anime.app_name
@@ -407,7 +407,7 @@ resource "juju_integration" "sonarr_anime_overseerr" {
 }
 
 resource "juju_integration" "sonarr_hd_plex" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.sonarr_hd.app_name
@@ -421,7 +421,7 @@ resource "juju_integration" "sonarr_hd_plex" {
 }
 
 resource "juju_integration" "sonarr_uhd_plex" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.sonarr_uhd.app_name
@@ -435,7 +435,7 @@ resource "juju_integration" "sonarr_uhd_plex" {
 }
 
 resource "juju_integration" "sonarr_anime_plex" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.sonarr_anime.app_name
@@ -453,7 +453,7 @@ resource "juju_integration" "sonarr_anime_plex" {
 # -----------------------------------------------------------------------------
 
 resource "juju_integration" "plex_overseerr" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.plex.app_name
@@ -471,7 +471,7 @@ resource "juju_integration" "plex_overseerr" {
 # -----------------------------------------------------------------------------
 
 resource "juju_integration" "beacon_qbittorrent" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.beacon.app_name
@@ -485,7 +485,7 @@ resource "juju_integration" "beacon_qbittorrent" {
 }
 
 resource "juju_integration" "beacon_sabnzbd" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.beacon.app_name
@@ -499,7 +499,7 @@ resource "juju_integration" "beacon_sabnzbd" {
 }
 
 resource "juju_integration" "beacon_prowlarr" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.beacon.app_name
@@ -513,7 +513,7 @@ resource "juju_integration" "beacon_prowlarr" {
 }
 
 resource "juju_integration" "beacon_radarr_hd" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.beacon.app_name
@@ -527,7 +527,7 @@ resource "juju_integration" "beacon_radarr_hd" {
 }
 
 resource "juju_integration" "beacon_radarr_uhd" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.beacon.app_name
@@ -541,7 +541,7 @@ resource "juju_integration" "beacon_radarr_uhd" {
 }
 
 resource "juju_integration" "beacon_radarr_anime" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.beacon.app_name
@@ -555,7 +555,7 @@ resource "juju_integration" "beacon_radarr_anime" {
 }
 
 resource "juju_integration" "beacon_sonarr_hd" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.beacon.app_name
@@ -569,7 +569,7 @@ resource "juju_integration" "beacon_sonarr_hd" {
 }
 
 resource "juju_integration" "beacon_sonarr_uhd" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.beacon.app_name
@@ -583,7 +583,7 @@ resource "juju_integration" "beacon_sonarr_uhd" {
 }
 
 resource "juju_integration" "beacon_sonarr_anime" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.beacon.app_name
@@ -597,7 +597,7 @@ resource "juju_integration" "beacon_sonarr_anime" {
 }
 
 resource "juju_integration" "beacon_plex" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.beacon.app_name
@@ -611,7 +611,7 @@ resource "juju_integration" "beacon_plex" {
 }
 
 resource "juju_integration" "beacon_overseerr" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.beacon.app_name
@@ -629,7 +629,7 @@ resource "juju_integration" "beacon_overseerr" {
 # -----------------------------------------------------------------------------
 
 resource "juju_integration" "arr_ingress_radarr_hd" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.arr_ingress.app_name
@@ -643,7 +643,7 @@ resource "juju_integration" "arr_ingress_radarr_hd" {
 }
 
 resource "juju_integration" "arr_ingress_radarr_uhd" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.arr_ingress.app_name
@@ -657,7 +657,7 @@ resource "juju_integration" "arr_ingress_radarr_uhd" {
 }
 
 resource "juju_integration" "arr_ingress_radarr_anime" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.arr_ingress.app_name
@@ -671,7 +671,7 @@ resource "juju_integration" "arr_ingress_radarr_anime" {
 }
 
 resource "juju_integration" "arr_ingress_sonarr_hd" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.arr_ingress.app_name
@@ -685,7 +685,7 @@ resource "juju_integration" "arr_ingress_sonarr_hd" {
 }
 
 resource "juju_integration" "arr_ingress_sonarr_uhd" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.arr_ingress.app_name
@@ -699,7 +699,7 @@ resource "juju_integration" "arr_ingress_sonarr_uhd" {
 }
 
 resource "juju_integration" "arr_ingress_sonarr_anime" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.arr_ingress.app_name
@@ -713,7 +713,7 @@ resource "juju_integration" "arr_ingress_sonarr_anime" {
 }
 
 resource "juju_integration" "arr_ingress_prowlarr" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.arr_ingress.app_name
@@ -727,7 +727,7 @@ resource "juju_integration" "arr_ingress_prowlarr" {
 }
 
 resource "juju_integration" "arr_ingress_qbittorrent" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.arr_ingress.app_name
@@ -741,7 +741,7 @@ resource "juju_integration" "arr_ingress_qbittorrent" {
 }
 
 resource "juju_integration" "arr_ingress_sabnzbd" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.arr_ingress.app_name
@@ -755,7 +755,7 @@ resource "juju_integration" "arr_ingress_sabnzbd" {
 }
 
 resource "juju_integration" "plex_ingress_plex" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.plex_ingress.app_name
@@ -769,7 +769,7 @@ resource "juju_integration" "plex_ingress_plex" {
 }
 
 resource "juju_integration" "overseerr_ingress_overseerr" {
-  model = var.model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name     = module.overseerr_ingress.app_name
