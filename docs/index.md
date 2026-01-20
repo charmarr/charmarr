@@ -1,3 +1,158 @@
-# Charmarr
+# Your self-hosted media stack, on autopilot.
 
-Kubernetes-native media automation with Juju charms.
+Arr and friends automatically configured, connected, secured with one command to rule them all.
+
+## Reddit says K8s is just a time sink
+
+Sure, Kubernetes has self-healing, scaling, and infrastructure-as-code. But it also wants you to solve VPN routing that doesn't leak, shared storage with hardlinks, and cross-app configuration that survives pod restarts. Who has time to do all that for a self-hosted home media server?
+
+## Charmarr says hold my beer
+
+Charmarr is an open-source collection of [Juju charms](https://juju.is) wrapping your favorite *arr apps. It deploys and manages your media stack on Kubernetes while handling the hard parts: VPN routing, storage reconciliation, credential rotation, service discovery, cross-app configuration. And throws in bleeding edge network security for free. All of this within few minutes that you wont be able to even prepare popcorn before it's done.
+
+Really. The deployment looks like this:
+
+1. Write a 20-line config
+
+    ```hcl
+    variable "wireguard_private_key" {
+      description = "WireGuard private key from your VPN provider"
+      type        = string
+      sensitive   = true
+    }
+
+    module "charmarr" {
+      source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
+
+      model                 = "charmarr"
+      wireguard_private_key = var.wireguard_private_key
+      vpn_provider          = "protonvpn"
+      cluster_cidrs         = "10.1.0.0/16,10.152.183.0/24,192.168.0.0/24"
+      storage_backend       = "hostpath"
+      hostpath              = "/my/gazillion/tb/storage"
+      storage_size          = "10000000000000Ti"
+    }
+    ```
+
+2. And just run a one-liner:
+
+    ```bash
+    tofu init && TF_VAR_wireguard_private_key="key" tofu apply -auto-approve
+    ```
+
+And you're done. Charmarr begins wiring up the apps for you.
+
+Charmarr in action (it's working completely autonomously, watch the magic happen):
+
+<div id="demo"></div>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/asciinema-player@3.10.0/dist/bundle/asciinema-player.min.css">
+<script src="https://cdn.jsdelivr.net/npm/asciinema-player@3.10.0/dist/bundle/asciinema-player.min.js"></script>
+<script>AsciinemaPlayer.create('assets/demo.cast', document.getElementById('demo'), {speed: 3, theme: 'dracula', autoPlay: true, loop: true, fit: 'width'});</script>
+
+What it wired up for you:
+
+```mermaid
+flowchart LR
+    subgraph request["Requests"]
+        overseerr[Overseerr]
+    end
+
+    subgraph indexing["Indexing"]
+        flaresolverr[FlareSolverr]
+        prowlarr[Prowlarr]
+        recyclarr[Recyclarr]
+    end
+
+    subgraph management["Media Management"]
+        radarr[Radarr]
+        sonarr[Sonarr]
+    end
+
+    subgraph download["Downloads"]
+        subgraph vpn["VPN Tunnel"]
+            gluetun{{Gluetun}}
+            qbittorrent[qBittorrent]
+            sabnzbd[SABnzbd]
+        end
+    end
+
+    subgraph media["Media"]
+        storage[(Storage)]
+        plex[Plex]
+    end
+
+    overseerr --> radarr & sonarr
+    flaresolverr --> prowlarr
+    prowlarr --> radarr & sonarr
+    recyclarr -.-> radarr & sonarr
+    radarr & sonarr --> qbittorrent & sabnzbd
+    gluetun --- qbittorrent & sabnzbd
+    qbittorrent & sabnzbd --> storage
+    radarr & sonarr --> storage
+    plex --> storage
+```
+
+## Life after
+
+<div class="grid cards" markdown>
+
+-   :material-key-remove: **No more copy-paste API keys**
+
+    ---
+
+    Apps find and configure themselves through [relations](https://documentation.ubuntu.com/juju/3.6/reference/relation/).
+
+-   :material-star-shooting: **Trash Guides, built-in**
+
+    ---
+
+    Built in clean trash guide profiles.
+
+-   :material-incognito: **Privacy first setup**
+
+    ---
+
+    Public traffic stays anonymized.
+
+-   :material-shield-lock: **Zero-trust by default**
+
+    ---
+
+    Istio Ambient authz firewalls with mTLS between every service.
+
+-   :material-heart-pulse: **It fixes itself**
+
+    ---
+
+    Pod dies? Config drift? Charmarr heals. You chill.
+
+-   :material-key-change: **Keys rotate themselves**
+
+    ---
+
+    API keys refresh automatically. No calendar reminders.
+
+</div>
+
+<div class="powered-by">
+<div class="powered-by-label">Powered by</div>
+<div class="powered-by-row">
+  <a href="https://prowlarr.com"><img src="assets/logos/prowlarr.png" alt="Prowlarr"></a>
+  <a href="https://radarr.video"><img src="assets/logos/radarr.png" alt="Radarr"></a>
+  <a href="https://sonarr.tv"><img src="assets/logos/sonarr.png" alt="Sonarr"></a>
+  <a href="https://www.qbittorrent.org"><img src="assets/logos/qbittorrent.png" alt="qBittorrent"></a>
+  <a href="https://sabnzbd.org"><img src="assets/logos/sabnzbd.png" alt="SABnzbd"></a>
+  <a href="https://www.plex.tv"><img src="assets/logos/plex.png" alt="Plex"></a>
+  <a href="https://overseerr.dev"><img src="assets/logos/overseerr.png" alt="Overseerr"></a>
+  <a href="https://github.com/FlareSolverr/FlareSolverr"><img src="assets/logos/flaresolverr.png" alt="FlareSolverr"></a>
+  <a href="https://recyclarr.dev"><img src="assets/logos/recyclarr.png" alt="Recyclarr"></a>
+</div>
+<div class="powered-by-row">
+  <a href="https://github.com/qdm12/gluetun"><img src="assets/logos/gluetun.png" alt="Gluetun"></a>
+  <a href="https://www.linuxserver.io"><img src="assets/logos/linuxserver-io.png" alt="LinuxServer.io"></a>
+  <a href="https://kubernetes.io"><img src="assets/logos/kubernetes.png" alt="Kubernetes"></a>
+  <a href="https://juju.is"><img src="assets/logos/juju.png" alt="Juju"></a>
+  <a href="https://istio.io"><img src="assets/logos/istio.png" alt="Istio"></a>
+  <a href="https://opentofu.org"><img src="assets/logos/opentofu.png" alt="OpenTofu"></a>
+</div>
+</div>

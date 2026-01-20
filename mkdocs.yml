@@ -6,8 +6,8 @@ repo_name: charmarr/charmarr
 
 theme:
   name: material
-  logo: assets/charmarr.png
-  favicon: assets/charmarr.png
+  logo: assets/logos/charmarr.png
+  favicon: assets/logos/charmarr.png
   palette:
     scheme: slate
     primary: black
@@ -24,6 +24,9 @@ theme:
     - content.tabs.link
 
 markdown_extensions:
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
@@ -47,6 +50,7 @@ plugins:
   - search
 
 extra:
+  generator: false
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/charmarr
@@ -85,3 +89,5 @@ nav:
       - releases/index.md
       - Upgrading: releases/upgrading.md
       - Track 1: releases/track-1.md
+
+copyright: Copyright &copy; 2025 | AGPL-3.0 License
