@@ -51,19 +51,20 @@ resource "null_resource" "gluetun_secret_config" {
 module "storage" {
   source = "git::https://github.com/charmarr/charmarr//charms/charmarr-storage-k8s/terraform?ref=main"
 
-  model         = var.model
-  owner         = var.owner
-  app_name      = "storage"
-  channel       = var.channel
-  constraints   = var.storage.constraints
-  revision      = var.storage.revision
-  config        = var.storage.config
-  backend_type  = var.storage_backend
-  storage_class = var.storage_class
-  nfs_server    = var.nfs_server
-  nfs_path      = var.nfs_path
-  hostpath      = var.hostpath
-  size          = var.storage_size
+  model             = var.model
+  owner             = var.owner
+  app_name          = "storage"
+  channel           = var.channel
+  constraints       = var.storage.constraints
+  revision          = var.storage.revision
+  config            = var.storage.config
+  backend_type      = var.storage_backend
+  storage_class     = var.storage_class
+  nfs_server        = var.nfs_server
+  nfs_path          = var.nfs_path
+  hostpath          = var.hostpath
+  size              = var.storage_size
+  cleanup_on_remove = true
 }
 
 module "gluetun" {
