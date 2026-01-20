@@ -50,13 +50,8 @@
   opacity: 1;
 }
 
-/* Card icon colors */
-.grid.cards li:nth-child(1) svg { color: #ff5722; }  /* deep orange */
-.grid.cards li:nth-child(2) svg { color: #ffc107; }  /* amber */
-.grid.cards li:nth-child(3) svg { color: #8bc34a; }  /* light green */
-.grid.cards li:nth-child(4) svg { color: #03a9f4; }  /* light blue */
-.grid.cards li:nth-child(5) svg { color: #e91e63; }  /* pink */
-.grid.cards li:nth-child(6) svg { color: #9c27b0; }  /* purple */
+/* Card icon colors - deep orange for all */
+.grid.cards li svg { color: #ff5722; }
 
 .cta-center {
   text-align: center;
@@ -72,4 +67,71 @@
 .cta-center .md-button--primary:hover {
   background-color: #ff5722;
   border-color: #ff5722;
+}
+
+/* Step cards for sequential flows */
+.step-card {
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.5rem;
+  background: var(--md-code-bg-color);
+  margin-bottom: 1.5rem;
+}
+
+.step-card h3 {
+  margin: 0 0 0.5rem 0 !important;
+  font-size: 0.75rem !important;
+}
+
+.step-card p {
+  margin: 0 0 0.5rem 0;
+  color: var(--md-default-fg-color--light);
+}
+
+.step-card a {
+  font-size: 0.6rem;
+}
+
+.step-card h3 svg {
+  color: var(--md-default-fg-color--light);
+}
+
+/* Force all tables to full width with even columns */
+.md-typeset__scrollwrap {
+  margin: 0 !important;
+}
+
+.md-typeset__table {
+  width: 100% !important;
+  display: block !important;
+}
+
+.md-typeset table:not([class]) {
+  width: 100% !important;
+  table-layout: fixed !important;
+  display: table !important;
+}
+
+.md-typeset table:not([class]) th,
+.md-typeset table:not([class]) td {
+  width: 33.33% !important;
+}
+
+.md-typeset table:not([class]) th {
+  color: #ff5722 !important;
+}
+
+/* Force nested grid cards horizontal */
+.step-card .grid.cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.step-card .grid.cards > ul {
+  display: contents;
+}
+
+.step-card .grid.cards li {
+  margin: 0;
 }
