@@ -57,3 +57,19 @@
 .grid.cards li:nth-child(4) svg { color: #03a9f4; }  /* light blue */
 .grid.cards li:nth-child(5) svg { color: #e91e63; }  /* pink */
 .grid.cards li:nth-child(6) svg { color: #9c27b0; }  /* purple */
+
+.cta-center {
+  text-align: center;
+  margin: 2.5rem 0;
+}
+
+.cta-center .md-button--primary {
+  background-color: rgba(255, 87, 34, 0.7);
+  border-color: rgba(255, 87, 34, 0.7);
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.cta-center .md-button--primary:hover {
+  background-color: #ff5722;
+  border-color: #ff5722;
+}

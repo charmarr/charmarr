@@ -54,6 +54,10 @@ extra:
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/charmarr
+    - icon: fontawesome/brands/github-alt
+      link: https://github.com/adhityaravi
+    - icon: fontawesome/brands/discord
+      link: https://discord.com/users/690270213370806313
   version:
     provider: mike
 
