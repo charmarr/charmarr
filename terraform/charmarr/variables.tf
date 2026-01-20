@@ -21,6 +21,12 @@ variable "istio_channel" {
   default     = "2/edge"
 }
 
+variable "mesh" {
+  description = "Enable service mesh hardening"
+  type        = bool
+  default     = true
+}
+
 # -----------------------------------------------------------------------------
 # VPN Configuration (Required)
 # -----------------------------------------------------------------------------
@@ -192,89 +198,29 @@ variable "flaresolverr" {
   default = {}
 }
 
-# -----------------------------------------------------------------------------
-# Radarr Variants (HD, UHD, Anime)
-# -----------------------------------------------------------------------------
-
-variable "radarr_hd" {
-  description = "Override configuration for radarr-hd charm"
+variable "radarr" {
+  description = "Override configuration for radarr charm"
   type = object({
     constraints    = optional(string, "arch=amd64")
     revision       = optional(number, null)
     config         = optional(map(string), {})
-    ingress_path   = optional(string, "/radarr-hd")
-    trash_profiles = optional(string, "hd-bluray-web")
-  })
-  default = {}
-}
-
-variable "radarr_uhd" {
-  description = "Override configuration for radarr-uhd charm"
-  type = object({
-    constraints    = optional(string, "arch=amd64")
-    revision       = optional(number, null)
-    config         = optional(map(string), {})
-    ingress_path   = optional(string, "/radarr-uhd")
+    ingress_path   = optional(string, "/radarr")
     trash_profiles = optional(string, "")
   })
   default = {}
 }
 
-variable "radarr_anime" {
-  description = "Override configuration for radarr-anime charm"
+variable "sonarr" {
+  description = "Override configuration for sonarr charm"
   type = object({
     constraints    = optional(string, "arch=amd64")
     revision       = optional(number, null)
     config         = optional(map(string), {})
-    ingress_path   = optional(string, "/radarr-anime")
+    ingress_path   = optional(string, "/sonarr")
     trash_profiles = optional(string, "")
   })
   default = {}
 }
-
-# -----------------------------------------------------------------------------
-# Sonarr Variants (HD, UHD, Anime)
-# -----------------------------------------------------------------------------
-
-variable "sonarr_hd" {
-  description = "Override configuration for sonarr-hd charm"
-  type = object({
-    constraints    = optional(string, "arch=amd64")
-    revision       = optional(number, null)
-    config         = optional(map(string), {})
-    ingress_path   = optional(string, "/sonarr-hd")
-    trash_profiles = optional(string, "web-1080p")
-  })
-  default = {}
-}
-
-variable "sonarr_uhd" {
-  description = "Override configuration for sonarr-uhd charm"
-  type = object({
-    constraints    = optional(string, "arch=amd64")
-    revision       = optional(number, null)
-    config         = optional(map(string), {})
-    ingress_path   = optional(string, "/sonarr-uhd")
-    trash_profiles = optional(string, "")
-  })
-  default = {}
-}
-
-variable "sonarr_anime" {
-  description = "Override configuration for sonarr-anime charm"
-  type = object({
-    constraints    = optional(string, "arch=amd64")
-    revision       = optional(number, null)
-    config         = optional(map(string), {})
-    ingress_path   = optional(string, "/sonarr-anime")
-    trash_profiles = optional(string, "")
-  })
-  default = {}
-}
-
-# -----------------------------------------------------------------------------
-# Media Server & Request Management
-# -----------------------------------------------------------------------------
 
 variable "plex" {
   description = "Override configuration for plex charm"

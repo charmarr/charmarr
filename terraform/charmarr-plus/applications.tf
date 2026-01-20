@@ -141,33 +141,113 @@ module "flaresolverr" {
   config      = var.flaresolverr.config
 }
 
-module "radarr" {
+# -----------------------------------------------------------------------------
+# Radarr Variants
+# -----------------------------------------------------------------------------
+
+module "radarr_hd" {
   source = "git::https://github.com/charmarr/charmarr//charms/radarr-k8s/terraform?ref=main"
 
   model            = var.model
   owner            = var.owner
-  app_name         = "radarr"
+  app_name         = "radarr-hd"
   channel          = var.channel
-  constraints      = var.radarr.constraints
-  revision         = var.radarr.revision
-  config           = var.radarr.config
-  ingress_path     = var.radarr.ingress_path
+  constraints      = var.radarr_hd.constraints
+  revision         = var.radarr_hd.revision
+  config           = var.radarr_hd.config
+  variant          = "standard"
+  ingress_path     = var.radarr_hd.ingress_path
+  trash_profiles   = var.radarr_hd.trash_profiles
   api_key_rotation = "monthly"
 }
 
-module "sonarr" {
+module "radarr_uhd" {
+  source = "git::https://github.com/charmarr/charmarr//charms/radarr-k8s/terraform?ref=main"
+
+  model            = var.model
+  owner            = var.owner
+  app_name         = "radarr-uhd"
+  channel          = var.channel
+  constraints      = var.radarr_uhd.constraints
+  revision         = var.radarr_uhd.revision
+  config           = var.radarr_uhd.config
+  variant          = "4k"
+  ingress_path     = var.radarr_uhd.ingress_path
+  trash_profiles   = var.radarr_uhd.trash_profiles
+  api_key_rotation = "monthly"
+}
+
+module "radarr_anime" {
+  source = "git::https://github.com/charmarr/charmarr//charms/radarr-k8s/terraform?ref=main"
+
+  model            = var.model
+  owner            = var.owner
+  app_name         = "radarr-anime"
+  channel          = var.channel
+  constraints      = var.radarr_anime.constraints
+  revision         = var.radarr_anime.revision
+  config           = var.radarr_anime.config
+  variant          = "anime"
+  ingress_path     = var.radarr_anime.ingress_path
+  trash_profiles   = var.radarr_anime.trash_profiles
+  api_key_rotation = "monthly"
+}
+
+# -----------------------------------------------------------------------------
+# Sonarr Variants
+# -----------------------------------------------------------------------------
+
+module "sonarr_hd" {
   source = "git::https://github.com/charmarr/charmarr//charms/sonarr-k8s/terraform?ref=main"
 
   model            = var.model
   owner            = var.owner
-  app_name         = "sonarr"
+  app_name         = "sonarr-hd"
   channel          = var.channel
-  constraints      = var.sonarr.constraints
-  revision         = var.sonarr.revision
-  config           = var.sonarr.config
-  ingress_path     = var.sonarr.ingress_path
+  constraints      = var.sonarr_hd.constraints
+  revision         = var.sonarr_hd.revision
+  config           = var.sonarr_hd.config
+  variant          = "standard"
+  ingress_path     = var.sonarr_hd.ingress_path
+  trash_profiles   = var.sonarr_hd.trash_profiles
   api_key_rotation = "monthly"
 }
+
+module "sonarr_uhd" {
+  source = "git::https://github.com/charmarr/charmarr//charms/sonarr-k8s/terraform?ref=main"
+
+  model            = var.model
+  owner            = var.owner
+  app_name         = "sonarr-uhd"
+  channel          = var.channel
+  constraints      = var.sonarr_uhd.constraints
+  revision         = var.sonarr_uhd.revision
+  config           = var.sonarr_uhd.config
+  variant          = "4k"
+  ingress_path     = var.sonarr_uhd.ingress_path
+  trash_profiles   = var.sonarr_uhd.trash_profiles
+  api_key_rotation = "monthly"
+}
+
+module "sonarr_anime" {
+  source = "git::https://github.com/charmarr/charmarr//charms/sonarr-k8s/terraform?ref=main"
+
+  model            = var.model
+  owner            = var.owner
+  app_name         = "sonarr-anime"
+  channel          = var.channel
+  constraints      = var.sonarr_anime.constraints
+  revision         = var.sonarr_anime.revision
+  config           = var.sonarr_anime.config
+  variant          = "anime"
+  ingress_path     = var.sonarr_anime.ingress_path
+  trash_profiles   = var.sonarr_anime.trash_profiles
+  api_key_rotation = "monthly"
+}
+
+# -----------------------------------------------------------------------------
+# Media Server & Request Management
+# -----------------------------------------------------------------------------
 
 module "plex" {
   source = "git::https://github.com/charmarr/charmarr//charms/plex-k8s/terraform?ref=main"
@@ -204,6 +284,15 @@ module "istio" {
 
   model_uuid = data.juju_model.model.uuid
   app_name   = "istio"
+  channel    = var.istio_channel
+}
+
+module "beacon" {
+  count  = var.mesh ? 1 : 0
+  source = "git::https://github.com/canonical/istio-beacon-k8s-operator//terraform?ref=main"
+
+  model_uuid = data.juju_model.model.uuid
+  app_name   = "beacon"
   channel    = var.istio_channel
 }
 

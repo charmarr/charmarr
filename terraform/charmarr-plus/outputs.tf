@@ -17,10 +17,22 @@ output "applications" {
     sabnzbd      = module.sabnzbd.app_name
     prowlarr     = module.prowlarr.app_name
     flaresolverr = module.flaresolverr.app_name
-    radarr       = module.radarr.app_name
-    sonarr       = module.sonarr.app_name
+    radarr_hd    = module.radarr_hd.app_name
+    radarr_uhd   = module.radarr_uhd.app_name
+    radarr_anime = module.radarr_anime.app_name
+    sonarr_hd    = module.sonarr_hd.app_name
+    sonarr_uhd   = module.sonarr_uhd.app_name
+    sonarr_anime = module.sonarr_anime.app_name
     plex         = module.plex.app_name
     overseerr    = module.overseerr.app_name
+  }
+}
+
+output "istio" {
+  description = "Map of Istio application names"
+  value = {
+    control_plane = module.istio.app_name
+    beacon        = module.beacon.app_name
   }
 }
 
