@@ -6,6 +6,7 @@ data "juju_model" "model" {
 resource "juju_application" "flaresolverr" {
   name       = var.app_name
   model_uuid = data.juju_model.model.uuid
+  trust      = true
 
   charm {
     name     = "flaresolverr-k8s"

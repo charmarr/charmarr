@@ -515,6 +515,21 @@ resource "juju_integration" "beacon_prowlarr" {
   }
 }
 
+resource "juju_integration" "beacon_flaresolverr" {
+  count      = var.mesh ? 1 : 0
+  model_uuid = data.juju_model.model.uuid
+
+  application {
+    name     = module.beacon[0].app_name
+    endpoint = "service-mesh"
+  }
+
+  application {
+    name     = module.flaresolverr.app_name
+    endpoint = module.flaresolverr.requires.service_mesh
+  }
+}
+
 resource "juju_integration" "beacon_radarr_hd" {
   count      = var.mesh ? 1 : 0
   model_uuid = data.juju_model.model.uuid
