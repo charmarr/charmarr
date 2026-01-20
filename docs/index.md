@@ -4,11 +4,11 @@ Arr and friends automatically configured, connected, secured with one command to
 
 ## K8s is a time-sink for homelabs?
 
-Sure, Kubernetes has self-healing, scaling, and infrastructure-as-code. But it also wants you to solve VPN routing that doesn't leak, shared storage with hardlinks, and cross-app configuration that survives pod restarts. Copy a million manifests and setup a gitops workflow to have a declarative deployment. Who has time to do all that for a self-hosted home media server?
+Sure, Kubernetes has self-healing, scaling, and infrastructure-as-code. But it also wants you to solve VPN routing that doesn't leak, shared storage with hardlinks, and cross-app configuration that survives pod restarts. Copy a million manifests and set up a gitops workflow to have a declarative deployment. Who has time to do all that for a self-hosted home media server?
 
 ## Charmarr says hold my beer
 
-Charmarr is an open-source collection of [Juju charms](https://juju.is) wrapping your favorite arr apps. It deploys and manages your media stack on Kubernetes while handling the hard parts: VPN routing, storage reconciliation, credential rotation, service discovery, cross-app configuration. And throws in bleeding edge network security for free. All of this within few minutes that you won't be able to even prepare popcorn before it's done.
+Charmarr is an open-source collection of [Juju charms](https://juju.is) wrapping your favorite arr apps. It deploys and manages your media stack on Kubernetes while handling the hard parts: VPN routing, storage reconciliation, credential rotation, service discovery, cross-app configuration. And throws in bleeding edge network security for free. All of this within a few minutes that you won't even be able to prepare popcorn before it's done.
 
 Really. The deployment looks like this:
 
@@ -49,7 +49,7 @@ And you're done. Charmarr begins autonomously wiring up the apps for you.
 <script src="https://cdn.jsdelivr.net/npm/asciinema-player@3.10.0/dist/bundle/asciinema-player.min.js"></script>
 <script>AsciinemaPlayer.create('assets/demo.cast', document.getElementById('demo'), {speed: 3, theme: 'dracula', autoPlay: true, loop: true, fit: 'width'});</script>
 
-**What got wired**:
+**What got set up**:
 
 ```mermaid
 flowchart LR
@@ -106,19 +106,19 @@ flowchart LR
 
     ---
 
-    Built in clean trash guide profiles using Recyclarr. Easy customization. Just run `juju config radarr trash-profile=remux-web-1080p`.
+    Built-in clean trash guide profiles using Recyclarr. Easy customization. Just run `juju config radarr trash-profile=remux-web-1080p`.
 
 -   :material-incognito: **Privacy first setup**
 
     ---
 
-    Public traffic stays anonymized. The traffic is routed to the gluetun protected with a double layered kill switch. Meaning no leaks, ever.
+    Public traffic stays anonymized always via Gluetun. And protected with a double layered kill switch. Meaning no leaks, ever.
 
 -   :material-shield-lock: **Zero-trust by default**
 
     ---
 
-    Istio Ambient authz firewalls with mTLS between every service automatically created based on charm relations. Encrypted and authenticated traffic only.
+    Istio Ambient authz firewalls with mTLS between every service automatically created based on charm relations. Encrypted and authorized traffic only.
 
 -   :material-heart-pulse: **It fixes itself**
 
@@ -130,7 +130,7 @@ flowchart LR
 
     ---
 
-    API keys refresh automatically and propagate themselves across the entire stack. No calendar reminders. No oops moments.
+    API keys are encrypted at rest. Charmarr rotates them regularly and auto-configures the stack. You can't leak what you don't know.
 
 </div>
 
