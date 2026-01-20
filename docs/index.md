@@ -2,13 +2,13 @@
 
 Arr and friends automatically configured, connected, secured with one command to rule them all.
 
-## Reddit says K8s is just a time sink
+## K8s is a time-sink for homelabs?
 
-Sure, Kubernetes has self-healing, scaling, and infrastructure-as-code. But it also wants you to solve VPN routing that doesn't leak, shared storage with hardlinks, and cross-app configuration that survives pod restarts. Who has time to do all that for a self-hosted home media server?
+Sure, Kubernetes has self-healing, scaling, and infrastructure-as-code. But it also wants you to solve VPN routing that doesn't leak, shared storage with hardlinks, and cross-app configuration that survives pod restarts. Copy a million manifests and setup a gitops workflow to have a declarative deployment. Who has time to do all that for a self-hosted home media server?
 
 ## Charmarr says hold my beer
 
-Charmarr is an open-source collection of [Juju charms](https://juju.is) wrapping your favorite *arr apps. It deploys and manages your media stack on Kubernetes while handling the hard parts: VPN routing, storage reconciliation, credential rotation, service discovery, cross-app configuration. And throws in bleeding edge network security for free. All of this within few minutes that you wont be able to even prepare popcorn before it's done.
+Charmarr is an open-source collection of [Juju charms](https://juju.is) wrapping your favorite arr apps. It deploys and manages your media stack on Kubernetes while handling the hard parts: VPN routing, storage reconciliation, credential rotation, service discovery, cross-app configuration. And throws in bleeding edge network security for free. All of this within few minutes that you won't be able to even prepare popcorn before it's done.
 
 Really. The deployment looks like this:
 
@@ -40,16 +40,16 @@ Really. The deployment looks like this:
     tofu init && TF_VAR_wireguard_private_key="key" tofu apply -auto-approve
     ```
 
-And you're done. Charmarr begins wiring up the apps for you.
+And you're done. Charmarr begins autonomously wiring up the apps for you.
 
-Charmarr in action (it's working completely autonomously, watch the magic happen):
+**Charmarr in action** (visualized with the `juju status` command):
 
 <div id="demo"></div>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/asciinema-player@3.10.0/dist/bundle/asciinema-player.min.css">
 <script src="https://cdn.jsdelivr.net/npm/asciinema-player@3.10.0/dist/bundle/asciinema-player.min.js"></script>
 <script>AsciinemaPlayer.create('assets/demo.cast', document.getElementById('demo'), {speed: 3, theme: 'dracula', autoPlay: true, loop: true, fit: 'width'});</script>
 
-What it wired up for you:
+**What got wired**:
 
 ```mermaid
 flowchart LR
@@ -100,37 +100,37 @@ flowchart LR
 
     ---
 
-    Apps find and configure themselves through [relations](https://documentation.ubuntu.com/juju/3.6/reference/relation/).
+    Apps find each other and configure themselves through [relations](https://documentation.ubuntu.com/juju/3.6/reference/relation/).
 
 -   :material-star-shooting: **Trash Guides, built-in**
 
     ---
 
-    Built in clean trash guide profiles.
+    Built in clean trash guide profiles using Recyclarr. Easy customization. Just run `juju config radarr trash-profile=remux-web-1080p`.
 
 -   :material-incognito: **Privacy first setup**
 
     ---
 
-    Public traffic stays anonymized.
+    Public traffic stays anonymized. The traffic is routed to the gluetun protected with a double layered kill switch. Meaning no leaks, ever.
 
 -   :material-shield-lock: **Zero-trust by default**
 
     ---
 
-    Istio Ambient authz firewalls with mTLS between every service.
+    Istio Ambient authz firewalls with mTLS between every service automatically created based on charm relations. Encrypted and authenticated traffic only.
 
 -   :material-heart-pulse: **It fixes itself**
 
     ---
 
-    Pod dies? Config drift? Charmarr heals. You chill.
+    Pod dies? Charmarr reconciles. You sleep. Config drift? Charmarr heals. You chill.
 
 -   :material-key-change: **Keys rotate themselves**
 
     ---
 
-    API keys refresh automatically. No calendar reminders.
+    API keys refresh automatically and propagate themselves across the entire stack. No calendar reminders. No oops moments.
 
 </div>
 
