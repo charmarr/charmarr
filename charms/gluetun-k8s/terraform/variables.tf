@@ -127,5 +127,5 @@ variable "vxlan_id" {
 variable "dns_over_tls" {
   description = "Enable DNS-over-TLS"
   type        = bool
-  default     = true
+  default     = false
 }

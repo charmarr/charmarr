@@ -114,5 +114,8 @@ config:
 
     dns-over-tls:
       type: boolean
-      default: true
-      description: Enable DNS-over-TLS.
+      default: false
+      description: |
+        Enable gluetun's internal DNS server.
+        Keep disabled unless you know what you're doing.
+
