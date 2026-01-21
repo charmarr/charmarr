@@ -116,6 +116,10 @@ config:
       type: boolean
       default: false
       description: |
-        Enable gluetun's internal DNS server.
-        Keep disabled unless you know what you're doing.
+        Enable gluetun's internal DNS server with DNS-over-TLS.
+
+        WARNING: Broken with pod-gateway sidecar. Gluetun binds its DNS server
+        to port 53 on all interfaces, conflicting with pod-gateway's dnsmasq
+        which binds to the VXLAN interface (172.16.0.1:53). This causes bind
+        errors and connection instability. Keep disabled.
 

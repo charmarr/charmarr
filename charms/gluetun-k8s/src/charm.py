@@ -164,7 +164,7 @@ class GluetunCharm(ops.CharmBase):
         """Build Pebble layer for gluetun service."""
         provider = self._get_config_str("vpn-provider", lowercase=True)
         cluster_cidrs = self._get_config_str("cluster-cidrs")
-        dns_over_tls = self.config.get("dns-over-tls", True)
+        dns_over_tls = self.config.get("dns-over-tls", False)
 
         env = {
             "VPN_SERVICE_PROVIDER": provider,
