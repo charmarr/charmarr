@@ -52,9 +52,9 @@ class FlareSolverrCharm(ops.CharmBase):
             return
 
         self._configure_pebble()
+        self.unit.set_ports(PORT)
 
         if self._is_workload_ready():
-            self.unit.set_ports(PORT)
             self._publish_relation_data()
 
     def _configure_pebble(self) -> None:
