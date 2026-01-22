@@ -159,6 +159,32 @@ http://ARR_INGRESS_IP:443/sabnzbd
 
 Add a usenet server like [Frugal Usenet](https://frugalusenet.com/) or [Eweka](https://www.eweka.nl/).
 
+### qBittorrent Access (Optional)
+
+There's no mandatory need to access qBittorrent, but if you want to customize settings:
+
+```
+http://ARR_INGRESS_IP:443/qbittorrent
+```
+
+Credentials are pre-configured by Charmarr. To retrieve them:
+
+```bash
+# List all secrets
+juju secrets
+# ID                    Name     Owner         Rotation  Revision  Last updated
+# d5lvqs7mp25c7ffo3tv0  -        qbittorrent   monthly          1  8 hours ago
+
+# Reveal the qbittorrent credentials (use the ID from above)
+juju show-secret --reveal d5lvqs7mp25c7ffo3tv0
+```
+
+!!! note
+    Charmarr rotates credentials monthly. If login fails, grab the latest credentials using the commands above.
+
+!!! warning
+    The default account is Charmarr's account used for automation. Do not remove or change it.
+
 ---
 
 ## Done
