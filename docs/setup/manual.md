@@ -72,6 +72,28 @@ juju config storage backend-type=native-nfs nfs-server=192.168.1.100 nfs-path=/e
 juju config storage backend-type=storage-class storage-class=your-storage-class size=1Ti
 ```
 
+**File Ownership (Hostpath & NFS)**
+
+For hostpath and NFS backends, the storage path must be owned by UID/GID 1000:1000 by default:
+
+```bash
+sudo chown -R 1000:1000 /path/to/your/media
+```
+
+If your path is owned by a different UID/GID, configure the storage charm to match:
+
+```bash
+# Check current ownership
+ls -ln /path/to/your/media
+
+# Configure storage charm with the actual UID/GID
+juju config storage puid=1001 pgid=1001
+```
+
+For NFS, ensure the NFS export allows write access for the configured PUID/PGID.
+
+For StorageClass with CSI drivers, this is driver-dependent. Block storage drivers typically handle ownership automatically, while shared filesystem drivers (CephFS, NFS-based CSI) follow the same rules as NFS.
+
 ### VPN Gateway
 
 Deploy gluetun:

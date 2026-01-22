@@ -141,6 +141,35 @@ storage_size    = "1Ti"
 !!! warning
     StorageClass is experimental. Requires careful configuration of `storage_size`, `access_mode`, and `cleanup_on_remove`. Trivial for hostpath and native-nfs, not so for CSI drivers.
 
+**File Ownership (Hostpath & NFS)**
+
+For hostpath and NFS backends, the storage path must be owned by UID/GID 1000:1000 by default:
+
+```bash
+sudo chown -R 1000:1000 /path/to/your/media
+```
+
+If your path is owned by a different UID/GID, configure the storage charm to match:
+
+```bash
+# Check current ownership
+ls -ln /path/to/your/media
+```
+
+```hcl
+# Configure storage charm with the actual UID/GID
+storage = {
+  config = {
+    puid = "1001"
+    pgid = "1001"
+  }
+}
+```
+
+For NFS, ensure the NFS export allows write access for the configured PUID/PGID.
+
+For StorageClass with CSI drivers, this is driver-dependent. Block storage drivers typically handle ownership automatically, while shared filesystem drivers (CephFS, NFS-based CSI) follow the same rules as NFS.
+
 #### Plex Hardware Transcoding
 
 If your hardware supports it:
