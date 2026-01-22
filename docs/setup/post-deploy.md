@@ -77,6 +77,9 @@ http://192.168.0.134:443
 
 ![Plex Step 4](../assets/screenshots/plex4.png)
 
+!!! warning
+    Plex might not auto-scan libraries by default. See the [Plex docs on library scanning](https://support.plex.tv/articles/200289306-scanning-vs-refreshing-a-library/) to enable automatic refresh.
+
 ---
 
 ## 2. Overseerr Setup
@@ -192,9 +195,6 @@ juju show-secret --reveal d5lvqs7mp25c7ffo3tv0
 Charmarr will continue to monitor, reconcile, and heal your stack.
 
 Request a movie in Overseerr, go prepare popcorn and grab a beer, come back and open Plex. Your movie should be ready. Mileage may vary based on internet speeds - you might even have time to prepare dinner.
-
-!!! warning
-    Plex might not auto-scan libraries by default. See the [Plex docs on library scanning](https://support.plex.tv/articles/200289306-scanning-vs-refreshing-a-library/) to enable automatic refresh.
 
 ---
 
