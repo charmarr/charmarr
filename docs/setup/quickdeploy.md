@@ -7,7 +7,7 @@ Charmarr provides pre-configured media stack bundles as [HCL](https://developer.
 
 ## Bundles
 
-| Bundle | <img src="/assets/logos/radarr.png" class="inline-icon"> Radarr | <img src="/assets/logos/sonarr.png" class="inline-icon"> Sonarr |
+| Bundle | ![](../assets/logos/radarr.png){.inline-icon} Radarr | ![](../assets/logos/sonarr.png){.inline-icon} Sonarr |
 |--------|--------|--------|
 | **charmarr** | 1 (HD) | 1 (HD) |
 | **charmarr-plus** | 3 (HD, UHD, Anime) | 3 (HD, UHD, Anime) |
@@ -16,16 +16,16 @@ Both bundles include:
 
 <table>
   <tr>
-    <td><img src="/assets/logos/plex.png" class="inline-icon"> Plex</td>
-    <td><img src="/assets/logos/overseerr.png" class="inline-icon"> Overseerr</td>
-    <td><img src="/assets/logos/prowlarr.png" class="inline-icon"> Prowlarr</td>
-    <td><img src="/assets/logos/flaresolverr.png" class="inline-icon"> FlareSolverr</td>
+    <td><img src="../../assets/logos/plex.png" class="inline-icon"> Plex</td>
+    <td><img src="../../assets/logos/overseerr.png" class="inline-icon"> Overseerr</td>
+    <td><img src="../../assets/logos/prowlarr.png" class="inline-icon"> Prowlarr</td>
+    <td><img src="../../assets/logos/flaresolverr.png" class="inline-icon"> FlareSolverr</td>
   </tr>
   <tr>
-    <td><img src="/assets/logos/qbittorrent.png" class="inline-icon"> qBittorrent</td>
-    <td><img src="/assets/logos/sabnzbd.png" class="inline-icon"> SABnzbd</td>
-    <td><img src="/assets/logos/gluetun.png" class="inline-icon"> Gluetun</td>
-    <td><img src="/assets/logos/recyclarr.png" class="inline-icon"> Recyclarr</td>
+    <td><img src="../../assets/logos/qbittorrent.png" class="inline-icon"> qBittorrent</td>
+    <td><img src="../../assets/logos/sabnzbd.png" class="inline-icon"> SABnzbd</td>
+    <td><img src="../../assets/logos/gluetun.png" class="inline-icon"> Gluetun</td>
+    <td><img src="../../assets/logos/recyclarr.png" class="inline-icon"> Recyclarr</td>
   </tr>
 </table>
 
