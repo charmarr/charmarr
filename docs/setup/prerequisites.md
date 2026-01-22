@@ -53,7 +53,6 @@ Already have a cluster? Here's the shopping list.
 | Kubernetes | Cilium CNI | Works with tweaks |
 | Kubernetes | LB with 3+ IPs | Required |
 | Tools | Juju 3.6.x | Required |
-| Tools | OpenTofu | Quick Deploy only |
 
 ### MicroK8s Addons
 
@@ -84,9 +83,17 @@ juju add-model charmarr
 
 See the Juju docs for [add-k8s](https://documentation.ubuntu.com/juju/3.6/reference/juju-cli/list-of-juju-cli-commands/add-k8s/) and [bootstrap](https://documentation.ubuntu.com/juju/3.6/reference/juju-cli/list-of-juju-cli-commands/bootstrap/).
 
-### OpenTofu
+---
 
-Only required if choosing Quick Deploy over Manual. Install from [opentofu.org](https://opentofu.org/docs/intro/install/).
+## OpenTofu
+
+Required for Quick Deploy. Skip if using Manual Deploy.
+
+Install from [opentofu.org](https://opentofu.org/docs/intro/install/), or via snap:
+
+```bash
+sudo snap install opentofu --classic
+```
 
 ---
 

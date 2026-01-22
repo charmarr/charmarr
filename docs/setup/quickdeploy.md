@@ -3,16 +3,31 @@
 Charmarr provides pre-configured media stack bundles as [HCL](https://developer.hashicorp.com/terraform/language) modules, deployable with OpenTofu.
 
 !!! warning
-    If your K8s cluster already has an Istiod control plane running, Quick Deploy won't work as it deploys its own Istiod. Use [Manual Deployment](manual.md) instead.
+    If your K8s cluster already has an Istiod control plane running, Quick Deploy won't work as it deploys its own Istiod. Use [Manual Deploy](manual.md) instead.
 
 ## Bundles
 
-| Bundle | Radarr | Sonarr |
+| Bundle | <img src="/assets/logos/radarr.png" class="inline-icon"> Radarr | <img src="/assets/logos/sonarr.png" class="inline-icon"> Sonarr |
 |--------|--------|--------|
 | **charmarr** | 1 (HD) | 1 (HD) |
 | **charmarr-plus** | 3 (HD, UHD, Anime) | 3 (HD, UHD, Anime) |
 
-Both bundles include: Plex, Overseerr, Prowlarr, FlareSolverr, qBittorrent, SABnzbd, Gluetun, and Istio service mesh.
+Both bundles include:
+
+<table>
+  <tr>
+    <td><img src="/assets/logos/plex.png" class="inline-icon"> Plex</td>
+    <td><img src="/assets/logos/overseerr.png" class="inline-icon"> Overseerr</td>
+    <td><img src="/assets/logos/prowlarr.png" class="inline-icon"> Prowlarr</td>
+    <td><img src="/assets/logos/flaresolverr.png" class="inline-icon"> FlareSolverr</td>
+  </tr>
+  <tr>
+    <td><img src="/assets/logos/qbittorrent.png" class="inline-icon"> qBittorrent</td>
+    <td><img src="/assets/logos/sabnzbd.png" class="inline-icon"> SABnzbd</td>
+    <td><img src="/assets/logos/gluetun.png" class="inline-icon"> Gluetun</td>
+    <td><img src="/assets/logos/recyclarr.png" class="inline-icon"> Recyclarr</td>
+  </tr>
+</table>
 
 !!! note
     charmarr-plus has slightly higher CPU requirements due to additional Radarr/Sonarr instances. During initial deployment, expect higher CPU and RAM usage. It flatlines once settled.
@@ -186,7 +201,19 @@ See the [charmarr-plus module](https://github.com/charmarr/charmarr/tree/main/te
     Want a truly custom Charmarr with different Radarrs, multiple download clients, etc.? Use the [charmarr](https://github.com/charmarr/charmarr/tree/main/terraform/charmarr) and [charmarr-plus](https://github.com/charmarr/charmarr/tree/main/terraform/charmarr-plus) modules as templates to create your own charmarr bundle.
 
 !!! tip
-    After deployment, the [Manual Deployment](manual.md) page can be used as a reference to customize your stack with the Juju CLI. It's fun.
+    After deployment, the [Manual Deploy](manual.md) page can be used as a reference to customize your stack with the Juju CLI. It's fun.
+
+---
+
+## Making Changes
+
+Edit your `main.tf` and reapply:
+
+```bash
+tofu apply
+```
+
+OpenTofu calculates the diff and applies only what changed. See the [OpenTofu CLI docs](https://opentofu.org/docs/cli/commands/apply/) for more.
 
 ---
 
@@ -195,6 +222,6 @@ See the [charmarr-plus module](https://github.com/charmarr/charmarr/tree/main/te
 [:octicons-arrow-left-24: Prerequisites](prerequisites.md)
 </div>
 <div markdown>
-[Post-Deployment :octicons-arrow-right-24:](post-deploy.md)
+[Post-Deploy :octicons-arrow-right-24:](post-deploy.md)
 </div>
 </div>

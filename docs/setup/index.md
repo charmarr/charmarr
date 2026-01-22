@@ -20,7 +20,7 @@ Get Charmarr running on your Kubernetes cluster in minutes.
 
     [:octicons-arrow-right-24: Get started](quickdeploy.md)
 
--   **2b. Manual Deployment**
+-   **2b. Manual Deploy**
 
     ---
 
@@ -28,7 +28,7 @@ Get Charmarr running on your Kubernetes cluster in minutes.
 
     [:octicons-arrow-right-24: Learn more](manual.md)
 
--   **3. Post-Deployment**
+-   **3. Post-Deploy**
 
     ---
 

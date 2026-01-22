@@ -11,6 +11,9 @@ flowchart LR
     subgraph indexing["Indexing"]
         flaresolverr[FlareSolverr]
         prowlarr[Prowlarr]
+    end
+
+    subgraph trash["TRaSH"]
         recyclarr[Recyclarr]
     end
 
@@ -92,7 +95,7 @@ And you're done. Charmarr begins autonomously wiring up the apps for you.
 
 ## Life after
 
-<div class="grid cards" markdown>
+<div class="grid cards feature-cards" markdown>
 
 -   :material-key-remove: **No more copy-paste API keys**
 

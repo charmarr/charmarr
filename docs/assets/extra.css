@@ -50,8 +50,25 @@
   opacity: 1;
 }
 
-/* Card icon colors - deep orange for all */
-.grid.cards li svg { color: #ff5722; }
+/* Landing page feature card icon colors */
+.feature-cards > ul > li:nth-child(1) svg { color: #4caf50; }  /* key-remove: green - automation */
+.feature-cards > ul > li:nth-child(2) svg { color: #ffc107; }  /* star-shooting: amber - quality */
+.feature-cards > ul > li:nth-child(3) svg { color: #9c27b0; }  /* incognito: purple - privacy */
+.feature-cards > ul > li:nth-child(4) svg { color: #2196f3; }  /* shield-lock: blue - security */
+.feature-cards > ul > li:nth-child(5) svg { color: #f44336; }  /* heart-pulse: red - health */
+.feature-cards > ul > li:nth-child(6) svg { color: #00bcd4; }  /* key-change: cyan - rotation */
+
+/* Default card icon color for other pages */
+.grid.cards:not(.feature-cards) li svg { color: #ff5722; }
+
+/* Inline app icons */
+.inline-icon {
+  height: 16px;
+  width: 16px;
+  vertical-align: middle;
+  margin-right: 0.15em;
+}
+
 
 .cta-center {
   text-align: center;
@@ -134,4 +151,13 @@
 
 .step-card .grid.cards li {
   margin: 0;
+}
+
+/* Navigation flow indicator */
+.nav-flow {
+  display: inline-block;
+  padding: 0.5em 1em;
+  background: var(--md-code-bg-color);
+  border-radius: 0.25rem;
+  border-left: 3px solid #ff5722;
 }

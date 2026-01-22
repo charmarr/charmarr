@@ -72,8 +72,8 @@ nav:
       - setup/index.md
       - Prerequisites: setup/prerequisites.md
       - Quick Deploy: setup/quickdeploy.md
-      - Manual Deployment: setup/manual.md
-      - Post-Deployment: setup/post-deploy.md
+      - Manual Deploy: setup/manual.md
+      - Post-Deploy: setup/post-deploy.md
   - Charms:
       - charms/index.md
       - Media Manager: charms/media-manager.md

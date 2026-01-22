@@ -1,8 +1,8 @@
-# Manual Deployment
+# Manual Deploy
 
 Deploy and configure apps with the Juju CLI. More control, more fun.
 
-Think of it like connecting Lego blocks. Each charm is a block, and relations snap them together. It's slower than the HCL bundles, but by the end you'll know exactly what's deployed, what's connected to what, and why.
+Think of it like connecting Lego blocks. Each charm is a block, and relations snap them together. It's slower and more effort than the HCL bundles, but by the end you'll know exactly what's deployed, what's connected to what, and why.
 
 Perfect for learning, debugging, or building something the pre-built bundles don't cover.
 
@@ -11,17 +11,24 @@ Perfect for learning, debugging, or building something the pre-built bundles don
 
 ---
 
-## 1. Infrastructure
+## 1. Infrastructure Apps
 
 First, we lay the groundwork: service mesh, ingress gateways, shared storage, and VPN.
 
 ### Istio Control Plane
 
-!!! note
-    Skip this step if your cluster already has an Istiod control plane. If you are unsure, you don't have one.
+!!! warning
+    Skip istio-k8s if your cluster already has an Istiod control plane. If you are unsure, you don't have one.
 
 ```bash
 juju deploy istio-k8s --trust --channel=2/edge istio
+```
+
+### Beacon (Optional)
+
+Required only if you want to use service mesh features like mTLS and authorization policies. Its fancy and secure, but not strictly necessary.
+
+```bash
 juju deploy istio-beacon-k8s --trust --channel=2/edge beacon
 ```
 
@@ -173,7 +180,7 @@ Sensitive information (API keys, credentials) is shared via Juju secrets and enc
 
 ### Storage
 
-Connect apps that need shared media storage:
+Connect apps to shared media storage. Required for hardlinks and atomic copies.
 
 ```bash
 juju integrate radarr:media-storage storage:media-storage
@@ -185,7 +192,7 @@ juju integrate sabnzbd:media-storage storage:media-storage
 
 ### VPN Tunnel
 
-Connect download clients and indexer to VPN:
+Connect download clients and indexer to VPN. Routes traffic through Gluetun's tunnel with kill switch protection.
 
 ```bash
 juju integrate qbittorrent:vpn-gateway gluetun:vpn-gateway
@@ -195,13 +202,15 @@ juju integrate prowlarr:vpn-gateway gluetun:vpn-gateway
 
 ### Cloudflare Bypass
 
-Connect FlareSolverr to Prowlarr:
+Connect FlareSolverr to Prowlarr. Solves captchas for indexers behind Cloudflare protection.
 
 ```bash
 juju integrate prowlarr:flaresolverr flaresolverr:flaresolverr
 ```
 
 ### Download Clients to Managers
+
+Connect Radarr/Sonarr to qBittorrent and SABnzbd. Sends download requests and monitors progress.
 
 ```bash
 juju integrate radarr:download-client qbittorrent:download-client
@@ -212,6 +221,8 @@ juju integrate sonarr:download-client sabnzbd:download-client
 
 ### Indexer to Managers
 
+Connect Prowlarr to Radarr/Sonarr. Syncs indexers automatically across all managers.
+
 ```bash
 juju integrate radarr:media-indexer prowlarr:media-indexer
 juju integrate sonarr:media-indexer prowlarr:media-indexer
@@ -219,12 +230,16 @@ juju integrate sonarr:media-indexer prowlarr:media-indexer
 
 ### Media Server to Managers
 
+Connect Plex to Radarr/Sonarr. Adds required libraries automatically to Plex.
+
 ```bash
 juju integrate plex:media-manager radarr:media-manager
 juju integrate plex:media-manager sonarr:media-manager
 ```
 
 ### Requester to Managers & Server
+
+Connect Overseerr to Radarr/Sonarr and Plex. Enables user requests and library visibility.
 
 ```bash
 juju integrate overseerr:media-manager radarr:media-manager
@@ -234,7 +249,7 @@ juju integrate overseerr:media-server plex:media-server
 
 ### Ingress
 
-Connect apps to their ingress gateways:
+Connect apps to Istio ingress gateways. Exposes UIs via LoadBalancer IPs.
 
 ```bash
 # Arr apps and download clients
@@ -253,7 +268,7 @@ juju integrate overseerr:istio-ingress-route overseerr-ingress:istio-ingress-rou
 
 ### Service Mesh (Optional)
 
-For encrypted and firewalled traffic between apps:
+Connect apps to Istio ambient mesh. Enables mTLS and authorization policies.
 
 ```bash
 juju integrate radarr:service-mesh beacon:service-mesh
@@ -265,6 +280,24 @@ juju integrate qbittorrent:service-mesh beacon:service-mesh
 juju integrate sabnzbd:service-mesh beacon:service-mesh
 juju integrate flaresolverr:service-mesh beacon:service-mesh
 ```
+
+---
+
+## Managing Apps
+
+Remove a relation:
+
+```bash
+juju remove-relation radarr:download-client qbittorrent:download-client
+```
+
+Remove an app:
+
+```bash
+juju remove-application qbittorrent
+```
+
+For the full list of commands, see the [Juju CLI reference](https://documentation.ubuntu.com/juju/3.6/reference/juju-cli/list-of-juju-cli-commands/).
 
 ---
 
@@ -290,6 +323,6 @@ juju integrate flaresolverr:service-mesh beacon:service-mesh
 [:octicons-arrow-left-24: Prerequisites](prerequisites.md)
 </div>
 <div markdown>
-[Post-Deployment :octicons-arrow-right-24:](post-deploy.md)
+[Post-Deploy :octicons-arrow-right-24:](post-deploy.md)
 </div>
 </div>
