@@ -3,9 +3,14 @@
 
 """Unit tests for ProwlarrCharm reconciliation."""
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
-from ops.testing import Container, Exec, Mount, Secret, State
+from ops.testing import Container, Exec, Mount, Relation, Secret, State
+
+from _prowlarr import IndexerProxyResponse, IndexerProxyType, TagResponse
+from charmarr_lib.core import ArrApiResponseError
+from charmarr_lib.core.interfaces import FlareSolverrProviderData
+from charmarr_lib.vpn.interfaces import VPNGatewayProviderData
 
 from .conftest import PROWLARR_CONTAINER
 
@@ -79,8 +84,6 @@ def test_reconcile_builds_pebble_layer(ctx, mock_k8s, tmp_path):
 
 def test_reconcile_calls_vpn_gateway_client(ctx, mock_k8s, tmp_path):
     """Reconcile calls reconcile_gateway_client when VPN related."""
-    from charmarr_lib.vpn.interfaces import VPNGatewayProviderData
-
     config_dir = tmp_path / "config"
     config_dir.mkdir()
 
@@ -90,8 +93,6 @@ def test_reconcile_calls_vpn_gateway_client(ctx, mock_k8s, tmp_path):
         mounts={"config": Mount(location="/config", source=config_dir)},
         execs={CHOWN_EXEC},
     )
-
-    from ops.testing import Relation
 
     vpn_data = VPNGatewayProviderData(
         gateway_dns_name="gluetun.vpn.svc.cluster.local",
@@ -208,3 +209,91 @@ def test_secret_rotate_updates_config(ctx, mock_k8s, tmp_path):
     assert new_key in config_file.read_text()
     rotated_secret = next(iter(state.secrets))
     assert rotated_secret.tracked_content["api-key"] == new_key
+
+
+def _flaresolverr_test_state(tmp_path):
+    """Build common state for FlareSolverr tests."""
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    container = Container(
+        name="prowlarr",
+        can_connect=True,
+        mounts={"config": Mount(location="/config", source=config_dir)},
+        execs={CHOWN_EXEC},
+    )
+    secret = Secret(label="api-key", tracked_content={"api-key": TEST_API_KEY}, owner="app")
+    relation = Relation(
+        endpoint="flaresolverr",
+        interface="flaresolverr",
+        remote_app_data={
+            "config": FlareSolverrProviderData(
+                url="http://flaresolverr.test.svc.cluster.local:8191"
+            ).model_dump_json()
+        },
+    )
+    return State(leader=True, containers=[container], secrets=[secret], relations=[relation])
+
+
+def _mock_api_with_proxy():
+    """Create mock API client with existing FlareSolverr proxy."""
+    mock_api = MagicMock()
+    mock_api.get_indexer_proxies.return_value = [
+        IndexerProxyResponse(
+            id=1,
+            name="FlareSolverr",
+            implementation=IndexerProxyType.FLARESOLVERR,
+            config_contract="FlareSolverrSettings",
+            tags=[],
+        )
+    ]
+    mock_api.get_or_create_tag.return_value = TagResponse(id=1, label="flaresolverr")
+    mock_api.__enter__ = MagicMock(return_value=mock_api)
+    mock_api.__exit__ = MagicMock(return_value=False)
+    return mock_api
+
+
+def test_flaresolverr_update_retries_on_400(ctx, mock_k8s, tmp_path):
+    """FlareSolverr proxy update retries on 400 and succeeds on second attempt."""
+    mock_api = _mock_api_with_proxy()
+    call_count = 0
+
+    def update_side_effect(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count < 2:
+            raise ArrApiResponseError("Bad Request", status_code=400)
+
+    mock_api.update_flaresolverr_host.side_effect = update_side_effect
+
+    with (
+        patch("charm.ProwlarrCharm._is_workload_ready", return_value=True),
+        patch("charm.ProwlarrCharm._get_api_client", return_value=mock_api),
+        patch("charm.ensure_pebble_user"),
+        patch("charm.reconcile_gateway_client"),
+        patch("charm.reconcile_media_manager_connections"),
+    ):
+        ctx.run(ctx.on.config_changed(), _flaresolverr_test_state(tmp_path))
+
+    assert call_count == 2
+    mock_api.delete_indexer_proxy.assert_not_called()
+
+
+def test_flaresolverr_fallback_delete_recreate_after_retries(ctx, mock_k8s, tmp_path):
+    """FlareSolverr falls back to delete+recreate after exhausting retries."""
+    mock_api = _mock_api_with_proxy()
+    mock_api.update_flaresolverr_host.side_effect = ArrApiResponseError(
+        "Bad Request", status_code=400
+    )
+
+    with (
+        patch("charm.ProwlarrCharm._is_workload_ready", return_value=True),
+        patch("charm.ProwlarrCharm._get_api_client", return_value=mock_api),
+        patch("charm.ensure_pebble_user"),
+        patch("charm.reconcile_gateway_client"),
+        patch("charm.reconcile_media_manager_connections"),
+    ):
+        ctx.run(ctx.on.config_changed(), _flaresolverr_test_state(tmp_path))
+
+    assert mock_api.update_flaresolverr_host.call_count == 3
+    mock_api.delete_indexer_proxy.assert_called_once_with(1)
+    mock_api.add_indexer_proxy.assert_called_once()

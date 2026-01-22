@@ -162,14 +162,16 @@ class ProwlarrApiClient(BaseArrApiClient):
         )
 
     def update_flaresolverr_host(self, proxy_id: int, url: str, tags: list[int]) -> None:
-        """Update FlareSolverr proxy host URL, preserving existing fields structure."""
-        existing = self._get(f"/indexerProxy/{proxy_id}")
-        for field in existing.get("fields", []):
-            if field.get("name") == "host":
-                field["value"] = url
-                break
-        existing["tags"] = tags
-        self._put(f"/indexerProxy/{proxy_id}", existing)
+        """Update FlareSolverr proxy host URL with minimal payload.
+
+        Constructs a clean PUT payload with only required fields to avoid
+        sending back read-only/computed fields that can cause 400 errors
+        after network disruptions.
+        """
+        config = FlareSolverrProxyConfig.from_url(url, tags=tags)
+        payload = config.model_dump(by_alias=True)
+        payload["id"] = proxy_id
+        self._put(f"/indexerProxy/{proxy_id}", payload)
 
     def delete_indexer_proxy(self, proxy_id: int) -> None:
         """Delete an indexer proxy."""

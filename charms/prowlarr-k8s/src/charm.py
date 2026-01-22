@@ -24,6 +24,7 @@ from charms.istio_ingress_k8s.v0.istio_ingress_route import (
     ProtocolType,
 )
 from charms.velero_libs.v0.velero_backup_config import VeleroBackupProvider, VeleroBackupSpec
+from tenacity import RetryError, retry, retry_if_exception, stop_after_attempt, wait_fixed
 
 from _prowlarr import (
     API_KEY_SECRET_LABEL,
@@ -38,6 +39,7 @@ from _prowlarr import (
     ProwlarrApiClient,
 )
 from charmarr_lib.core import (
+    ArrApiResponseError,
     K8sResourceManager,
     MediaIndexer,
     ensure_pebble_user,
@@ -266,12 +268,45 @@ class ProwlarrCharm(ops.CharmBase):
             None,
         )
         if proxy:
-            api.update_flaresolverr_host(proxy.id, url, [tag_id])
-            logger.info("Updated FlareSolverr proxy: %s", url)
+            self._update_flaresolverr_proxy_with_fallback(api, proxy.id, url, tag_id)
         else:
             config = FlareSolverrProxyConfig.from_url(url, tags=[tag_id])
             api.add_indexer_proxy(config.model_dump(by_alias=True))
             logger.info("Added FlareSolverr proxy: %s", url)
+
+    def _update_flaresolverr_proxy_with_fallback(
+        self, api: ProwlarrApiClient, proxy_id: int, url: str, tag_id: int
+    ) -> None:
+        """Update FlareSolverr proxy with retry and delete+recreate fallback."""
+
+        def _is_bad_request(exc: BaseException) -> bool:
+            return isinstance(exc, ArrApiResponseError) and exc.status_code == 400
+
+        @retry(
+            retry=retry_if_exception(_is_bad_request),
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(2),
+        )
+        def _try_update() -> None:
+            api.update_flaresolverr_host(proxy_id, url, [tag_id])
+
+        try:
+            _try_update()
+            logger.info("Updated FlareSolverr proxy: %s", url)
+        except RetryError as e:
+            last_exc = e.last_attempt.exception()
+            if last_exc and _is_bad_request(last_exc):
+                logger.warning(
+                    "FlareSolverr proxy update failed after retries, deleting and recreating"
+                )
+                api.delete_indexer_proxy(proxy_id)
+                config = FlareSolverrProxyConfig.from_url(url, tags=[tag_id])
+                api.add_indexer_proxy(config.model_dump(by_alias=True))
+                logger.info("Recreated FlareSolverr proxy: %s", url)
+            elif last_exc:
+                raise last_exc from e
+            else:
+                raise
 
     def _reconcile_flaresolverr(self, api_key: str) -> None:
         """Reconcile FlareSolverr proxy based on relation state."""

@@ -10,6 +10,7 @@ from _prowlarr._api import (
     IndexerResponse,
     ProwlarrApiClient,
     ProwlarrHostConfigResponse,
+    TagResponse,
 )
 from _prowlarr._constants import (
     API_KEY_SECRET_LABEL,
@@ -35,4 +36,5 @@ __all__ = [
     "IndexerResponse",
     "ProwlarrApiClient",
     "ProwlarrHostConfigResponse",
+    "TagResponse",
 ]
