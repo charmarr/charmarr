@@ -1,6 +1,10 @@
 <h1 align="center">Charmarr Charms</h1>
 
 <p align="center">
+  Juju charms for self-hosted media automation on Kubernetes.
+</p>
+
+<p align="center">
   <a href="https://github.com/charmarr/charmarr/actions/workflows/ci.yaml"><img src="https://github.com/charmarr/charmarr/actions/workflows/ci.yaml/badge.svg" alt="CI"></a>
   <a href="https://github.com/astral-sh/uv"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json" alt="uv"></a>
   <a href="https://github.com/charmarr/charmarr/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue" alt="License"></a>
@@ -25,17 +29,6 @@
 | | **Media Servers** | |
 | **plex-k8s** | Plex Media Server with hardware transcoding support | [![CharmHub](https://charmhub.io/plex-k8s/badge.svg)](https://charmhub.io/plex-k8s) |
 | **overseerr-k8s** | Media request management for Plex with Radarr/Sonarr integration | [![CharmHub](https://charmhub.io/overseerr-k8s/badge.svg)](https://charmhub.io/overseerr-k8s) |
-
-## Development
-
-```bash
-cd charms/charmarr-storage-k8s
-uv venv && source .venv/bin/activate
-uv sync
-tox
-```
-
-<!-- TODO: expand this README -->
 
 ## License
 
