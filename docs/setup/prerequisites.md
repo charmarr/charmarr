@@ -38,20 +38,20 @@ just -f charmarr-primitives.just charmarr-primitives-nuke
 
 Already have a cluster? Here's the shopping list.
 
-| Category | Requirement | Status |
-|----------|-------------|--------|
-| Hardware | 8 GB RAM | Minimum |
-| Hardware | 4 vCPUs | Minimum |
-| OS | Ubuntu baremetal | Recommended |
-| OS | Other Linux distros | Untested |
-| OS | Virtualized setups | Untested |
-| Kubernetes | MicroK8s | Recommended |
-| Kubernetes | Minikube | Supported |
-| Kubernetes | Other standard K8s | Supported |
-| Kubernetes | K3s / k3d | [Not recommended](#compatibility-checklist) |
-| Kubernetes | Cilium CNI | Works with [tweaks](#compatibility-checklist) |
-| Kubernetes | LB with 3+ IPs | Required |
-| Tools | Juju 3.6.x | Required |
+| Category | Requirement | Status | Istio Support |
+|----------|-------------|--------|---------------|
+| Hardware | 8 GB RAM | Minimum | - |
+| Hardware | 4 vCPUs | Minimum | - |
+| OS | Ubuntu baremetal | Recommended | - |
+| OS | Other Linux distros | Untested | - |
+| OS | Virtualized setups | Untested | - |
+| Kubernetes | MicroK8s | Recommended | Yes |
+| Kubernetes | Minikube | Supported | Yes |
+| Kubernetes | Other standard K8s | Supported | Yes |
+| Kubernetes | K3s / k3d | Supported | [Needs tweaks](#compatibility-checklist) |
+| Kubernetes | Cilium CNI | Supported | [Needs tweaks](#compatibility-checklist) |
+| Kubernetes | LB with 3+ IPs | - | Required |
+| Tools | Juju 3.6.x | Required | - |
 
 ### MicroK8s Addons
 

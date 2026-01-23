@@ -6,6 +6,7 @@ repo_name: charmarr/charmarr
 
 theme:
   name: material
+  custom_dir: docs/overrides
   logo: assets/logos/charmarr.png
   favicon: assets/logos/charmarr.png
   palette:
