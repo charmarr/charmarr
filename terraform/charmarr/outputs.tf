@@ -24,6 +24,14 @@ output "applications" {
   }
 }
 
+output "istio" {
+  description = "Map of Istio application names"
+  value = {
+    control_plane = module.istio.app_name
+    beacon        = var.mesh ? module.beacon[0].app_name : null
+  }
+}
+
 output "ingress" {
   description = "Map of ingress application names"
   value = {

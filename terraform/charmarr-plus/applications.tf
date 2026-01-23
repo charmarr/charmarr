@@ -283,40 +283,55 @@ module "overseerr" {
 module "istio" {
   source = "git::https://github.com/canonical/istio-k8s-operator//terraform?ref=main"
 
-  model_uuid = data.juju_model.model.uuid
-  app_name   = "istio"
-  channel    = var.istio_channel
+  model_uuid  = data.juju_model.model.uuid
+  app_name    = "istio"
+  channel     = var.istio_channel
+  constraints = var.istio.constraints
+  revision    = var.istio.revision
+  config      = var.istio.config
 }
 
 module "beacon" {
   count  = var.mesh ? 1 : 0
   source = "git::https://github.com/canonical/istio-beacon-k8s-operator//terraform?ref=main"
 
-  model_uuid = data.juju_model.model.uuid
-  app_name   = "beacon"
-  channel    = var.istio_channel
+  model_uuid  = data.juju_model.model.uuid
+  app_name    = "beacon"
+  channel     = var.istio_channel
+  constraints = var.beacon.constraints
+  revision    = var.beacon.revision
+  config      = var.beacon.config
 }
 
 module "arr_ingress" {
   source = "git::https://github.com/canonical/istio-ingress-k8s-operator//terraform?ref=main"
 
-  model_uuid = data.juju_model.model.uuid
-  app_name   = "arr-ingress"
-  channel    = var.istio_channel
+  model_uuid  = data.juju_model.model.uuid
+  app_name    = "arr-ingress"
+  channel     = var.istio_channel
+  constraints = var.arr_ingress.constraints
+  revision    = var.arr_ingress.revision
+  config      = var.arr_ingress.config
 }
 
 module "plex_ingress" {
   source = "git::https://github.com/canonical/istio-ingress-k8s-operator//terraform?ref=main"
 
-  model_uuid = data.juju_model.model.uuid
-  app_name   = "plex-ingress"
-  channel    = var.istio_channel
+  model_uuid  = data.juju_model.model.uuid
+  app_name    = "plex-ingress"
+  channel     = var.istio_channel
+  constraints = var.plex_ingress.constraints
+  revision    = var.plex_ingress.revision
+  config      = var.plex_ingress.config
 }
 
 module "overseerr_ingress" {
   source = "git::https://github.com/canonical/istio-ingress-k8s-operator//terraform?ref=main"
 
-  model_uuid = data.juju_model.model.uuid
-  app_name   = "overseerr-ingress"
-  channel    = var.istio_channel
+  model_uuid  = data.juju_model.model.uuid
+  app_name    = "overseerr-ingress"
+  channel     = var.istio_channel
+  constraints = var.overseerr_ingress.constraints
+  revision    = var.overseerr_ingress.revision
+  config      = var.overseerr_ingress.config
 }

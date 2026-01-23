@@ -243,3 +243,57 @@ variable "overseerr" {
   })
   default = {}
 }
+
+# -----------------------------------------------------------------------------
+# Istio Charm Overrides (Optional)
+# -----------------------------------------------------------------------------
+
+variable "istio" {
+  description = "Override configuration for istio charm"
+  type = object({
+    constraints = optional(string, "arch=amd64")
+    revision    = optional(number, null)
+    config      = optional(map(string), {})
+  })
+  default = {}
+}
+
+variable "beacon" {
+  description = "Override configuration for istio-beacon charm"
+  type = object({
+    constraints = optional(string, "arch=amd64")
+    revision    = optional(number, null)
+    config      = optional(map(string), {})
+  })
+  default = {}
+}
+
+variable "arr_ingress" {
+  description = "Override configuration for arr-ingress charm"
+  type = object({
+    constraints = optional(string, "arch=amd64")
+    revision    = optional(number, null)
+    config      = optional(map(string), {})
+  })
+  default = {}
+}
+
+variable "plex_ingress" {
+  description = "Override configuration for plex-ingress charm"
+  type = object({
+    constraints = optional(string, "arch=amd64")
+    revision    = optional(number, null)
+    config      = optional(map(string), {})
+  })
+  default = {}
+}
+
+variable "overseerr_ingress" {
+  description = "Override configuration for overseerr-ingress charm"
+  type = object({
+    constraints = optional(string, "arch=amd64")
+    revision    = optional(number, null)
+    config      = optional(map(string), {})
+  })
+  default = {}
+}

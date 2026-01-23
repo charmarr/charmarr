@@ -32,7 +32,7 @@ output "istio" {
   description = "Map of Istio application names"
   value = {
     control_plane = module.istio.app_name
-    beacon        = module.beacon.app_name
+    beacon        = var.mesh ? module.beacon[0].app_name : null
   }
 }
 
