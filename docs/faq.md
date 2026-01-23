@@ -3,7 +3,7 @@
 ## Setup
 
 ??? question "What Kubernetes distros are supported?"
-    MicroK8s is recommended and tested. Other Kubernetes distributions with Calico CNI should work. If your cluster uses Cilium, see the [Compatibility Checklist](setup/prerequisites.md#compatibility-checklist) in prerequisites.
+    Depends on whether you enable Istio Ambient. See the [shopping list](setup/prerequisites.md#manual-setup) and [Ingress & Security](setup/prerequisites.md#ingress-security) in prerequisites.
 
 ??? question "What are the hardware requirements?"
     Charmarr has more overhead than a simple Docker Compose setup. Kubernetes and Juju add resource consumption. As someone smart once said, there's no free lunch. Charmarr's benefits come with a price to pay.
@@ -100,6 +100,8 @@
 ??? question "Can I use apps that Charmarr doesn't support?"
     Charmarr uses Juju relations as the single source of truth for declaratively reconciling the system. If you manually add an app or connection, Charmarr will likely remove it during the next reconciliation cycle. This is a conscious design decision to keep Charmarr robust and predictable.
 
+    Want to see your favorite *arr charmed? [Open an issue](https://github.com/charmarr/charmarr/issues) or contribute a charm yourself!
+
 ## Migration
 
 ??? question "Can I migrate from Docker Compose?"
@@ -140,7 +142,7 @@
     kubectl logs -n charmarr deploy/<app-name>
     ```
 
-    If the error makes sense, address it. If not, the quickest fix is to delete the affected pod and let Kubernetes recreate it:
+    If the error makes sense, address it. If not, delete the pod and let Kubernetes recreate it. Pods are ephemeral by design, deleting them is safe.
 
     ```bash
     kubectl delete pod -n charmarr -l app.kubernetes.io/name=<app-name>
