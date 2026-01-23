@@ -17,19 +17,19 @@ The charm talks to other charms to figure out how to set everything up. The orde
 
 The charm creates download categories automatically based on connected media managers. For example, if you have `radarr` and `sonarr-4k` connected, qBittorrent gets categories named `radarr` and `sonarr-4k` with appropriate save paths.
 
-Credentials are generated automatically and stored as Juju secrets. They rotate periodically if configured.
+Credentials are generated automatically and stored as Juju secrets. They [rotate periodically](../security/secrets.md) if configured.
 
 ### Lifecycle
 
 ```mermaid
 sequenceDiagram
-    participant SC as Storage Charm
+    participant Storage
     participant QC as qBittorrent Charm
     participant QB as qBittorrent App
-    participant RC as Radarr/Sonarr Charms
+    participant RC as Radarr/Sonarr
 
-    QC->>SC: Where's the storage?
-    SC-->>QC: /data + UID/GID
+    QC->>Storage: Where's the storage?
+    Storage-->>QC: /data + UID/GID
     Note over QC: Waits if no reply
 
     QC->>QC: Create credentials
@@ -65,19 +65,19 @@ The charm talks to other charms to figure out how to set everything up. The orde
 
 Like qBittorrent, SABnzbd gets categories automatically based on connected media managers.
 
-An API key is generated automatically and stored as a Juju secret. It rotates periodically if configured.
+An API key is generated automatically and stored as a Juju secret. It [rotates periodically](../security/secrets.md) if configured.
 
 ### Lifecycle
 
 ```mermaid
 sequenceDiagram
-    participant SC as Storage Charm
+    participant Storage
     participant NC as SABnzbd Charm
     participant SAB as SABnzbd App
-    participant RC as Radarr/Sonarr Charms
+    participant RC as Radarr/Sonarr
 
-    NC->>SC: Where's the storage?
-    SC-->>NC: /data + UID/GID
+    NC->>Storage: Where's the storage?
+    Storage-->>NC: /data + UID/GID
     Note over NC: Waits if no reply
 
     NC->>NC: Create API key

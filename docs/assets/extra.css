@@ -161,3 +161,19 @@
   border-radius: 0.25rem;
   border-left: 3px solid #ff5722;
 }
+
+/* Under construction placeholder */
+.under-construction {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--md-default-fg-color--light);
+}
+
+.under-construction .twemoji,
+.under-construction svg {
+  font-size: 4rem;
+  width: 4rem;
+  height: 4rem;
+  color: #ff5722;
+  margin-bottom: 1rem;
+}

@@ -10,7 +10,7 @@ When qBittorrent finishes downloading a file, Radarr or Sonarr moves it to your 
 
 Hardlinks are also atomic, which lets Charmarr follow [TRaSH Guides](https://trash-guides.info/) recommendations for instant media imports.
 
-The storage charm creates a single PersistentVolumeClaim (PVC) that all apps mount at `/data`. This is what makes hardlinks possible.
+The storage charm creates the necessary Kubernetes storage resources (PV and PVC for hostpath/native-nfs, or just PVC for storage-class) that all apps mount at `/data`. This is what makes hardlinks possible.
 
 ### Relations
 
@@ -38,9 +38,13 @@ The charm supports three storage backends:
 sequenceDiagram
     participant SC as Storage Charm
     participant K8s as Kubernetes
-    participant Apps as Media App Charms
+    participant Apps as Media Apps
 
     SC->>SC: Read storage config
+    SC->>K8s: Create PV (hostpath/native-nfs only)
+    K8s-->>SC: PV ready
+    Note over SC: Waits if not ready
+
     SC->>K8s: Create PVC
     K8s-->>SC: PVC ready
     Note over SC: Waits if not ready

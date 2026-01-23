@@ -187,7 +187,7 @@ juju show-secret --reveal d5lvqs7mp25c7ffo3tv0
 ```
 
 !!! note
-    Charmarr rotates credentials periodically. If login fails, grab the latest credentials using the commands above.
+    Charmarr [rotates credentials](../security/secrets.md) periodically. If login fails, grab the latest credentials using the commands above.
 
 !!! warning
     The default account is Charmarr's account used for automation. Do not remove or change it.

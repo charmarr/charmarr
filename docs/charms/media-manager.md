@@ -20,7 +20,7 @@ The charms talk to other charms to figure out how to set everything up. The orde
 
 The charm aggressively reconciles download clients. If you manually add a download client in Radarr/Sonarr that isn't a Juju relation, it gets deleted. Charms are declarative and Charmarr is designed to ✨just work✨.
 
-An API key is generated automatically and stored as a Juju secret. It rotates periodically if configured.
+An API key is generated automatically and stored as a Juju secret. It [rotates periodically](../security/secrets.md) if configured.
 
 ### Recyclarr Integration
 
@@ -41,13 +41,13 @@ Recyclarr runs on every reconcile if configured. It's idempotent, so running it 
 
 ```mermaid
 sequenceDiagram
-    participant SC as Storage Charm
+    participant Storage
     participant RC as Radarr/Sonarr Charm
     participant App as Radarr/Sonarr App
-    participant DC as Download Client Charms
+    participant DC as Download Clients
 
-    RC->>SC: Where's the media?
-    SC-->>RC: /data + UID/GID
+    RC->>Storage: Where's the media?
+    Storage-->>RC: /data + UID/GID
     Note over RC: Waits if no reply
 
     RC->>RC: Create API key

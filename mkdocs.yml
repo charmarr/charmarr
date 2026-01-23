@@ -85,13 +85,13 @@ nav:
       - VPN Gateway: charms/vpn-gateway.md
   - Security:
       - security/index.md
-      - VPN Architecture: security/vpn.md
-      - Service Mesh: security/mesh.md
+      - Networking: security/network.md
+      - Secrets: security/secrets.md
   - Backup:
       - backup/index.md
   - Releases:
       - releases/index.md
-      - Upgrading: releases/upgrading.md
       - Track 1: releases/track-1.md
+  - FAQ: faq.md
 
 copyright: Copyright &copy; 2025 | AGPL-3.0

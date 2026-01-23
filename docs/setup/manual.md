@@ -26,7 +26,7 @@ juju deploy istio-k8s --trust --channel=2/edge istio
 
 ### Beacon (Optional)
 
-Required only if you want to use service mesh features like mTLS and authorization policies. Its fancy and secure, but not strictly necessary.
+Required only if you want to use service mesh features like mTLS and authorization policies. See [Networking](../security/network.md) for how the service mesh secures traffic. Fancy and secure, but not strictly necessary.
 
 ```bash
 juju deploy istio-beacon-k8s --trust --channel=2/edge beacon
@@ -47,6 +47,8 @@ juju deploy istio-ingress-k8s --trust --channel=2/edge overseerr-ingress
 ```
 
 ### Storage
+
+Shared storage enables hardlinks between download clients and media managers. See [Storage](../charms/storage.md) for why this matters.
 
 ```bash
 juju deploy charmarr-storage-k8s --trust --channel=latest/edge storage
@@ -96,6 +98,8 @@ For StorageClass with CSI drivers, this is driver-dependent. Block storage drive
 
 ### VPN Gateway
 
+The VPN gateway anonymizes external traffic from privacy-sensitive charms. See [VPN Gateway](../charms/vpn-gateway.md) for how it works.
+
 Deploy gluetun:
 
 ```bash
@@ -140,7 +144,7 @@ juju config qbittorrent ingress-path=/qbt credential-rotation=monthly
 juju config sabnzbd ingress-path=/sab credential-rotation=monthly
 ```
 
-`credential-rotation` automatically rotates credentials on the specified interval (`disabled`, `daily`, `monthly`, `yearly`) and syncs to related apps.
+`credential-rotation` automatically rotates credentials on the specified interval (`disabled`, `daily`, `monthly`, `yearly`) and syncs to related apps. See [Secrets](../security/secrets.md) for how rotation works.
 
 Want more download clients? Deploy additional instances with different names.
 

@@ -22,7 +22,7 @@ The charm aggressively reconciles Radarr/Sonarr servers. If you manually add a s
 sequenceDiagram
     participant OC as Overseerr Charm
     participant Overseerr as Overseerr App
-    participant RC as Radarr/Sonarr Charms
+    participant RC as Radarr/Sonarr
     participant User
 
     OC->>Overseerr: Start

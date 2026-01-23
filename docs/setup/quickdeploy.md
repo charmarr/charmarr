@@ -114,6 +114,8 @@ Look for your network interface IP (e.g., `192.168.1.100/24` means your LAN CIDR
 
 #### Storage
 
+Shared storage enables hardlinks between download clients and media managers. See [Storage](../charms/storage.md) for why this matters.
+
 **Hostpath** - Storage on the same node as the cluster:
 
 ```hcl
@@ -191,7 +193,7 @@ tofu init && TF_VAR_wireguard_private_key="your-key" tofu apply -auto-approve
 See the [charmarr module](https://github.com/charmarr/charmarr/tree/main/terraform/charmarr) for all available variables.
 
 !!! important "VPN & Killswitch"
-    For the curious: qBittorrent, SABnzbd, and Prowlarr pods route all traffic through Gluetun, meaning their internet traffic mandatorily goes through a VPN tunnel and their external IP is anonymized.
+    For the curious: qBittorrent, SABnzbd, and Prowlarr pods route all traffic through Gluetun, meaning their internet traffic mandatorily goes through a VPN tunnel and their external IP is anonymized. See [Networking](../security/network.md) for how this works.
 
     A two-way killswitch is in place:
 
@@ -241,7 +243,7 @@ module "charmarr_plus" {
 
 ### 2. Configure Variables
 
-Same as charmarr. See [VPN Provider](#vpn-provider), [Cluster CIDRs](#cluster-cidrs), [Storage](#storage), and [VPN & Killswitch](#vpn-killswitch) above.
+Same as charmarr. See [VPN Provider](#vpn-provider), [Cluster CIDRs](#cluster-cidrs), and [Storage](#storage) above.
 
 ### 3. Deploy
 

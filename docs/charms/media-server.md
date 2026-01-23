@@ -32,13 +32,13 @@ If you rename a library in Plex, the charm won't overwrite it. But this is not r
 
 ```mermaid
 sequenceDiagram
-    participant SC as Storage Charm
+    participant Storage
     participant PC as Plex Charm
     participant Plex as Plex App
-    participant RC as Radarr/Sonarr Charms
+    participant RC as Radarr/Sonarr
 
-    PC->>SC: Where's the media?
-    SC-->>PC: /data + UID/GID
+    PC->>Storage: Where's the media?
+    Storage-->>PC: /data + UID/GID
     Note over PC: Waits if no reply
 
     PC->>Plex: Start

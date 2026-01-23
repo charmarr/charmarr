@@ -2,7 +2,7 @@
 
 ## Gluetun
 
-The Gluetun charm (`gluetun-k8s`) manages the VPN gateway in your Charmarr stack. Gluetun is a VPN client that routes traffic from download clients through a VPN tunnel to protect your privacy.
+The Gluetun charm (`gluetun-k8s`) manages the VPN gateway in your Charmarr stack. Gluetun routes traffic from connected charms through a VPN tunnel to protect your privacy.
 
 ### Relations
 
@@ -12,16 +12,16 @@ The charm talks to other charms to figure out how to set everything up. The orde
 |-------------|------------------|
 | **qBittorrent/SABnzbd/Prowlarr** | VPN tunnel routing for their traffic |
 
-When download clients connect, the charm automatically configures them to route all external traffic through the VPN. If the VPN connection drops, traffic is blocked (killswitch).
+When charms connect, Gluetun automatically configures them to route all external traffic through the VPN. If the VPN connection drops, traffic is blocked (killswitch).
 
 ### How It Works
 
-Without a VPN gateway, download clients connect directly to the internet and your home IP is exposed to torrent trackers and usenet providers. The Gluetun charm fixes this by doing two things when it starts:
+Without a VPN gateway, charms connect directly to the internet and your home IP is exposed to torrent trackers, indexers, and usenet providers. The Gluetun charm fixes this by doing two things when it starts:
 
 1. Establishes a WireGuard VPN tunnel
-2. Bootstraps a [pod-gateway](https://github.com/angelnu/pod-gateway) server (init container + sidecar) onto itself
+2. Bootstraps a [pod-gateway](https://github.com/angelnu/pod-gateway) server (init container + sidecar) onto its pod
 
-When a download client charm connects to Gluetun, it bootstraps a pod-gateway client (init container + sidecar) onto itself. The client and server form a VXLAN overlay network. A single Gluetun pod serves multiple download clients.
+When a charm connects to Gluetun, the Gluetun charm provides gateway info. The connecting charm uses this info to bootstrap a pod-gateway client (init container + sidecar) onto its pod. The pod-gateway client connects to the pod-gateway server using this gateway info to form a VXLAN overlay network. A single Gluetun pod serves multiple charms.
 
 <center>
 
@@ -68,11 +68,13 @@ A two-way killswitch protects your privacy:
 1. **NetworkPolicy**: Kubernetes blocks traffic if the Gluetun pod dies
 2. **Gluetun's internal firewall**: Blocks traffic if the VPN connection drops
 
+See [Networking](../security/network.md) for technical details on how the killswitch works.
+
 This means:
 
-- A single VPN connection serves all download clients
-- Download clients don't need individual VPN configurations
-- Your real IP is never exposed to torrent trackers or usenet providers in a resilient and reliable way
+- A single VPN connection serves all connected charms
+- Charms don't need individual VPN configurations
+- Your real IP is never exposed to torrent trackers, indexers, or usenet providers in a resilient and reliable way
 
 ### Lifecycle
 
@@ -80,7 +82,7 @@ This means:
 sequenceDiagram
     participant GC as Gluetun Charm
     participant Gluetun as Gluetun App
-    participant DC as Download Client Charms
+    participant CC as Connected Charms
 
     GC->>GC: Read VPN credentials from Juju secret
     GC->>GC: Bootstrap pod-gateway server
@@ -88,11 +90,11 @@ sequenceDiagram
     Gluetun-->>GC: VPN connected
     Note over GC: Waits if no reply
 
-    DC-->>GC: I need VPN routing
-    GC-->>DC: Here's the gateway info
-    DC->>DC: Bootstrap pod-gateway client
-    DC->>GC: Connect via VXLAN
-    DC->>Gluetun: Route traffic through VPN
+    CC-->>GC: I need VPN routing
+    GC-->>CC: Here's the gateway info
+    CC->>CC: Bootstrap pod-gateway client
+    CC->>GC: Connect via VXLAN
+    CC->>Gluetun: Route traffic through VPN
 ```
 
 ### Configuration

@@ -50,7 +50,7 @@ Already have a cluster? Here's the shopping list.
 | OS | Virtualized setups | Untested |
 | Kubernetes | MicroK8s | Recommended |
 | Kubernetes | Other K8s with Calico | Supported |
-| Kubernetes | Cilium CNI | Works with tweaks |
+| Kubernetes | Cilium CNI | Works with [tweaks](#cilium-cni) |
 | Kubernetes | LB with 3+ IPs | Required |
 | Tools | Juju 3.6.x | Required |
 
@@ -82,6 +82,25 @@ juju add-model charmarr
 ```
 
 See the Juju docs for [add-k8s](https://documentation.ubuntu.com/juju/3.6/reference/juju-cli/list-of-juju-cli-commands/add-k8s/) and [bootstrap](https://documentation.ubuntu.com/juju/3.6/reference/juju-cli/list-of-juju-cli-commands/bootstrap/).
+
+---
+
+## Cilium CNI
+
+If your cluster uses Cilium, you need to enable socket-level load balancing in host namespace only mode. This is required for Istio ambient mesh to function correctly.
+
+**Helm:**
+
+```yaml
+socketLB:
+  hostNamespaceOnly: true
+```
+
+**Cilium CLI:**
+
+```bash
+cilium config set bpf-lb-sock-hostns-only true
+```
 
 ---
 

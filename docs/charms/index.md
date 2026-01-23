@@ -3,7 +3,7 @@
 !!! note
     This part of the documentation is just for the curious who want to know what Charmarr does behind the scenes. This is not required to deploy or use Charmarr. Feel free to skip it.
 
-Charmarr is composed of multiple charms that thinly wrap the operational layer of the underlying media applications. This is what allows Charmarr to plug required components together, configure them properly, and keep them running smoothly.
+Charmarr is composed of multiple charms that thinly wrap the operational layer of the underlying media applications. Each charm runs as a dedicated container alongside the application container in the same pod. This is what allows Charmarr to plug required components together, configure them properly, and keep them running smoothly.
 
 <div class="grid cards" markdown>
 
