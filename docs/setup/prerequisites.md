@@ -17,7 +17,7 @@ curl -O https://raw.githubusercontent.com/adhityaravi/fire-flake/main/fire-flake
 just -f charmarr-primitives.just charmarr-primitives-setup
 ```
 
-This installs and configures MicroK8s with all required addons, bootstraps Juju, and creates a `charmarr` model ready for deployment.
+This installs and configures MicroK8s with all required addons, bootstraps Juju, and creates a `charmarr` model. And a clean cluster is ready for Charmarr deployment.
 
 Verify it worked:
 
@@ -26,14 +26,11 @@ juju clouds    # should show mcrk8s
 juju models    # should show charmarr model
 ```
 
-To tear it all down later:
+The recipe also includes a nuke command to remove everything it set up:
 
 ```bash
 just -f charmarr-primitives.just charmarr-primitives-nuke
 ```
-
-!!! warning
-    The just recipe supports Canonical K8s via `k8s=ck8s`, but Charmarr doesn't support it yet — ck8s uses Cilium CNI by default.
 
 ---
 
@@ -49,8 +46,10 @@ Already have a cluster? Here's the shopping list.
 | OS | Other Linux distros | Untested |
 | OS | Virtualized setups | Untested |
 | Kubernetes | MicroK8s | Recommended |
-| Kubernetes | Other K8s with Calico | Supported |
-| Kubernetes | Cilium CNI | Works with [tweaks](#cilium-cni) |
+| Kubernetes | Minikube | Supported |
+| Kubernetes | Other standard K8s | Supported |
+| Kubernetes | K3s / k3d | [Not recommended](#compatibility-checklist) |
+| Kubernetes | Cilium CNI | Works with [tweaks](#compatibility-checklist) |
 | Kubernetes | LB with 3+ IPs | Required |
 | Tools | Juju 3.6.x | Required |
 
@@ -85,22 +84,26 @@ See the Juju docs for [add-k8s](https://documentation.ubuntu.com/juju/3.6/refere
 
 ---
 
-## Cilium CNI
+## Ingress & Security
 
-If your cluster uses Cilium, you need to enable socket-level load balancing in host namespace only mode. This is required for Istio ambient mesh to function correctly.
+Charmarr lets you opt-in to [Istio Ambient](https://istio.io/latest/docs/ambient/overview/) for ingress and service mesh security. Enabling both is **strongly recommended** if your cluster is compatible as it greatly simplifies ingress setup and provides cluster internal network security between services.
 
-**Helm:**
+### Compatibility Checklist
 
-```yaml
-socketLB:
-  hostNamespaceOnly: true
-```
+- [x] Used [The Easy Way](#the-easy-way) to setup the cluster
 
-**Cilium CLI:**
+**— OR —**
 
-```bash
-cilium config set bpf-lb-sock-hostns-only true
-```
+- [x] No Istiod already running on the cluster (if you don't know, it's probably not)
+- [x] Not using K3s or k3d (read the warning below)
+- [x] Not using Cilium CNI (or willing to [configure it](https://istio.io/latest/docs/ambient/install/platform-prerequisites/#cilium))
+
+All checked? Enable Istio and mesh while deploying.
+
+Not all checked? Disable Istio and handle ingress yourself. See [Istio platform prerequisites](https://istio.io/latest/docs/ambient/install/platform-prerequisites/) for details.
+
+!!! warning
+    K3s and k3d use non-standard CNI paths that can conflict with Istio Ambient. Adding Istio may disrupt the CNI chain and cause hard-to-debug networking issues. It can work with careful configuration: [K3s docs](https://istio.io/latest/docs/ambient/install/platform-prerequisites/#k3s), [k3d docs](https://istio.io/latest/docs/ambient/install/platform-prerequisites/#k3d). So if you want to use it with Istio Ambient, do it at your own discretion.
 
 ---
 

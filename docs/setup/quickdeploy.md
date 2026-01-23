@@ -2,8 +2,8 @@
 
 Charmarr provides pre-configured media stack bundles as [HCL](https://developer.hashicorp.com/terraform/language) modules, deployable with OpenTofu.
 
-!!! warning
-    If your K8s cluster already has an Istiod control plane running, Quick Deploy won't work as it deploys its own Istiod. Use [Manual Deploy](manual.md) instead.
+!!! note
+    Cluster already has Istiod? Use [Manual Deploy](manual.md) instead. If you don't know, your cluster doesn't have one.
 
 ## Bundles
 
@@ -119,8 +119,14 @@ Shared storage enables hardlinks between download clients and media managers. Se
 **Hostpath** - Storage on the same node as the cluster:
 
 ```hcl
-storage_backend = "hostpath"
-hostpath        = "/path/to/your/media"
+module "charmarr" {
+  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
+
+  # ... your other config ...
+
+  storage_backend = "hostpath"
+  hostpath        = "/path/to/your/media"
+}
 ```
 
 !!! warning
@@ -129,17 +135,29 @@ hostpath        = "/path/to/your/media"
 **Native NFS** - External NFS server:
 
 ```hcl
-storage_backend = "native-nfs"
-nfs_server      = "192.168.1.100"
-nfs_path        = "/export/charmarr"
+module "charmarr" {
+  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
+
+  # ... your other config ...
+
+  storage_backend = "native-nfs"
+  nfs_server      = "192.168.1.100"
+  nfs_path        = "/export/charmarr"
+}
 ```
 
 **StorageClass** - Custom CSI driver (Rook-Ceph, etc.):
 
 ```hcl
-storage_backend = "storage-class"
-storage_class   = "rook-ceph-block"
-storage_size    = "1Ti"
+module "charmarr" {
+  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
+
+  # ... your other config ...
+
+  storage_backend = "storage-class"
+  storage_class   = "rook-ceph-block"
+  storage_size    = "1Ti"
+}
 ```
 
 !!! warning
@@ -161,11 +179,16 @@ ls -ln /path/to/your/media
 ```
 
 ```hcl
-# Configure storage charm with the actual UID/GID
-storage = {
-  config = {
-    puid = "1001"
-    pgid = "1001"
+module "charmarr" {
+  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
+
+  # ... your other config ...
+
+  storage = {
+    config = {
+      puid = "1001"
+      pgid = "1001"
+    }
   }
 }
 ```
@@ -179,10 +202,46 @@ For StorageClass with CSI drivers, this is driver-dependent. Block storage drive
 If your hardware supports it:
 
 ```hcl
-plex = {
-  hardware_transcoding = true
+module "charmarr" {
+  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
+
+  # ... your other config ...
+
+  plex = {
+    hardware_transcoding = true
+  }
 }
 ```
+
+#### Istio
+
+Enable Istio for ingress and mesh security (see [Compatibility Checklist](prerequisites.md#compatibility-checklist) first):
+
+```hcl
+module "charmarr" {
+  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
+
+  # ... your other config ...
+
+  enable_istio = true
+  enable_mesh  = true
+
+  # Only needed if not using MicroK8s
+  istio = {
+    config = {
+      platform = "minikube"  # see table below
+    }
+  }
+}
+```
+
+| Distribution | `platform` value |
+|--------------|------------------|
+| MicroK8s | `microk8s` (default) |
+| Minikube | `minikube` |
+| Standard K8s (GKE, EKS, AKS, kubeadm) | `""` |
+| K3s | `k3s` |
+| k3d | `k3d` |
 
 ### 3. Deploy
 
@@ -243,7 +302,7 @@ module "charmarr_plus" {
 
 ### 2. Configure Variables
 
-Same as charmarr. See [VPN Provider](#vpn-provider), [Cluster CIDRs](#cluster-cidrs), and [Storage](#storage) above.
+Same as charmarr. See [VPN Provider](#vpn-provider), [Cluster CIDRs](#cluster-cidrs), [Storage](#storage), and [Istio](#istio) above.
 
 ### 3. Deploy
 
@@ -270,6 +329,16 @@ tofu apply
 ```
 
 OpenTofu calculates the diff and applies only what changed. See the [OpenTofu CLI docs](https://opentofu.org/docs/cli/commands/apply/) for more.
+
+---
+
+## Removing Charmarr
+
+To tear down the deployment:
+
+```bash
+tofu destroy
+```
 
 ---
 

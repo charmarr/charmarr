@@ -25,7 +25,9 @@ flowchart LR
 
     subgraph Gluetun Pod
         PGS[Pod Gateway Server]
-        WG[WireGuard]
+        subgraph Gluetun App
+            WG[WireGuard]
+        end
     end
 
     App -->|External| PGC
@@ -99,6 +101,8 @@ Charmarr uses the [Charmed Istio](https://canonical-service-mesh-documentation.r
 
 ### How Traffic Flows
 
+For details, refer to the [upstream Istio docs](https://istio.io/latest/docs/ambient/architecture/traffic-redirection/). TL;DR:
+
 When a pod sends traffic to another pod (source and destination may be on the same node):
 
 <center>
@@ -147,11 +151,11 @@ The charmed service mesh automatically creates authorization rules based on the 
 
 This limits lateral movement if a pod is compromised. An attacker cannot reach pods that the compromised pod has no legitimate reason to contact.
 
-## The Full Picture
+## Traffic Isolation Architecture
 
-Charmarr's network security was designed so that each layer provides protection without interfering with the others. L2 handles external traffic anonymization while L4/L7 secures internal communication. They operate independently, in harmony.
+Charmarr implements defense in depth through orthogonal network layers. The L2 VXLAN overlay handles north-south (external) traffic anonymization while the L4/L7 service mesh secures east-west (internal) communication. These layers operate independently with no shared failure modes but in harmony.
 
-External and internal traffic take different paths from the same source:
+External and internal traffic take isolated paths from the same source:
 
 <center>
 
@@ -164,7 +168,9 @@ flowchart LR
 
     subgraph Gluetun Pod
         PGS[Pod Gateway Server]
-        WG[WireGuard]
+        subgraph Gluetun App
+            WG[WireGuard]
+        end
     end
 
     subgraph L4/L7
@@ -187,3 +193,5 @@ flowchart LR
 ```
 
 </center>
+
+This isolation ensures VPN failures don't cascade into internal operations. When the VPN connection drops or the Gluetun pod goes down, only north-south traffic is blocked. East-west communication remains fully functional — Radarr and Sonarr continue queuing requests to qBittorrent and SABnzbd. Once the VPN is restored, download clients resume fetching from the internet with no manual intervention.

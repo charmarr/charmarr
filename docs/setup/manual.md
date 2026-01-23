@@ -13,38 +13,7 @@ Perfect for learning, debugging, or building something the pre-built bundles don
 
 ## 1. Infrastructure Apps
 
-First, we lay the groundwork: service mesh, ingress gateways, shared storage, and VPN.
-
-### Istio Control Plane
-
-!!! warning
-    Skip istio-k8s if your cluster already has an Istiod control plane. If you are unsure, you don't have one.
-
-```bash
-juju deploy istio-k8s --trust --channel=2/edge istio
-```
-
-### Beacon (Optional)
-
-Required only if you want to use service mesh features like mTLS and authorization policies. See [Networking](../security/network.md) for how the service mesh secures traffic. Fancy and secure, but not strictly necessary.
-
-```bash
-juju deploy istio-beacon-k8s --trust --channel=2/edge beacon
-```
-
-### Ingress Gateways
-
-Three ingress gateways are needed:
-
-- **arr-ingress** for arr apps and download clients (supports path prefixes like `/radarr`, `/sonarr`)
-- **plex-ingress** for Plex (serves at root only)
-- **overseerr-ingress** for Overseerr (serves at root only)
-
-```bash
-juju deploy istio-ingress-k8s --trust --channel=2/edge arr-ingress
-juju deploy istio-ingress-k8s --trust --channel=2/edge plex-ingress
-juju deploy istio-ingress-k8s --trust --channel=2/edge overseerr-ingress
-```
+First, we lay the groundwork: shared storage and VPN.
 
 ### Storage
 
@@ -273,9 +242,42 @@ juju integrate overseerr:media-manager sonarr:media-manager
 juju integrate overseerr:media-server plex:media-server
 ```
 
-### Ingress
+---
 
-Connect apps to Istio ingress gateways. Exposes UIs via LoadBalancer IPs.
+## 4. Istio (Optional)
+
+Istio provides ingress and service mesh security. Check the [Compatibility Checklist](prerequisites.md#compatibility-checklist) before enabling. If you skip Istio, handle ingress yourself (e.g., Nginx Ingress, Traefik, or NodePorts).
+
+### Deploy Istio
+
+**Control Plane:**
+
+```bash
+juju deploy istio-k8s --trust --channel=2/edge istio
+```
+
+!!! warning
+    Skip istio-k8s if your cluster already has an Istiod control plane. If you are unsure, you don't have one.
+
+**Ingress Gateways:**
+
+```bash
+juju deploy istio-ingress-k8s --trust --channel=2/edge arr-ingress
+juju deploy istio-ingress-k8s --trust --channel=2/edge plex-ingress
+juju deploy istio-ingress-k8s --trust --channel=2/edge overseerr-ingress
+```
+
+**Beacon (for service mesh):**
+
+Required only for mTLS and authorization policies. See [Networking](../security/network.md) for details.
+
+```bash
+juju deploy istio-beacon-k8s --trust --channel=2/edge beacon
+```
+
+### Connect Ingress
+
+Expose app UIs via LoadBalancer IPs.
 
 ```bash
 # Arr apps and download clients
@@ -292,9 +294,9 @@ juju integrate plex:istio-ingress-route plex-ingress:istio-ingress-route
 juju integrate overseerr:istio-ingress-route overseerr-ingress:istio-ingress-route
 ```
 
-### Service Mesh (Optional)
+### Connect Service Mesh
 
-Connect apps to Istio ambient mesh. Enables mTLS and authorization policies.
+Requires Beacon. Enables mTLS and authorization policies.
 
 ```bash
 juju integrate radarr:service-mesh beacon:service-mesh

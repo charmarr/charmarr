@@ -3,7 +3,7 @@
 ## Setup
 
 ??? question "What Kubernetes distros are supported?"
-    MicroK8s is recommended and tested. Other Kubernetes distributions with Calico CNI should work. If your cluster uses Cilium, see the [Cilium CNI](setup/prerequisites.md#cilium-cni) section in prerequisites.
+    MicroK8s is recommended and tested. Other Kubernetes distributions with Calico CNI should work. If your cluster uses Cilium, see the [Compatibility Checklist](setup/prerequisites.md#compatibility-checklist) in prerequisites.
 
 ??? question "What are the hardware requirements?"
     Charmarr has more overhead than a simple Docker Compose setup. Kubernetes and Juju add resource consumption. As someone smart once said, there's no free lunch. Charmarr's benefits come with a price to pay.
@@ -26,7 +26,7 @@
 
     One caveat: don't run the NFS server on the same node as Charmarr. Loopback NFS mounts can cause deadlocks.
 
-## VPN
+## Networking
 
 ??? question "Do I need a VPN subscription?"
     Recommended, but not required. Charmarr works best with a WireGuard-compatible VPN for traffic anonymization. ProtonVPN is recommended. See [VPN Provider](setup/quickdeploy.md#vpn-provider) for supported providers.
@@ -60,7 +60,7 @@
 ??? question "Do I need the service mesh?"
     Probably not. It's enterprise-level network hardening made as simple as it can get for homelab use. Do I need it? Most likely not. But homelab is not a place where one does things one needs, it's a place where one does things one wants and can. Does Charmarr make service mesh accessible to any homelab user? Absolutely.
 
-    It can be disabled with `mesh = false` in Quick Deploy and Charmarr still works fairly securely at homelab level.
+    Istio is disabled by default. Enable with `enable_istio = true` and `enable_mesh = true` in Quick Deploy after checking the [Compatibility Checklist](setup/prerequisites.md#compatibility-checklist). Charmarr works fine without it at homelab level.
 
     Why include it? Partly to dogfood my own project from work, but also to expose it to a wider audience who are curious enough to try it. See [Networking](security/network.md) for what it does.
 
@@ -70,7 +70,7 @@
 ## Apps
 
 ??? question "How do I access the web UIs?"
-    Each app is accessible via the ingress gateway. The URLs follow this pattern:
+    With Istio ingress, each app is accessible via the ingress gateway. The URLs follow this pattern:
 
     - Radarr: `http://<ARR_INGRESS_IP>:443/radarr`
     - Sonarr: `http://<ARR_INGRESS_IP>:443/sonarr`
@@ -79,7 +79,7 @@
     - Plex: `http://<PLEX_INGRESS_IP>:443`
     - Overseerr: `http://<OVERSEERR_INGRESS_IP>:443`
 
-    See [Post-Deploy](setup/post-deploy.md) for details on finding ingress IPs.
+    See [Post-Deploy](setup/post-deploy.md) for details on finding ingress IPs. If you're not using Istio, find the URLs based on your ingress setup.
 
 ??? question "Why port 443 with HTTP?"
     Charmarr plans to integrate with Tailscale to securely expose ingress services on your tailnet for remote access. The Tailscale operator exposes all service ports, so Charmarr uses port 443 to be ready for this integration. The port may become configurable in the future. For now, yes, it's unfortunately HTTP on port 443.
@@ -131,7 +131,7 @@
     tofu apply -auto-approve
     ```
 
-    Charmarr follows a [reconciler pattern](https://juju.is/docs/juju/charm-taxonomy#heading--reconciler-pattern), so the order of connections shouldn't matter. However, `tofu apply` throws all connections at the Juju controller at once, which can occasionally cause unexpected states. A fresh apply usually resolves this.
+    Charmarr follows a [reconciliation pattern](https://www.chainguard.dev/unchained/the-principle-of-reconciliation), so the order of connections shouldn't matter. However, `tofu apply` throws all connections at the Juju controller at once, which can occasionally cause unexpected states. A fresh apply usually resolves this.
 
 ??? question "An app is stuck in an error state. What do I do?"
     First, check the logs:

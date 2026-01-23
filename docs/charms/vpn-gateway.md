@@ -76,6 +76,12 @@ This means:
 - Charms don't need individual VPN configurations
 - Your real IP is never exposed to torrent trackers, indexers, or usenet providers in a resilient and reliable way
 
+The Gluetun charm enables bootstrapping this fairly advanced networking layer with a simple intuitive command:
+
+```bash
+juju integrate gluetun sabnzbd
+```
+
 ### Lifecycle
 
 ```mermaid

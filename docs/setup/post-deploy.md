@@ -2,6 +2,9 @@
 
 Charmarr handles the backend wiring for all the cross-application configurations, but Plex and Overseerr need one-time web UI user setup.
 
+!!! important
+    This page assumes you deployed with Istio ingress. If you used a different ingress setup, find the ingress URLs based on your configuration.
+
 ## Watch the Deployment
 
 Open a terminal and run:

@@ -7,7 +7,7 @@ The initial release of Charmarr. A complete media automation stack on Kubernetes
 - **One-command deployment** via OpenTofu module
 - **Automatic app configuration** through Juju relations
 - **VPN-first architecture** with Gluetun and two-way killswitch
-- **Service mesh security** with Istio ambient (optional)
+- **Service mesh security** with Istio ambient (opt-in, disabled by default)
 - **Built-in TRaSH profiles** via Recyclarr integration
 - **Credential rotation** with Juju secrets
 
@@ -58,4 +58,4 @@ Built with [Radarr](https://radarr.video), [Sonarr](https://sonarr.tv), [Prowlar
 
 Powered by [Kubernetes](https://kubernetes.io), [Juju](https://juju.is), [Istio ambient](https://istio.io/latest/docs/ambient/), and [TRaSH Guides](https://trash-guides.info/).
 
-Thanks to [YAMS](https://yams.media) for the inspiration that started this project.
+Thanks to [YAMS](https://yams.media) for the inspiration that started this project, and [k8s@home](https://github.com/k8s-at-home) for being a great source of Kubernetes + arr knowledge.
