@@ -38,7 +38,9 @@ Both bundles include:
 
 Single Radarr and Sonarr with HD TRaSH profiles pre-configured.
 
-### 1. Create main.tf
+### 1. Create a `main.tf` file
+
+See the [OpenTofu docs](https://opentofu.org/docs/) if you're curious about how it works.
 
 ```hcl
 variable "wireguard_private_key" {
@@ -188,13 +190,36 @@ tofu init && TF_VAR_wireguard_private_key="your-key" tofu apply -auto-approve
 
 See the [charmarr module](https://github.com/charmarr/charmarr/tree/main/terraform/charmarr) for all available variables.
 
+!!! important "VPN & Killswitch"
+    For the curious: qBittorrent, SABnzbd, and Prowlarr pods route all traffic through Gluetun, meaning their internet traffic mandatorily goes through a VPN tunnel and their external IP is anonymized.
+
+    A two-way killswitch is in place:
+
+    - If the VPN connection drops, Gluetun's internal killswitch blocks traffic
+    - If the Gluetun pod dies, Kubernetes NetworkPolicies block traffic
+
+    **Inspect the killswitch policies:**
+
+    ```bash
+    kubectl get networkpolicies -n charmarr
+    kubectl describe networkpolicy -n charmarr
+    ```
+
+    **Verify pod external IP (should show VPN IP, not your real IP):**
+
+    ```bash
+    kubectl exec -n charmarr deploy/qbittorrent -- wget -qO- ifconfig.me
+    kubectl exec -n charmarr deploy/sabnzbd -- wget -qO- ifconfig.me
+    kubectl exec -n charmarr deploy/prowlarr -- wget -qO- ifconfig.me
+    ```
+
 ---
 
 ## Charmarr Plus
 
 Three Radarrs (HD, UHD, Anime) and three Sonarrs (HD, UHD, Anime) with appropriate TRaSH profiles.
 
-### 1. Create main.tf
+### 1. Create a `main.tf` file
 
 ```hcl
 variable "wireguard_private_key" {
@@ -216,7 +241,7 @@ module "charmarr_plus" {
 
 ### 2. Configure Variables
 
-Same as charmarr. See [VPN Provider](#vpn-provider), [Cluster CIDRs](#cluster-cidrs), and [Storage](#storage) above.
+Same as charmarr. See [VPN Provider](#vpn-provider), [Cluster CIDRs](#cluster-cidrs), [Storage](#storage), and [VPN & Killswitch](#vpn-killswitch) above.
 
 ### 3. Deploy
 

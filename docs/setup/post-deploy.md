@@ -57,7 +57,7 @@ http://192.168.0.134:443
 ```
 
 !!! note
-    Yes, `http` with port `443`. There is a method behind the madness. This is intentional for future Tailscale integration. And not configurable at this time.
+    Yes, `http` with port `443`. There is a method behind this madness. This is intentional for future Tailscale integration. And not configurable at this time.
 
 ### Complete Plex Setup
 
@@ -65,13 +65,15 @@ http://192.168.0.134:443
 
 ![Plex Step 1](../assets/screenshots/plex1.png)
 
-**Step 2:** Enter a name for your server. If you have Plex Pass, enable remote play if you want (2). Click **Next**.
+**Step 2:** Enter a name for your server. Enable remote play if you want (2). Click **Next**. If you get a Plex Pass popup, you can safely close it.
 
 ![Plex Step 2](../assets/screenshots/plex2.png)
 
-**Step 3:** Movie and TV libraries are already pre-configured by Charmarr (1, 2). The number of libraries here depends on your Radarr(s) and Sonarr(s).  Click **Next**.
+**Step 3:** Movie and TV libraries are already pre-configured by Charmarr (1, 2). The number of libraries here depends on your Radarr(s) and Sonarr(s). Click **Next**.
 
 ![Plex Step 3](../assets/screenshots/plex3.png)
+
+<small>Curious how? See [Plex Charm Lifecycle](../charms/media-server.md#lifecycle).</small>
 
 **Step 4:** Click **Done**.
 
@@ -132,13 +134,15 @@ Wait 5 minutes, then check `juju status`. All apps should be `active`:
 
 ![Juju Status Post-Websetup](../assets/screenshots/juju-status-post-websetup.svg)
 
-In Overseerr, go to:
+In Overseerr UI, go to:
 
 <div class="nav-flow" markdown>
 **Settings** :material-arrow-right: **Services**
 </div>
 
 Radarr(s) and Sonarr(s) should automatically appear. Charmarr added them for you.
+
+<small>Curious how? See [Overseerr Charm Lifecycle](../charms/media-requester.md#lifecycle).</small>
 
 ---
 
@@ -183,7 +187,7 @@ juju show-secret --reveal d5lvqs7mp25c7ffo3tv0
 ```
 
 !!! note
-    Charmarr rotates credentials monthly. If login fails, grab the latest credentials using the commands above.
+    Charmarr rotates credentials periodically. If login fails, grab the latest credentials using the commands above.
 
 !!! warning
     The default account is Charmarr's account used for automation. Do not remove or change it.
@@ -195,6 +199,9 @@ juju show-secret --reveal d5lvqs7mp25c7ffo3tv0
 Charmarr will continue to monitor, reconcile, and heal your stack.
 
 Request a movie in Overseerr, go prepare popcorn and grab a beer, come back and open Plex. Your movie should be ready. Mileage may vary based on internet speeds - you might even have time to prepare dinner.
+
+!!! note
+    This page covers Charmarr-specific configurations only. For general app configurations, which are not necessary for Charmarr as it does all the configurations for you, refer to each app's own documentation.
 
 ---
 
