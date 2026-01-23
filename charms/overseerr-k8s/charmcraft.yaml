@@ -30,6 +30,11 @@ charm-libs:
     version: "0"
   - lib: istio_ingress_k8s.istio_ingress_route
     version: "0"
+  # FIXME: velero_libs.velero_backup_config not yet on Charmhub.
+  # Check with Kubeflow team when it's published, then fetch via charmcraft fetch-libs.
+  # Currently vendored from https://github.com/canonical/velero-operator
+  # - lib: velero_libs.velero_backup_config
+  #   version: "0"
 
 containers:
   overseerr:
@@ -56,6 +61,11 @@ provides:
     interface: cross_model_mesh
     optional: true
     description: Access cross-model applications via service mesh
+  velero-backup-config:
+    interface: velero_backup_config
+    limit: 1
+    optional: true
+    description: Configure Velero backups for config storage
 
 requires:
   require-cmr-mesh:

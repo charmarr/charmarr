@@ -22,6 +22,7 @@ from charms.istio_ingress_k8s.v0.istio_ingress_route import (
     Listener,
     ProtocolType,
 )
+from charms.velero_libs.v0.velero_backup_config import VeleroBackupProvider, VeleroBackupSpec
 
 from _overseerr import (
     API_KEY_SECRET_LABEL,
@@ -64,6 +65,16 @@ class OverseerrCharm(ops.CharmBase):
         self._media_server = MediaServerRequirer(self, "media-server")
         self._service_mesh = ServiceMeshConsumer(self)
         self._ingress = IstioIngressRouteRequirer(self, relation_name="istio-ingress-route")
+        self._velero_backup = VeleroBackupProvider(
+            self,
+            relation_name="velero-backup-config",
+            spec=VeleroBackupSpec(
+                include_namespaces=[self.model.name],
+                include_resources=["persistentvolumeclaims"],
+                label_selector={"app.kubernetes.io/name": self.app.name},
+                ttl="720h",
+            ),
+        )
 
         observe_events(self, reconcilable_events_k8s, self._reconcile)
         framework.observe(self._media_manager.on.changed, self._reconcile)

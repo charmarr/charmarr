@@ -23,6 +23,7 @@ from charms.istio_ingress_k8s.v0.istio_ingress_route import (
     Listener,
     ProtocolType,
 )
+from charms.velero_libs.v0.velero_backup_config import VeleroBackupProvider, VeleroBackupSpec
 
 from _plex import (
     CONTAINER_NAME,
@@ -81,6 +82,16 @@ class PlexCharm(ops.CharmBase):
             ],
         )
         self._ingress = IstioIngressRouteRequirer(self, relation_name="istio-ingress-route")
+        self._velero_backup = VeleroBackupProvider(
+            self,
+            relation_name="velero-backup-config",
+            spec=VeleroBackupSpec(
+                include_namespaces=[self.model.name],
+                include_resources=["persistentvolumeclaims"],
+                label_selector={"app.kubernetes.io/name": self.app.name},
+                ttl="720h",
+            ),
+        )
 
         observe_events(self, reconcilable_events_k8s, self._reconcile)
         framework.observe(self._media_storage.on.changed, self._reconcile)

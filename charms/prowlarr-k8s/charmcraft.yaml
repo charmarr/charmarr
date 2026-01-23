@@ -73,6 +73,11 @@ provides:
     interface: cross_model_mesh
     optional: true
     description: Access cross-model applications via service mesh
+  velero-backup-config:
+    interface: velero_backup_config
+    limit: 1
+    optional: true
+    description: Configure Velero backups for config storage
 
 requires:
   require-cmr-mesh:
@@ -93,11 +98,6 @@ requires:
     limit: 1
     optional: true
     description: Subscribe this charm into a service mesh for policy-driven traffic management
-  velero-backup-config:
-    interface: velero_backup_config
-    limit: 1
-    optional: true
-    description: Configure Velero backups for config storage
   istio-ingress-route:
     interface: istio_ingress_route
     limit: 1
