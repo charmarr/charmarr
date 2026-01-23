@@ -10,8 +10,6 @@
   <a href="https://github.com/charmarr/charmarr/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue" alt="License"></a>
 </p>
 
-## Charms
-
 | Charm | Description | CharmHub |
 |:-----:|:-----------:|:--------:|
 | | **Infrastructure** | |
@@ -29,7 +27,3 @@
 | | **Media Servers** | |
 | **plex-k8s** | Plex Media Server with hardware transcoding support | [![CharmHub](https://charmhub.io/plex-k8s/badge.svg)](https://charmhub.io/plex-k8s) |
 | **overseerr-k8s** | Media request management for Plex with Radarr/Sonarr integration | [![CharmHub](https://charmhub.io/overseerr-k8s/badge.svg)](https://charmhub.io/overseerr-k8s) |
-
-## License
-
-AGPL-3.0-or-later
