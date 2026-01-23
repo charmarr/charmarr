@@ -247,7 +247,7 @@ resource "juju_integration" "plex_overseerr" {
 # -----------------------------------------------------------------------------
 
 resource "juju_integration" "beacon_qbittorrent" {
-  count      = var.mesh ? 1 : 0
+  count      = var.enable_mesh ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
@@ -262,7 +262,7 @@ resource "juju_integration" "beacon_qbittorrent" {
 }
 
 resource "juju_integration" "beacon_sabnzbd" {
-  count      = var.mesh ? 1 : 0
+  count      = var.enable_mesh ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
@@ -277,7 +277,7 @@ resource "juju_integration" "beacon_sabnzbd" {
 }
 
 resource "juju_integration" "beacon_prowlarr" {
-  count      = var.mesh ? 1 : 0
+  count      = var.enable_mesh ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
@@ -292,7 +292,7 @@ resource "juju_integration" "beacon_prowlarr" {
 }
 
 resource "juju_integration" "beacon_flaresolverr" {
-  count      = var.mesh ? 1 : 0
+  count      = var.enable_mesh ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
@@ -307,7 +307,7 @@ resource "juju_integration" "beacon_flaresolverr" {
 }
 
 resource "juju_integration" "beacon_radarr" {
-  count      = var.mesh ? 1 : 0
+  count      = var.enable_mesh ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
@@ -322,7 +322,7 @@ resource "juju_integration" "beacon_radarr" {
 }
 
 resource "juju_integration" "beacon_sonarr" {
-  count      = var.mesh ? 1 : 0
+  count      = var.enable_mesh ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
@@ -337,7 +337,7 @@ resource "juju_integration" "beacon_sonarr" {
 }
 
 resource "juju_integration" "beacon_plex" {
-  count      = var.mesh ? 1 : 0
+  count      = var.enable_mesh ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
@@ -352,7 +352,7 @@ resource "juju_integration" "beacon_plex" {
 }
 
 resource "juju_integration" "beacon_overseerr" {
-  count      = var.mesh ? 1 : 0
+  count      = var.enable_mesh ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
@@ -371,10 +371,11 @@ resource "juju_integration" "beacon_overseerr" {
 # -----------------------------------------------------------------------------
 
 resource "juju_integration" "arr_ingress_radarr" {
+  count      = var.enable_istio ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
-    name     = module.arr_ingress.app_name
+    name     = module.arr_ingress[0].app_name
     endpoint = "istio-ingress-route"
   }
 
@@ -385,10 +386,11 @@ resource "juju_integration" "arr_ingress_radarr" {
 }
 
 resource "juju_integration" "arr_ingress_sonarr" {
+  count      = var.enable_istio ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
-    name     = module.arr_ingress.app_name
+    name     = module.arr_ingress[0].app_name
     endpoint = "istio-ingress-route"
   }
 
@@ -399,10 +401,11 @@ resource "juju_integration" "arr_ingress_sonarr" {
 }
 
 resource "juju_integration" "arr_ingress_prowlarr" {
+  count      = var.enable_istio ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
-    name     = module.arr_ingress.app_name
+    name     = module.arr_ingress[0].app_name
     endpoint = "istio-ingress-route"
   }
 
@@ -413,10 +416,11 @@ resource "juju_integration" "arr_ingress_prowlarr" {
 }
 
 resource "juju_integration" "arr_ingress_qbittorrent" {
+  count      = var.enable_istio ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
-    name     = module.arr_ingress.app_name
+    name     = module.arr_ingress[0].app_name
     endpoint = "istio-ingress-route"
   }
 
@@ -427,10 +431,11 @@ resource "juju_integration" "arr_ingress_qbittorrent" {
 }
 
 resource "juju_integration" "arr_ingress_sabnzbd" {
+  count      = var.enable_istio ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
-    name     = module.arr_ingress.app_name
+    name     = module.arr_ingress[0].app_name
     endpoint = "istio-ingress-route"
   }
 
@@ -441,10 +446,11 @@ resource "juju_integration" "arr_ingress_sabnzbd" {
 }
 
 resource "juju_integration" "plex_ingress_plex" {
+  count      = var.enable_istio ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
-    name     = module.plex_ingress.app_name
+    name     = module.plex_ingress[0].app_name
     endpoint = "istio-ingress-route"
   }
 
@@ -455,10 +461,11 @@ resource "juju_integration" "plex_ingress_plex" {
 }
 
 resource "juju_integration" "overseerr_ingress_overseerr" {
+  count      = var.enable_istio ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
-    name     = module.overseerr_ingress.app_name
+    name     = module.overseerr_ingress[0].app_name
     endpoint = "istio-ingress-route"
   }
 

@@ -21,10 +21,21 @@ variable "istio_channel" {
   default     = "2/edge"
 }
 
-variable "mesh" {
-  description = "Enable service mesh hardening"
+variable "enable_istio" {
+  description = "Enable Istio for ingress"
   type        = bool
-  default     = true
+  default     = false
+}
+
+variable "enable_mesh" {
+  description = "Enable service mesh hardening (requires enable_istio = true)"
+  type        = bool
+  default     = false
+
+  validation {
+    condition     = var.enable_mesh == false || var.enable_istio == true
+    error_message = "enable_mesh = true requires enable_istio = true"
+  }
 }
 
 # -----------------------------------------------------------------------------

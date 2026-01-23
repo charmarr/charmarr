@@ -30,17 +30,17 @@ output "applications" {
 
 output "istio" {
   description = "Map of Istio application names"
-  value = {
-    control_plane = module.istio.app_name
-    beacon        = var.mesh ? module.beacon[0].app_name : null
-  }
+  value = var.enable_istio ? {
+    control_plane = module.istio[0].app_name
+    beacon        = var.enable_mesh ? module.beacon[0].app_name : null
+  } : null
 }
 
 output "ingress" {
   description = "Map of ingress application names"
-  value = {
-    arr       = module.arr_ingress.app_name
-    plex      = module.plex_ingress.app_name
-    overseerr = module.overseerr_ingress.app_name
-  }
+  value = var.enable_istio ? {
+    arr       = module.arr_ingress[0].app_name
+    plex      = module.plex_ingress[0].app_name
+    overseerr = module.overseerr_ingress[0].app_name
+  } : null
 }

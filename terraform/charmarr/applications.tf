@@ -201,6 +201,7 @@ module "overseerr" {
 # -----------------------------------------------------------------------------
 
 module "istio" {
+  count  = var.enable_istio ? 1 : 0
   source = "git::https://github.com/canonical/istio-k8s-operator//terraform?ref=main"
 
   model_uuid  = data.juju_model.model.uuid
@@ -212,7 +213,7 @@ module "istio" {
 }
 
 module "beacon" {
-  count  = var.mesh ? 1 : 0
+  count  = var.enable_mesh ? 1 : 0
   source = "git::https://github.com/canonical/istio-beacon-k8s-operator//terraform?ref=main"
 
   model_uuid  = data.juju_model.model.uuid
@@ -224,6 +225,7 @@ module "beacon" {
 }
 
 module "arr_ingress" {
+  count  = var.enable_istio ? 1 : 0
   source = "git::https://github.com/canonical/istio-ingress-k8s-operator//terraform?ref=main"
 
   model_uuid  = data.juju_model.model.uuid
@@ -235,6 +237,7 @@ module "arr_ingress" {
 }
 
 module "plex_ingress" {
+  count  = var.enable_istio ? 1 : 0
   source = "git::https://github.com/canonical/istio-ingress-k8s-operator//terraform?ref=main"
 
   model_uuid  = data.juju_model.model.uuid
@@ -246,6 +249,7 @@ module "plex_ingress" {
 }
 
 module "overseerr_ingress" {
+  count  = var.enable_istio ? 1 : 0
   source = "git::https://github.com/canonical/istio-ingress-k8s-operator//terraform?ref=main"
 
   model_uuid  = data.juju_model.model.uuid
