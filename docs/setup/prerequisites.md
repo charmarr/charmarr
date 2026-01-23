@@ -61,11 +61,13 @@ sudo microk8s enable dns rbac hostpath-storage metrics-server metallb registry
 
 ### Juju Setup
 
-Install:
+Install via snap:
 
 ```bash
 sudo snap install juju --channel=3.6/stable
 ```
+
+Juju `3.6.x` is also available from [nixpkgs](https://search.nixos.org/packages?query=juju) and as a [binary download](https://documentation.ubuntu.com/juju/3.6/howto/manage-juju/).
 
 Bootstrap with your cluster:
 
