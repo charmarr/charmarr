@@ -115,11 +115,11 @@ And you're done. Charmarr begins autonomously wiring up the apps for you.
 
     Public traffic stays anonymized always via Gluetun. And protected with a double layered kill switch. Meaning no leaks, ever.
 
--   :material-shield-lock: **Zero-trust by default**
+-   :material-shield-lock: **Zero-trust ready**
 
     ---
 
-    Istio Ambient authz firewalls with mTLS between every service automatically created based on charm relations. Encrypted and authorized traffic only.
+    Enable Istio Ambient for mTLS and authz firewalls between services, auto-configured from charm relations. Enterprise security, one flag away.
 
 -   :material-heart-pulse: **It fixes itself**
 
