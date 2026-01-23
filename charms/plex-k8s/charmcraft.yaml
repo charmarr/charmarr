@@ -11,14 +11,6 @@ description: |
   - Optional hardware transcoding (Intel QuickSync)
   - Ingress integration for remote access
 
-  After deployment:
-  1. Set claim-token config (from plex.tv/claim) to claim server
-  2. Relate to radarr-k8s and sonarr-k8s for automatic library setup
-  3. Libraries are created automatically based on media manager folders
-
-  Note: Plex is automatically discovered by Overseerr via plex.tv
-  after OAuth - no manual URL configuration needed.
-
   Requires --trust for RBAC permissions.
 
 links:
