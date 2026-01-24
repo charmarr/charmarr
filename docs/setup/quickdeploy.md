@@ -207,28 +207,6 @@ ip -4 addr show | grep -oP 'inet \K[\d./]+'
 
 Look for your network interface IP (e.g., `192.168.1.100/24` means your LAN CIDR is `192.168.1.0/24`).
 
-**Killswitch**
-
-A two-way killswitch protects your privacy:
-
-- If the VPN connection drops, Gluetun's internal killswitch blocks traffic
-- If the Gluetun pod dies, Kubernetes NetworkPolicies block traffic
-
-Inspect the killswitch policies:
-
-```bash
-kubectl get networkpolicies -n charmarr
-kubectl describe networkpolicy -n charmarr
-```
-
-Verify pod external IP (should show VPN IP, not your real IP):
-
-```bash
-kubectl exec -n charmarr deploy/qbittorrent -- wget -qO- ifconfig.me
-kubectl exec -n charmarr deploy/sabnzbd -- wget -qO- ifconfig.me
-kubectl exec -n charmarr deploy/prowlarr -- wget -qO- ifconfig.me
-```
-
 **Disabling VPN**
 
 If you use a different tunneling solution (e.g., Tailscale exit node, network-level VPN), you can disable the built-in VPN:
@@ -412,16 +390,7 @@ See the [charmarr-plus module](https://github.com/charmarr/charmarr/tree/main/te
 
 ## Making Changes
 
-Edit your `main.tf` and reapply:
-
-```bash
-TF_VAR_wireguard_private_key="your-key" tofu apply
-```
-
-!!! warning
-    Always provide the WireGuard key when reapplying with VPN enabled. Omitting it will remove the key from Gluetun and may cause it to hang.
-
-OpenTofu calculates the diff and applies only what changed.
+Edit your `main.tf` and reapply. OpenTofu calculates the diff and applies only what changed.
 
 For example, to enable Istio ingress later:
 
@@ -437,6 +406,9 @@ module "charmarr" {
 ```bash
 TF_VAR_wireguard_private_key="your-key" tofu apply
 ```
+
+!!! warning
+    Always provide the WireGuard key when reapplying with VPN enabled. Omitting it will remove the key from Gluetun and may cause it to hang.
 
 See the [OpenTofu CLI docs](https://opentofu.org/docs/cli/commands/apply/) for more.
 
