@@ -12,7 +12,7 @@ output "applications" {
   description = "Map of deployed application names"
   value = {
     storage      = module.storage.app_name
-    gluetun      = module.gluetun.app_name
+    gluetun      = var.enable_vpn ? module.gluetun[0].app_name : null
     qbittorrent  = module.qbittorrent.app_name
     sabnzbd      = module.sabnzbd.app_name
     prowlarr     = module.prowlarr.app_name
