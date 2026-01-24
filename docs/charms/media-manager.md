@@ -8,15 +8,15 @@ The Radarr charm (`radarr-k8s`) and Sonarr charm (`sonarr-k8s`) manage Radarr an
 
 The charms talk to other charms to figure out how to set everything up. The order in which these connections happen doesn't matter. The charm sorts it out.
 
-| Connects To | What It Learns |
-|-------------|----------------|
-| **Storage** | Where the media root is, UID/GID for file permissions |
-| **Prowlarr** | Publishes API URL so Prowlarr can push indexers |
-| **qBittorrent/SABnzbd** | Gets their connection info, configures them as download clients |
-| **Plex** | Publishes root folders and content type so Plex can create libraries |
-| **Overseerr** | Publishes API URL, quality profiles, root folders so Overseerr can send requests |
-| **VPN Gateway** | Optional VPN routing (if related) |
-| **Ingress** | Enables external access |
+| Connects To | Interface | What It Learns |
+|-------------|-----------|----------------|
+| **Storage** | `media-storage` | Where the media root is, UID/GID for file permissions |
+| **Prowlarr** | `media-indexer` | Publishes API URL so Prowlarr can push indexers |
+| **qBittorrent/SABnzbd** | `download-client` | Gets their connection info, configures them as download clients |
+| **Plex** | `media-manager` | Publishes root folders and content type so Plex can create libraries |
+| **Overseerr** | `media-manager` | Publishes API URL, quality profiles, root folders so Overseerr can send requests |
+| **VPN Gateway** | `vpn-gateway` | Optional VPN routing (if related) |
+| **Ingress** | `istio_ingress_route` | Enables external access |
 
 The charm aggressively reconciles download clients. If you manually add a download client in Radarr/Sonarr that isn't a Juju relation, it gets deleted. Charms are declarative and Charmarr is designed to ✨just work✨.
 

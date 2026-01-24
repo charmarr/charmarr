@@ -8,11 +8,11 @@ The Overseerr charm (`overseerr-k8s`) manages Overseerr in your Charmarr stack. 
 
 The charm talks to other charms to figure out how to set up Overseerr. The order in which these connections happen doesn't matter. The charm sorts it out.
 
-| Connects To | What It Learns |
-|-------------|----------------|
-| **Radarr/Sonarr** | API URL, quality profiles, root folders. Configures them automatically in Overseerr. |
-| **Plex** | Allows Overseerr to talk to Plex |
-| **Ingress** | Enables external access to Overseerr |
+| Connects To | Interface | What It Learns |
+|-------------|-----------|----------------|
+| **Radarr/Sonarr** | `media-manager` | API URL, quality profiles, root folders. Configures them automatically in Overseerr. |
+| **Plex** | `media-server` | Allows Overseerr to talk to Plex |
+| **Ingress** | `istio_ingress_route` | Enables external access to Overseerr |
 
 The charm aggressively reconciles Radarr/Sonarr servers. If you manually add a server in Overseerr that isn't a Juju relation, it gets deleted. Charms are declarative and Charmarr is designed to ✨just work✨.
 

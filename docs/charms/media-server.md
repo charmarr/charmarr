@@ -8,12 +8,12 @@ The Plex charm (`plex-k8s`) manages Plex Media Server in your Charmarr stack.
 
 The charm talks to other charms to figure out how to set up Plex. The order in which these connections happen doesn't matter. The charm sorts it out.
 
-| Connects To | What It Learns |
-|-------------|----------------|
-| **Storage** | Where the media root is (`/data`), UID/GID for file permissions |
-| **Radarr/Sonarr** | Where each app hardlinks its media and what content type (movies, tv, anime, 4k, etc.) |
-| **Overseerr** | Allows Overseerr to talk to Plex |
-| **Ingress** | Enables external access to Plex |
+| Connects To | Interface | What It Learns |
+|-------------|-----------|----------------|
+| **Storage** | `media-storage` | Where the media root is (`/data`), UID/GID for file permissions |
+| **Radarr/Sonarr** | `media-manager` | Where each app hardlinks its media and what content type (movies, tv, anime, 4k, etc.) |
+| **Overseerr** | `media-server` | Allows Overseerr to talk to Plex |
+| **Ingress** | `istio_ingress_route` | Enables external access to Plex |
 
 From this information, the charm automatically creates Plex libraries that match your Radarr/Sonarr setup:
 

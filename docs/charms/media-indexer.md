@@ -8,12 +8,12 @@ The Prowlarr charm (`prowlarr-k8s`) manages Prowlarr in your Charmarr stack. Pro
 
 The charm talks to other charms to figure out how to set everything up. The order in which these connections happen doesn't matter. The charm sorts it out.
 
-| Connects To | What It Learns |
-|-------------|----------------|
-| **Radarr/Sonarr** | Gets their API URLs, registers them as "Applications" in Prowlarr |
-| **FlareSolverr** | Gets its URL, configures it as a proxy for Cloudflare-protected indexers |
-| **VPN Gateway** | VPN routing |
-| **Ingress** | Enables external access |
+| Connects To | Interface | What It Learns |
+|-------------|-----------|----------------|
+| **Radarr/Sonarr** | `media-indexer` | Gets their API URLs, registers them as "Applications" in Prowlarr |
+| **FlareSolverr** | `flaresolverr` | Gets its URL, configures it as a proxy for Cloudflare-protected indexers |
+| **VPN Gateway** | `vpn-gateway` | VPN routing |
+| **Ingress** | `istio_ingress_route` | Enables external access |
 
 Unlike Radarr/Sonarr, Prowlarr doesn't need storage or download client relations. It only manages indexers.
 
@@ -60,9 +60,9 @@ The FlareSolverr charm (`flaresolverr-k8s`) manages FlareSolverr in your Charmar
 
 ### Relations
 
-| Connects To | What It Provides |
-|-------------|------------------|
-| **Prowlarr** | Its URL so Prowlarr can use it as a proxy |
+| Connects To | Interface | What It Provides |
+|-------------|-----------|------------------|
+| **Prowlarr** | `flaresolverr` | Its URL so Prowlarr can use it as a proxy |
 
 ### Lifecycle
 

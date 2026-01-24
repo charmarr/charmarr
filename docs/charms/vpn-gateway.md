@@ -8,9 +8,9 @@ The Gluetun charm (`gluetun-k8s`) manages the VPN gateway in your Charmarr stack
 
 The charm talks to other charms to figure out how to set everything up. The order in which these connections happen doesn't matter. The charm sorts it out.
 
-| Connects To | What It Provides |
-|-------------|------------------|
-| **qBittorrent/SABnzbd/Prowlarr** | VPN tunnel routing for their traffic |
+| Connects To | Interface | What It Provides |
+|-------------|-----------|------------------|
+| **qBittorrent/SABnzbd/Prowlarr** | `vpn-gateway` | VPN tunnel routing for their traffic |
 
 When charms connect, Gluetun automatically configures them to route all external traffic through the VPN. If the VPN connection drops, traffic is blocked (killswitch).
 

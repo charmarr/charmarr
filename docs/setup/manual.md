@@ -195,6 +195,31 @@ juju integrate sabnzbd:vpn-gateway gluetun:vpn-gateway
 juju integrate prowlarr:vpn-gateway gluetun:vpn-gateway
 ```
 
+A two-way killswitch protects your privacy:
+
+- If the VPN connection drops, Gluetun's internal killswitch blocks traffic
+- If the Gluetun pod dies, Kubernetes NetworkPolicies block traffic
+
+**Verify pod external IP (should show VPN IP, not your real IP):**
+
+```bash
+kubectl exec -n charmarr deploy/qbittorrent -- wget -qO- ifconfig.me
+kubectl exec -n charmarr deploy/sabnzbd -- wget -qO- ifconfig.me
+kubectl exec -n charmarr deploy/prowlarr -- wget -qO- ifconfig.me
+```
+
+**Skipping VPN**
+
+If you use a different tunneling solution, skip Gluetun deployment and VPN integrations. You must enable `unsafe-mode` on qBittorrent and SABnzbd for them to start without VPN protection:
+
+```bash
+juju config qbittorrent unsafe-mode=true
+juju config sabnzbd unsafe-mode=true
+```
+
+!!! warning
+    Without VPN integration, your real IP is exposed to torrent trackers and usenet providers.
+
 ### Cloudflare Bypass
 
 Connect FlareSolverr to Prowlarr. Solves captchas for indexers behind Cloudflare protection.
@@ -247,6 +272,27 @@ juju integrate overseerr:media-server plex:media-server
 ## 4. Istio (Optional)
 
 Istio provides ingress and service mesh security. Check the [Compatibility Checklist](prerequisites.md#compatibility-checklist) before enabling. If you skip Istio, handle ingress yourself (e.g., Nginx Ingress, Traefik, or NodePorts).
+
+**Path Prefixes**
+
+The arr apps and download clients are configured with default path prefixes:
+
+| App | Default Path |
+|-----|--------------|
+| Radarr | `/radarr` |
+| Sonarr | `/sonarr` |
+| Prowlarr | `/prowlarr` |
+| qBittorrent | `/qbittorrent` |
+| SABnzbd | `/sabnzbd` |
+
+With Istio ingress, these paths are automatically configured. If you're using your own ingress controller, configure it to route these paths to the respective services.
+
+To use different paths, or set `/` to serve at root (no path prefix):
+
+```bash
+juju config radarr ingress-path=/movies
+juju config qbittorrent ingress-path=/
+```
 
 ### Deploy Istio
 

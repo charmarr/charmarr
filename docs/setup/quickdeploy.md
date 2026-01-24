@@ -52,6 +52,7 @@ module "charmarr" {
   source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
 
   model                 = "charmarr"
+  enable_vpn            = true
   wireguard_private_key = var.wireguard_private_key
   vpn_provider          = "protonvpn"
   cluster_cidrs         = "10.1.0.0/16,10.152.183.0/24,192.168.1.0/24"
@@ -213,6 +214,61 @@ module "charmarr" {
 }
 ```
 
+#### VPN
+
+By default, `enable_vpn = true` deploys Gluetun and integrates it with qBittorrent, SABnzbd, and Prowlarr. All traffic from these apps routes through a VPN tunnel and their external IP is anonymized. See [Networking](../security/network.md) for how this works.
+
+A two-way killswitch protects your privacy:
+
+- If the VPN connection drops, Gluetun's internal killswitch blocks traffic
+- If the Gluetun pod dies, Kubernetes NetworkPolicies block traffic
+
+**Inspect the killswitch policies:**
+
+```bash
+kubectl get networkpolicies -n charmarr
+kubectl describe networkpolicy -n charmarr
+```
+
+**Verify pod external IP (should show VPN IP, not your real IP):**
+
+```bash
+kubectl exec -n charmarr deploy/qbittorrent -- wget -qO- ifconfig.me
+kubectl exec -n charmarr deploy/sabnzbd -- wget -qO- ifconfig.me
+kubectl exec -n charmarr deploy/prowlarr -- wget -qO- ifconfig.me
+```
+
+**Disabling VPN**
+
+If you use a different tunneling solution (e.g., Tailscale exit node, network-level VPN), you can disable the built-in VPN:
+
+```hcl
+module "charmarr" {
+  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
+
+  # ... your other config ...
+
+  enable_vpn = false
+
+  qbittorrent = {
+    config = {
+      "unsafe-mode" = "true"
+    }
+  }
+
+  sabnzbd = {
+    config = {
+      "unsafe-mode" = "true"
+    }
+  }
+}
+```
+
+When `enable_vpn = false`, Gluetun is not deployed and download clients are not integrated with a VPN gateway. You must also enable `unsafe-mode` on qBittorrent and SABnzbd for them to start without VPN protection.
+
+!!! warning
+    Without VPN integration, your real IP is exposed to torrent trackers and usenet providers. Only disable VPN if you have an alternative tunneling solution in place.
+
 #### Istio
 
 Enable Istio for ingress and mesh security (see [Compatibility Checklist](prerequisites.md#compatibility-checklist) first):
@@ -243,6 +299,38 @@ module "charmarr" {
 | K3s | `k3s` |
 | k3d | `k3d` |
 
+**Path Prefixes**
+
+The arr apps and download clients are configured with path prefixes for ingress routing:
+
+| App | Default Path |
+|-----|--------------|
+| Radarr | `/radarr` |
+| Sonarr | `/sonarr` |
+| Prowlarr | `/prowlarr` |
+| qBittorrent | `/qbittorrent` |
+| SABnzbd | `/sabnzbd` |
+
+With Istio ingress, these paths are automatically configured. If you're using your own ingress controller, configure it to route these paths to the respective services.
+
+To use different paths, or set `"/"` to serve at root (no path prefix):
+
+```hcl
+module "charmarr" {
+  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
+
+  # ... your other config ...
+
+  radarr = {
+    ingress_path = "/movies"
+  }
+
+  qbittorrent = {
+    ingress_path = "/"  # serve at root
+  }
+}
+```
+
 ### 3. Deploy
 
 ```bash
@@ -250,29 +338,6 @@ tofu init && TF_VAR_wireguard_private_key="your-key" tofu apply -auto-approve
 ```
 
 See the [charmarr module](https://github.com/charmarr/charmarr/tree/main/terraform/charmarr) for all available variables.
-
-!!! important "VPN & Killswitch"
-    For the curious: qBittorrent, SABnzbd, and Prowlarr pods route all traffic through Gluetun, meaning their internet traffic mandatorily goes through a VPN tunnel and their external IP is anonymized. See [Networking](../security/network.md) for how this works.
-
-    A two-way killswitch is in place:
-
-    - If the VPN connection drops, Gluetun's internal killswitch blocks traffic
-    - If the Gluetun pod dies, Kubernetes NetworkPolicies block traffic
-
-    **Inspect the killswitch policies:**
-
-    ```bash
-    kubectl get networkpolicies -n charmarr
-    kubectl describe networkpolicy -n charmarr
-    ```
-
-    **Verify pod external IP (should show VPN IP, not your real IP):**
-
-    ```bash
-    kubectl exec -n charmarr deploy/qbittorrent -- wget -qO- ifconfig.me
-    kubectl exec -n charmarr deploy/sabnzbd -- wget -qO- ifconfig.me
-    kubectl exec -n charmarr deploy/prowlarr -- wget -qO- ifconfig.me
-    ```
 
 ---
 
@@ -292,6 +357,7 @@ module "charmarr_plus" {
   source = "git::https://github.com/charmarr/charmarr//terraform/charmarr-plus?ref=main"
 
   model                 = "charmarr"
+  enable_vpn            = true
   wireguard_private_key = var.wireguard_private_key
   vpn_provider          = "protonvpn"
   cluster_cidrs         = "10.1.0.0/16,10.152.183.0/24,192.168.1.0/24"

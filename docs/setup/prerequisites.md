@@ -51,7 +51,7 @@ Already have a cluster? Here's the shopping list.
 | Kubernetes | K3s / k3d | Supported | [Needs tweaks](#compatibility-checklist) |
 | Kubernetes | Cilium CNI | Supported | [Needs tweaks](#compatibility-checklist) |
 | Kubernetes | LB with 3+ IPs | - | Required |
-| Tools | Juju 3.6.x | Required | - |
+| Tools | Juju 3.6.x | Required | Required |
 
 ### MicroK8s Addons
 

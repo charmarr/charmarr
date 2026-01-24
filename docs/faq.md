@@ -82,7 +82,7 @@
     See [Post-Deploy](setup/post-deploy.md) for details on finding ingress IPs. If you're not using Istio, find the URLs based on your ingress setup.
 
 ??? question "Why port 443 with HTTP?"
-    Charmarr plans to integrate with Tailscale to securely expose ingress services on your tailnet for remote access. The Tailscale operator exposes all service ports, so Charmarr uses port 443 to be ready for this integration. The port may become configurable in the future. For now, yes, it's unfortunately HTTP on port 443.
+    This applies when using Istio ingress. Charmarr plans to integrate with Tailscale to securely expose ingress services on your tailnet for remote access. The Tailscale operator exposes all service ports, so Charmarr uses port 443 to be ready for this integration. The port may become configurable in the future. For now, yes, it's unfortunately HTTP on port 443. If you're using your own ingress controller, you can configure any port you prefer.
 
 ??? question "Can I add more Radarr/Sonarr instances?"
     Yes. Deploy additional instances with unique names and variants. For example:

@@ -14,11 +14,11 @@ The storage charm creates the necessary Kubernetes storage resources (PV and PVC
 
 ### Relations
 
-| Connects To | What It Provides |
-|-------------|------------------|
-| **Radarr/Sonarr** | PVC name, mount path, UID/GID for file permissions |
-| **qBittorrent/SABnzbd** | PVC name, mount path, UID/GID for file permissions |
-| **Plex** | PVC name, mount path, UID/GID for file permissions |
+| Connects To | Interface | What It Provides |
+|-------------|-----------|------------------|
+| **Radarr/Sonarr** | `media-storage` | PVC name, mount path, UID/GID for file permissions |
+| **qBittorrent/SABnzbd** | `media-storage` | PVC name, mount path, UID/GID for file permissions |
+| **Plex** | `media-storage` | PVC name, mount path, UID/GID for file permissions |
 
 The charm publishes PUID/PGID (user/group IDs) to all connected apps. This ensures every app writes files with the same ownership, which is required for hardlinks to work.
 
