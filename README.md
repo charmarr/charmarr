@@ -6,6 +6,7 @@
 
 <p align="center">
   <a href="https://github.com/charmarr/charmarr/actions/workflows/ci.yaml"><img src="https://github.com/charmarr/charmarr/actions/workflows/ci.yaml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/charmarr/charmarr/actions/workflows/nightly-charmarr.yaml"><img src="https://github.com/charmarr/charmarr/actions/workflows/nightly-charmarr.yaml/badge.svg" alt="Nightly"></a>
   <a href="https://github.com/astral-sh/uv"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json" alt="uv"></a>
   <a href="https://github.com/charmarr/charmarr/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue" alt="License"></a>
 </p>
