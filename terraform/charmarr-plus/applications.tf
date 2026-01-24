@@ -82,10 +82,11 @@ module "gluetun" {
   constraints                  = var.gluetun.constraints
   revision                     = var.gluetun.revision
   config                       = var.gluetun.config
-  cluster_cidrs                = var.cluster_cidrs
-  vpn_provider                 = var.vpn_provider
-  wireguard_private_key_secret = ""
-  wireguard_addresses          = var.wireguard_addresses
+  cluster_cidrs       = var.cluster_cidrs
+  vpn_provider        = var.vpn_provider
+  wireguard_addresses = var.wireguard_addresses
+  # FIXME: Uncomment once https://github.com/juju/juju/issues/20143 is fixed
+  # wireguard_private_key_secret = ""
   server_countries             = var.server_countries
   server_cities                = var.server_cities
   vpn_endpoint_ip              = var.vpn_endpoint_ip

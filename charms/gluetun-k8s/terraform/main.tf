@@ -18,11 +18,12 @@ resource "juju_application" "gluetun" {
 
   config = merge(
     {
-      cluster-cidrs                = var.cluster_cidrs
-      vpn-provider                 = var.vpn_provider
-      vpn-type                     = var.vpn_type
-      wireguard-private-key-secret = var.wireguard_private_key_secret
-      wireguard-addresses          = var.wireguard_addresses
+      cluster-cidrs       = var.cluster_cidrs
+      vpn-provider        = var.vpn_provider
+      vpn-type            = var.vpn_type
+      wireguard-addresses = var.wireguard_addresses
+      # FIXME: Uncomment once https://github.com/juju/juju/issues/20143 is fixed
+      # wireguard-private-key-secret = var.wireguard_private_key_secret
       server-countries             = var.server_countries
       server-cities                = var.server_cities
       vpn-endpoint-ip              = var.vpn_endpoint_ip
