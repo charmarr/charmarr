@@ -46,6 +46,7 @@ See the [OpenTofu docs](https://opentofu.org/docs/) if you're curious about how 
 variable "wireguard_private_key" {
   type      = string
   sensitive = true
+  default   = ""
 }
 
 module "charmarr" {
@@ -71,7 +72,7 @@ module "charmarr" {
 
 Shared storage enables hardlinks between download clients and media managers. See [Storage](../charms/storage.md) for why this matters.
 
-**Hostpath** - Storage on the same node as the cluster:
+**Hostpath** (recommended for single-node) - Storage on the same node as the cluster:
 
 ```hcl
 module "charmarr" {
@@ -87,7 +88,7 @@ module "charmarr" {
 !!! warning
     Avoid NFS on the same node. Loopback mounts can cause deadlocks.
 
-**Native NFS** - External NFS server:
+**Native NFS** (recommended for multi-node) - External NFS server:
 
 ```hcl
 module "charmarr" {
@@ -343,6 +344,12 @@ module "charmarr" {
 tofu init && TF_VAR_wireguard_private_key="your-key" tofu apply -auto-approve
 ```
 
+Or without VPN (when `enable_vpn = false`):
+
+```bash
+tofu init && tofu apply -auto-approve
+```
+
 See the [charmarr module](https://github.com/charmarr/charmarr/tree/main/terraform/charmarr) for all available variables.
 
 ---
@@ -357,6 +364,7 @@ Three Radarrs (HD, UHD, Anime) and three Sonarrs (HD, UHD, Anime) with appropria
 variable "wireguard_private_key" {
   type      = string
   sensitive = true
+  default   = ""
 }
 
 module "charmarr_plus" {
@@ -384,6 +392,12 @@ Same as charmarr. See [Storage](#storage), [VPN](#vpn), and [Istio](#istio) abov
 
 ```bash
 tofu init && TF_VAR_wireguard_private_key="your-key" tofu apply -auto-approve
+```
+
+Or without VPN (when `enable_vpn = false`):
+
+```bash
+tofu init && tofu apply -auto-approve
 ```
 
 See the [charmarr-plus module](https://github.com/charmarr/charmarr/tree/main/terraform/charmarr-plus) for all available variables.

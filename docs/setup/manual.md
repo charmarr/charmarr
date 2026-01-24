@@ -25,13 +25,13 @@ juju deploy charmarr-storage-k8s --trust --channel=latest/edge storage
 
 Configure based on your storage backend:
 
-**Hostpath** (storage on same node):
+**Hostpath** (recommended for single-node):
 
 ```bash
 juju config storage backend-type=hostpath hostpath=/path/to/media
 ```
 
-**Native NFS** (external NFS server):
+**Native NFS** (recommended for multi-node):
 
 ```bash
 juju config storage backend-type=native-nfs nfs-server=192.168.1.100 nfs-path=/export/charmarr
