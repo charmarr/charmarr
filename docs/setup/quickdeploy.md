@@ -415,10 +415,30 @@ See the [charmarr-plus module](https://github.com/charmarr/charmarr/tree/main/te
 Edit your `main.tf` and reapply:
 
 ```bash
-tofu apply
+TF_VAR_wireguard_private_key="your-key" tofu apply
 ```
 
-OpenTofu calculates the diff and applies only what changed. See the [OpenTofu CLI docs](https://opentofu.org/docs/cli/commands/apply/) for more.
+!!! warning
+    Always provide the WireGuard key when reapplying with VPN enabled. Omitting it will remove the key from Gluetun and may cause it to hang.
+
+OpenTofu calculates the diff and applies only what changed.
+
+For example, to enable Istio ingress later:
+
+```hcl
+module "charmarr" {
+  # ... existing config ...
+
+  enable_istio = true
+  enable_mesh  = true
+}
+```
+
+```bash
+TF_VAR_wireguard_private_key="your-key" tofu apply
+```
+
+See the [OpenTofu CLI docs](https://opentofu.org/docs/cli/commands/apply/) for more.
 
 ---
 
