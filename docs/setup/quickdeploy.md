@@ -51,67 +51,21 @@ variable "wireguard_private_key" {
 module "charmarr" {
   source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
 
-  model                 = "charmarr"
+  model = "charmarr"
+
+  # Storage
+  storage_backend = "hostpath"
+  hostpath        = "/mnt/storage/charmarr"
+
+  # VPN
   enable_vpn            = true
   wireguard_private_key = var.wireguard_private_key
   vpn_provider          = "protonvpn"
   cluster_cidrs         = "10.1.0.0/16,10.152.183.0/24,192.168.1.0/24"
-  storage_backend       = "hostpath"
-  hostpath              = "/mnt/storage/charmarr"
 }
 ```
 
 ### 2. Configure Variables
-
-#### VPN Provider
-
-Only WireGuard is supported. OpenVPN is not supported.
-
-| Provider | Value |
-|----------|-------|
-| ProtonVPN | `protonvpn` (recommended) |
-| NordVPN | `nordvpn` |
-| Mullvad | `mullvad` |
-| Private Internet Access | `pia` |
-| Surfshark | `surfshark` |
-| IVPN | `ivpn` |
-| Windscribe | `windscribe` |
-| Custom WireGuard | `custom` (experimental) |
-
-For most commercial VPNs, only the `wireguard_private_key` is needed. Custom WireGuard setups require additional variables: `wireguard_addresses`, `vpn_endpoint_ip`, `vpn_endpoint_port`, and `wireguard_public_key`.
-
-#### Cluster CIDRs
-
-Comma-separated list of CIDRs to exclude from VPN routing. Include:
-
-- **Pod CIDR** - K8s pod network
-- **Service CIDR** - K8s service network
-- **LAN CIDR** - Your local network
-
-**MicroK8s defaults:**
-
-| CIDR | Default |
-|------|---------|
-| Pod | `10.1.0.0/16` |
-| Service | `10.152.183.0/24` |
-
-**Find CIDRs with kubectl:**
-
-```bash
-# Pod CIDR (Calico CNI)
-kubectl get ippools -o jsonpath='{.items[*].spec.cidr}'
-
-# Service CIDR (check kubernetes service IP, typically x.x.x.0/24)
-kubectl get svc kubernetes -o jsonpath='{.spec.clusterIP}'
-```
-
-**Find your LAN CIDR:**
-
-```bash
-ip -4 addr show | grep -oP 'inet \K[\d./]+'
-```
-
-Look for your network interface IP (e.g., `192.168.1.100/24` means your LAN CIDR is `192.168.1.0/24`).
 
 #### Storage
 
@@ -198,39 +152,75 @@ For NFS, ensure the NFS export allows write access for the configured PUID/PGID.
 
 For StorageClass with CSI drivers, this is driver-dependent. Block storage drivers typically handle ownership automatically, while shared filesystem drivers (CephFS, NFS-based CSI) follow the same rules as NFS.
 
-#### Plex Hardware Transcoding
-
-If your hardware supports it:
-
-```hcl
-module "charmarr" {
-  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
-
-  # ... your other config ...
-
-  plex = {
-    hardware_transcoding = true
-  }
-}
-```
-
 #### VPN
 
 By default, `enable_vpn = true` deploys Gluetun and integrates it with qBittorrent, SABnzbd, and Prowlarr. All traffic from these apps routes through a VPN tunnel and their external IP is anonymized. See [Networking](../security/network.md) for how this works.
+
+**Provider**
+
+Only WireGuard is supported. OpenVPN is not supported.
+
+| Provider | Value |
+|----------|-------|
+| ProtonVPN | `protonvpn` (recommended) |
+| NordVPN | `nordvpn` |
+| Mullvad | `mullvad` |
+| Private Internet Access | `pia` |
+| Surfshark | `surfshark` |
+| IVPN | `ivpn` |
+| Windscribe | `windscribe` |
+| Custom WireGuard | `custom` (experimental) |
+
+For most commercial VPNs, only the `wireguard_private_key` is needed. Custom WireGuard setups require additional variables: `wireguard_addresses`, `vpn_endpoint_ip`, `vpn_endpoint_port`, and `wireguard_public_key`.
+
+**Cluster CIDRs**
+
+Comma-separated list of CIDRs to exclude from VPN routing (required when VPN is enabled). Include:
+
+- **Pod CIDR** - K8s pod network
+- **Service CIDR** - K8s service network
+- **LAN CIDR** - Your local network
+
+**MicroK8s defaults:**
+
+| CIDR | Default |
+|------|---------|
+| Pod | `10.1.0.0/16` |
+| Service | `10.152.183.0/24` |
+
+**Find CIDRs with kubectl:**
+
+```bash
+# Pod CIDR (Calico CNI)
+kubectl get ippools -o jsonpath='{.items[*].spec.cidr}'
+
+# Service CIDR (check kubernetes service IP, typically x.x.x.0/24)
+kubectl get svc kubernetes -o jsonpath='{.spec.clusterIP}'
+```
+
+**Find your LAN CIDR:**
+
+```bash
+ip -4 addr show | grep -oP 'inet \K[\d./]+'
+```
+
+Look for your network interface IP (e.g., `192.168.1.100/24` means your LAN CIDR is `192.168.1.0/24`).
+
+**Killswitch**
 
 A two-way killswitch protects your privacy:
 
 - If the VPN connection drops, Gluetun's internal killswitch blocks traffic
 - If the Gluetun pod dies, Kubernetes NetworkPolicies block traffic
 
-**Inspect the killswitch policies:**
+Inspect the killswitch policies:
 
 ```bash
 kubectl get networkpolicies -n charmarr
 kubectl describe networkpolicy -n charmarr
 ```
 
-**Verify pod external IP (should show VPN IP, not your real IP):**
+Verify pod external IP (should show VPN IP, not your real IP):
 
 ```bash
 kubectl exec -n charmarr deploy/qbittorrent -- wget -qO- ifconfig.me
@@ -268,6 +258,22 @@ When `enable_vpn = false`, Gluetun is not deployed and download clients are not 
 
 !!! warning
     Without VPN integration, your real IP is exposed to torrent trackers and usenet providers. Only disable VPN if you have an alternative tunneling solution in place.
+
+#### Plex Hardware Transcoding
+
+If your hardware supports it:
+
+```hcl
+module "charmarr" {
+  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
+
+  # ... your other config ...
+
+  plex = {
+    hardware_transcoding = true
+  }
+}
+```
 
 #### Istio
 
@@ -356,19 +362,23 @@ variable "wireguard_private_key" {
 module "charmarr_plus" {
   source = "git::https://github.com/charmarr/charmarr//terraform/charmarr-plus?ref=main"
 
-  model                 = "charmarr"
+  model = "charmarr"
+
+  # Storage
+  storage_backend = "hostpath"
+  hostpath        = "/mnt/storage/charmarr"
+
+  # VPN
   enable_vpn            = true
   wireguard_private_key = var.wireguard_private_key
   vpn_provider          = "protonvpn"
   cluster_cidrs         = "10.1.0.0/16,10.152.183.0/24,192.168.1.0/24"
-  storage_backend       = "hostpath"
-  hostpath              = "/mnt/storage/charmarr"
 }
 ```
 
 ### 2. Configure Variables
 
-Same as charmarr. See [VPN Provider](#vpn-provider), [Cluster CIDRs](#cluster-cidrs), [Storage](#storage), and [Istio](#istio) above.
+Same as charmarr. See [Storage](#storage), [VPN](#vpn), and [Istio](#istio) above.
 
 ### 3. Deploy
 
