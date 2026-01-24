@@ -1,6 +1,6 @@
 # Your self-hosted media stack, on autopilot.
 
-Arr and friends automatically configured, connected, secured. One command to rule them all.
+[Servarr](https://wiki.servarr.com) and friends automatically configured, connected, secured. One command to rule them all.
 
 ```mermaid
 flowchart LR
