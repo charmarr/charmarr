@@ -12,7 +12,7 @@ Charmarr secures network traffic at multiple [OSI layers](https://en.wikipedia.o
 
 Privacy-sensitive charms (qBittorrent, SABnzbd, Prowlarr) must not expose your home IP to external services. Charmarr solves this with a VXLAN overlay network that tunnels external traffic through a VPN.
 
-Each privacy-sensitive pod runs a pod-gateway client. This client establishes a VXLAN tunnel to a pod-gateway server running on the Gluetun pod. All external traffic from the pod routes through this tunnel, into the Gluetun pod, and out through a WireGuard VPN connection.
+Each privacy-sensitive pod runs a pod-gateway client. This client establishes a VXLAN tunnel to a pod-gateway server running on the [Gluetun](https://github.com/qdm12/gluetun) pod. All external traffic from the pod routes through this tunnel, into the Gluetun pod, and out through a WireGuard VPN connection.
 
 <center>
 

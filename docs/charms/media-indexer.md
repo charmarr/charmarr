@@ -2,7 +2,7 @@
 
 ## Prowlarr
 
-The Prowlarr charm (`prowlarr-k8s`) manages Prowlarr in your Charmarr stack. Prowlarr is the central indexer manager that syncs indexers to your media managers (Radarr/Sonarr).
+The Prowlarr charm (`prowlarr-k8s`) manages [Prowlarr](https://prowlarr.com/) in your Charmarr stack. Prowlarr is the central indexer manager that syncs indexers to your media managers (Radarr/Sonarr).
 
 ### Relations
 
@@ -56,7 +56,7 @@ See [prowlarr-k8s on Charmhub](https://charmhub.io/prowlarr-k8s) for all options
 
 ## FlareSolverr
 
-The FlareSolverr charm (`flaresolverr-k8s`) manages FlareSolverr in your Charmarr stack. FlareSolverr is a Cloudflare bypass proxy that helps Prowlarr access indexers behind Cloudflare protection.
+The FlareSolverr charm (`flaresolverr-k8s`) manages [FlareSolverr](https://github.com/FlareSolverr/FlareSolverr) in your Charmarr stack. FlareSolverr is a Cloudflare bypass proxy that helps Prowlarr access indexers behind Cloudflare protection.
 
 ### Relations
 

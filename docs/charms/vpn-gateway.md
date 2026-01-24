@@ -2,7 +2,7 @@
 
 ## Gluetun
 
-The Gluetun charm (`gluetun-k8s`) manages the VPN gateway in your Charmarr stack. Gluetun routes traffic from connected charms through a VPN tunnel to protect your privacy.
+The Gluetun charm (`gluetun-k8s`) manages the VPN gateway in your Charmarr stack. [Gluetun](https://github.com/qdm12/gluetun) routes traffic from connected charms through a VPN tunnel to protect your privacy.
 
 ### Relations
 
@@ -18,7 +18,7 @@ When charms connect, Gluetun automatically configures them to route all external
 
 Without a VPN gateway, charms connect directly to the internet and your home IP is exposed to torrent trackers, indexers, and usenet providers. The Gluetun charm fixes this by doing two things when it starts:
 
-1. Establishes a WireGuard VPN tunnel
+1. [Gluetun](https://github.com/qdm12/gluetun) establishes a WireGuard VPN tunnel
 2. Bootstraps a [pod-gateway](https://github.com/angelnu/pod-gateway) server (init container + sidecar) onto its pod
 
 When a charm connects to Gluetun, the Gluetun charm provides gateway info. The connecting charm uses this info to bootstrap a pod-gateway client (init container + sidecar) onto its pod. The pod-gateway client connects to the pod-gateway server using this gateway info to form a VXLAN overlay network. A single Gluetun pod serves multiple charms.

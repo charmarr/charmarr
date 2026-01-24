@@ -2,7 +2,7 @@
 
 ## Overseerr
 
-The Overseerr charm (`overseerr-k8s`) manages Overseerr in your Charmarr stack. Overseerr is where users request movies and TV shows.
+The Overseerr charm (`overseerr-k8s`) manages [Overseerr](https://overseerr.dev/) in your Charmarr stack. Overseerr is where users request movies and TV shows.
 
 ### Relations
 

@@ -2,7 +2,7 @@
 
 ## qBittorrent
 
-The qBittorrent charm (`qbittorrent-k8s`) manages qBittorrent in your Charmarr stack. qBittorrent is a torrent client that downloads files via BitTorrent.
+The qBittorrent charm (`qbittorrent-k8s`) manages [qBittorrent](https://www.qbittorrent.org/) in your Charmarr stack. qBittorrent is a torrent client that downloads files via BitTorrent.
 
 ### Relations
 
@@ -50,7 +50,7 @@ See [qbittorrent-k8s on Charmhub](https://charmhub.io/qbittorrent-k8s) for all o
 
 ## SABnzbd
 
-The SABnzbd charm (`sabnzbd-k8s`) manages SABnzbd in your Charmarr stack. SABnzbd is a usenet client that downloads files via Usenet (NZB).
+The SABnzbd charm (`sabnzbd-k8s`) manages [SABnzbd](https://sabnzbd.org/) in your Charmarr stack. SABnzbd is a usenet client that downloads files via Usenet (NZB).
 
 ### Relations
 

@@ -2,7 +2,7 @@
 
 ## Radarr & Sonarr
 
-The Radarr charm (`radarr-k8s`) and Sonarr charm (`sonarr-k8s`) manage Radarr and Sonarr in your Charmarr stack. Radarr handles movies, Sonarr handles TV shows. The charms share nearly identical logic, differing only in ports, media types, and folder paths.
+The Radarr charm (`radarr-k8s`) and Sonarr charm (`sonarr-k8s`) manage [Radarr](https://radarr.video/) and [Sonarr](https://sonarr.tv/) in your Charmarr stack. Radarr handles movies, Sonarr handles TV shows. The charms share nearly identical logic, differing only in ports, media types, and folder paths.
 
 ### Relations
 

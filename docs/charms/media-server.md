@@ -2,7 +2,7 @@
 
 ## Plex
 
-The Plex charm (`plex-k8s`) manages Plex Media Server in your Charmarr stack.
+The Plex charm (`plex-k8s`) manages [Plex](https://www.plex.tv/) Media Server in your Charmarr stack.
 
 ### Relations
 
