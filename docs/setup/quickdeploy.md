@@ -404,11 +404,8 @@ module "charmarr" {
 ```
 
 ```bash
-TF_VAR_wireguard_private_key="your-key" tofu apply
+tofu apply
 ```
-
-!!! warning
-    Always provide the WireGuard key when reapplying with VPN enabled. Omitting it will remove the key from Gluetun and may cause it to hang.
 
 See the [OpenTofu CLI docs](https://opentofu.org/docs/cli/commands/apply/) for more.
 
