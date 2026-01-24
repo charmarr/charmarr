@@ -39,13 +39,20 @@ variable "enable_mesh" {
 }
 
 # -----------------------------------------------------------------------------
-# VPN Configuration (Required)
+# VPN Configuration
 # -----------------------------------------------------------------------------
+
+variable "enable_vpn" {
+  description = "Deploy Gluetun and integrate with download clients and indexer"
+  type        = bool
+  default     = true
+}
 
 variable "wireguard_private_key" {
   description = "WireGuard private key for VPN connection"
   type        = string
   sensitive   = true
+  default     = ""
 }
 
 variable "vpn_provider" {

@@ -133,11 +133,12 @@ resource "juju_integration" "storage_plex" {
 # -----------------------------------------------------------------------------
 
 resource "juju_integration" "gluetun_qbittorrent" {
+  count      = var.enable_vpn ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
-    name     = module.gluetun.app_name
-    endpoint = module.gluetun.provides.vpn_gateway
+    name     = module.gluetun[0].app_name
+    endpoint = module.gluetun[0].provides.vpn_gateway
   }
 
   application {
@@ -147,11 +148,12 @@ resource "juju_integration" "gluetun_qbittorrent" {
 }
 
 resource "juju_integration" "gluetun_sabnzbd" {
+  count      = var.enable_vpn ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
-    name     = module.gluetun.app_name
-    endpoint = module.gluetun.provides.vpn_gateway
+    name     = module.gluetun[0].app_name
+    endpoint = module.gluetun[0].provides.vpn_gateway
   }
 
   application {
@@ -161,11 +163,12 @@ resource "juju_integration" "gluetun_sabnzbd" {
 }
 
 resource "juju_integration" "gluetun_prowlarr" {
+  count      = var.enable_vpn ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
-    name     = module.gluetun.app_name
-    endpoint = module.gluetun.provides.vpn_gateway
+    name     = module.gluetun[0].app_name
+    endpoint = module.gluetun[0].provides.vpn_gateway
   }
 
   application {

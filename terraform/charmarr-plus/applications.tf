@@ -12,6 +12,7 @@ data "juju_model" "model" {
 # -----------------------------------------------------------------------------
 
 resource "juju_secret" "wireguard_key" {
+  count      = var.enable_vpn ? 1 : 0
   model_uuid = data.juju_model.model.uuid
   name       = "vpn-key"
 
@@ -21,10 +22,11 @@ resource "juju_secret" "wireguard_key" {
 }
 
 resource "juju_access_secret" "gluetun_wireguard_access" {
+  count      = var.enable_vpn ? 1 : 0
   model_uuid = data.juju_model.model.uuid
-  secret_id  = juju_secret.wireguard_key.secret_id
+  secret_id  = juju_secret.wireguard_key[0].secret_id
 
-  applications = [module.gluetun.app_name]
+  applications = [module.gluetun[0].app_name]
 
   depends_on = [module.gluetun]
 }
@@ -34,13 +36,15 @@ resource "juju_access_secret" "gluetun_wireguard_access" {
 # through juju_application config. We deploy gluetun without the secret, grant access,
 # then set the config via CLI.
 resource "null_resource" "gluetun_secret_config" {
+  count = var.enable_vpn ? 1 : 0
+
   depends_on = [
     module.gluetun,
     juju_access_secret.gluetun_wireguard_access
   ]
 
   provisioner "local-exec" {
-    command = "juju config gluetun wireguard-private-key-secret=secret:${juju_secret.wireguard_key.secret_id} -m ${var.model}"
+    command = "juju config gluetun wireguard-private-key-secret=secret:${juju_secret.wireguard_key[0].secret_id} -m ${var.model}"
   }
 }
 
@@ -68,6 +72,7 @@ module "storage" {
 }
 
 module "gluetun" {
+  count  = var.enable_vpn ? 1 : 0
   source = "git::https://github.com/charmarr/charmarr//charms/gluetun-k8s/terraform?ref=main"
 
   model                        = var.model
