@@ -2,12 +2,14 @@ name: nightly
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * *'
 
 jobs:
   integration:
     name: charmarr deployment
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -32,4 +34,4 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
         run: |
           source .venv/bin/activate
-          pytest tests/integration/charmarr/ -v --tb=short --log-cli-level=INFO
+          pytest tests/integration/charmarr/ -v --tb=short --log-cli-level=WARNING

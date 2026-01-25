@@ -31,8 +31,6 @@ def tf_manager() -> Generator[TFManager, None, None]:
     manager.init()
     logger.info("TFManager ready")
     yield manager
-    logger.info("Running tofu destroy...")
-    manager.destroy()
 
 
 @pytest.fixture(scope="module")
