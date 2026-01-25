@@ -7,10 +7,39 @@ import logging
 
 import jubilant
 from pytest_bdd import given, then
+from tenacity import (
+    retry,
+    retry_if_exception,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from charmarr_lib.testing import TFManager
 
 logger = logging.getLogger(__name__)
+
+TRANSIENT_ERRORS = ("connection is shut down", "connection refused")
+
+
+def _is_transient_cli_error(exc: BaseException) -> bool:
+    """Check if exception is a transient CLI error worth retrying.
+
+    Workaround for https://github.com/canonical/jubilant/issues/241
+    """
+    if not isinstance(exc, jubilant.CLIError):
+        return False
+    stderr = (exc.stderr or "").lower()
+    return any(err in stderr for err in TRANSIENT_ERRORS)
+
+
+_retry_transient = retry(
+    stop=stop_after_attempt(5),
+    wait=wait_exponential(multiplier=2, min=2, max=30),
+    retry=retry_if_exception(_is_transient_cli_error),
+    before_sleep=lambda rs: logger.warning(
+        f"Transient CLI error (attempt {rs.attempt_number}), retrying: {rs.outcome.exception()}"
+    ),
+)
 
 WAITING_APPS = {"plex", "overseerr"}
 
@@ -47,10 +76,16 @@ def deploy_with_vpn_istio(tf_manager: TFManager, juju: jubilant.Juju, tf_env: di
     logger.info("Apps settled")
 
 
+@_retry_transient
+def _get_status(juju: jubilant.Juju) -> jubilant.Status:
+    """Get juju status with retry on transient errors."""
+    return juju.status()
+
+
 @then("all apps except plex and overseerr should be active")
 def all_apps_active(juju: jubilant.Juju) -> None:
     """Verify all apps except plex and overseerr are active."""
-    status = juju.status()
+    status = _get_status(juju)
     for name, app in status.apps.items():
         if name in WAITING_APPS:
             continue
@@ -62,7 +97,7 @@ def all_apps_active(juju: jubilant.Juju) -> None:
 @then("plex and overseerr should be waiting")
 def plex_overseerr_waiting(juju: jubilant.Juju) -> None:
     """Verify plex and overseerr are in waiting status."""
-    status = juju.status()
+    status = _get_status(juju)
     for name in WAITING_APPS:
         app = status.apps.get(name)
         if not app:
@@ -72,6 +107,7 @@ def plex_overseerr_waiting(juju: jubilant.Juju) -> None:
         )
 
 
+@_retry_transient
 def wait_for_settled(juju: jubilant.Juju) -> None:
     """Wait for apps to settle."""
 
