@@ -404,8 +404,11 @@ module "charmarr" {
 ```
 
 ```bash
-tofu apply
+TF_VAR_wireguard_private_key="your-key" tofu apply
 ```
+
+!!! warning "VPN key required on every apply"
+    When VPN is enabled (`enable_vpn = true`), you must provide `TF_VAR_wireguard_private_key` on **every** `tofu apply`, not just the initial deployment. Running without it resets the secret to an empty value, causing gluetun to block.
 
 See the [OpenTofu CLI docs](https://opentofu.org/docs/cli/commands/apply/) for more.
 

@@ -31,12 +31,16 @@ resource "juju_access_secret" "gluetun_wireguard_access" {
   depends_on = [module.gluetun]
 }
 
-# HACK: Workaround for Juju secret race condition. The charm needs secret access
-# granted before the secret config is set, but Terraform can't express this ordering
-# through juju_application config. We deploy gluetun without the secret, grant access,
-# then set the config via CLI.
+# HACK: Workaround for Juju Terraform provider config drift. The provider's Read phase
+# picks up CLI-set config into state, then Update unsets any config not in the plan.
+# We use CLI because setting secrets directly in TF is blocked by juju/juju#20143.
+# The always_run trigger ensures we re-apply the config after every apply.
 resource "null_resource" "gluetun_secret_config" {
   count = var.enable_vpn ? 1 : 0
+
+  triggers = {
+    always_run = timestamp()
+  }
 
   depends_on = [
     module.gluetun,
