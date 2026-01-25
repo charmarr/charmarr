@@ -1,7 +1,7 @@
 <h1 align="center">Charmarr Charms</h1>
 
 <p align="center">
-  Juju charms for self-hosted media automation on Kubernetes.
+  Juju charms for self-hosted media platform on Kubernetes.
 </p>
 
 <p align="center">
