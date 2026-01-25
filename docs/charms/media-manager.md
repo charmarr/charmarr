@@ -22,21 +22,6 @@ The charm aggressively reconciles download clients. If you manually add a downlo
 
 An API key is generated automatically and stored as a Juju secret. It [rotates periodically](../security/secrets.md) if configured.
 
-### Recyclarr Integration
-
-Each Radarr/Sonarr charm includes a [Recyclarr](https://recyclarr.dev/) sidecar container that syncs quality profiles from [TRaSH Guides](https://trash-guides.info/). This is optional but enabled by default for 4K and anime variants.
-
-| Variant | Default Profiles |
-|---------|------------------|
-| standard | None (user configures manually) |
-| 4k | `uhd-bluray-web` |
-| anime | `anime` |
-
-Recyclarr runs on every reconcile if configured. It's idempotent, so running it multiple times is safe. The profiles it creates are published to Overseerr automatically.
-
-!!! note
-    The charm allows setting or overriding default profiles using the `trash-profiles` config option. See [Manual Deploy](../setup/manual.md#media-managers).
-
 ### Lifecycle
 
 ```mermaid
@@ -69,13 +54,18 @@ sequenceDiagram
 
 Deploy multiple instances with different variants to separate content:
 
-| Variant | Radarr Root Folder | Sonarr Root Folder |
-|---------|--------------------|--------------------|
-| standard | `/data/media/movies` | `/data/media/tv` |
-| 4k | `/data/media/movies-uhd` | `/data/media/tv-uhd` |
-| anime | `/data/media/anime/movies` | `/data/media/anime/tv` |
+| Variant | Radarr Root Folder | Sonarr Root Folder | Default TRaSH Profile |
+|---------|--------------------|--------------------|----------------------|
+| standard | `/data/media/movies` | `/data/media/tv` | None (set manually) |
+| 4k | `/data/media/movies-uhd` | `/data/media/tv-uhd` | `uhd-bluray-web` |
+| anime | `/data/media/anime/movies` | `/data/media/anime/tv` | `anime` |
 
 Each variant uses its app name as the download client category (e.g., `radarr`, `radarr-4k`). The download clients create matching categories automatically.
+
+Each Radarr/Sonarr charm includes a [Recyclarr](https://recyclarr.dev/) sidecar that syncs quality profiles from [TRaSH Guides](https://trash-guides.info/). Recyclarr runs on every reconcile if configured. It's idempotent, so running it multiple times is safe. The profiles it creates are published to Overseerr automatically.
+
+!!! note
+    Override default profiles using the `trash-profiles` config option. See [Manual Deploy](../setup/manual.md#media-managers).
 
 ### Configuration
 
