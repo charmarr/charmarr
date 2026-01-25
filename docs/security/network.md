@@ -91,7 +91,7 @@ This policy only allows SABnzbd to send traffic to:
 
 All other egress is blocked. If the Gluetun pod dies, the pod-gateway server becomes unreachable and SABnzbd cannot reach the internet.
 
-See [VPN Gateway](../charms/vpn-gateway.md) for more details.
+See [VPN Gateway](../charms/vpn-gateway.md) for how the `gluetun-k8s` charm works.
 
 ## L4/L7: Service Mesh
 
@@ -153,7 +153,7 @@ This limits lateral movement if a pod is compromised. An attacker cannot reach p
 
 ## Traffic Isolation Architecture
 
-Charmarr implements defense in depth through orthogonal network layers. The L2 VXLAN overlay handles north-south (external) traffic anonymization while the L4/L7 service mesh secures east-west (internal) communication. These layers operate independently with no shared failure modes but in harmony.
+Charmarr implements defense in depth through orthogonal network layers. The L2 VXLAN overlay handles north-south (external) traffic anonymization while the L4/L7 service mesh secures east-west (internal) communication. These layers operate independently with no shared failure modes.
 
 External and internal traffic take isolated paths from the same source:
 
