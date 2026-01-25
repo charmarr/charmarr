@@ -1,5 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
 
+/* Landing page title */
+.landing-title {
+  text-align: center;
+}
+
 :root {
   --md-text-font: "JetBrains Mono", monospace;
   --md-code-font: "JetBrains Mono", monospace;
@@ -160,6 +165,57 @@
   background: var(--md-code-bg-color);
   border-radius: 0.25rem;
   border-left: 3px solid #ff5722;
+}
+
+/* Status badges row */
+.status-badges {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+}
+
+.status-badges img {
+  height: 24px;
+  border-radius: 4px;
+  transition: transform 0.2s, opacity 0.2s;
+  opacity: 0.9;
+}
+
+.status-badges img:hover {
+  transform: scale(1.05);
+  opacity: 1;
+}
+
+/* Header inline badges */
+.header-badge {
+  height: 16px;
+  vertical-align: middle;
+  margin-left: 0.5rem;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.header-badge:hover {
+  opacity: 1;
+}
+
+/* Header with inline badge */
+.header-with-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.header-with-badge img {
+  height: 24px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+  transform: translateY(4px);
+}
+
+.header-with-badge img:hover {
+  opacity: 1;
 }
 
 /* Under construction placeholder */

@@ -157,7 +157,7 @@ For StorageClass with CSI drivers, this is driver-dependent. Block storage drive
 
 By default, `enable_vpn = true` deploys Gluetun and integrates it with qBittorrent, SABnzbd, and Prowlarr. All traffic from these apps routes through a VPN tunnel and their external IP is anonymized. See [Networking](../security/network.md) for how this works.
 
-**Provider**
+**Provider**{#vpn-provider}
 
 Only WireGuard is supported. OpenVPN is not supported.
 
@@ -174,7 +174,7 @@ Only WireGuard is supported. OpenVPN is not supported.
 
 For most commercial VPNs, only the `wireguard_private_key` is needed. Custom WireGuard setups require additional variables: `wireguard_addresses`, `vpn_endpoint_ip`, `vpn_endpoint_port`, and `wireguard_public_key`.
 
-**Cluster CIDRs**
+**Cluster CIDRs**{#cluster-cidrs}
 
 Comma-separated list of CIDRs to exclude from VPN routing (required when VPN is enabled). Include:
 

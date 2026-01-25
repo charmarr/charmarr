@@ -36,6 +36,7 @@ sequenceDiagram
     participant PC as Plex Charm
     participant Plex as Plex App
     participant RC as Radarr/Sonarr
+    participant User
 
     PC->>Storage: Where's the media?
     Storage-->>PC: /data + UID/GID
@@ -43,6 +44,7 @@ sequenceDiagram
 
     PC->>Plex: Start
     Note over PC: Waits for claim token
+    User->>PC: Set claim token
     PC->>Plex: Claim server
     Plex-->>PC: Ready
 

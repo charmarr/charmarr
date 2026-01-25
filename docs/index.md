@@ -1,6 +1,6 @@
-# Your self-hosted media stack, on autopilot.
+<h1 class="landing-title">Your media stack, on autopilot.</h1>
 
-[Servarr](https://wiki.servarr.com) and friends automatically configured, connected, secured. One command to rule them all.
+Self-hosted [Servarr](https://wiki.servarr.com) and friends automatically configured, connected, secured. One command to rule them all.
 
 ```mermaid
 flowchart LR

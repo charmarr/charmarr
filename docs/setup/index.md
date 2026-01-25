@@ -1,4 +1,4 @@
-# Setup
+<h1 class="header-with-badge">Setup <a href="https://github.com/charmarr/charmarr/actions/workflows/nightly-charmarr.yaml"><img src="https://img.shields.io/github/actions/workflow/status/charmarr/charmarr/nightly-charmarr.yaml?style=flat&label=nightly-tests&labelColor=000000" alt="Nightly Tests"></a></h1>
 
 Get Charmarr running on your Kubernetes cluster in minutes.
 
