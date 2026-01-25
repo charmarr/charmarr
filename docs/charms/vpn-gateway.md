@@ -2,7 +2,7 @@
 
 ## Gluetun
 
-The Gluetun charm (`gluetun-k8s`) manages the VPN gateway in your Charmarr stack. [Gluetun](https://github.com/qdm12/gluetun) routes traffic from connected charms through a VPN tunnel to protect your privacy.
+The Gluetun charm (`gluetun-k8s`) manages the [gluetun](https://github.com/qdm12/gluetun) VPN gateway in your Charmarr stack. Gluetun routes traffic from connected charms through a VPN tunnel to protect your privacy.
 
 ### Relations
 
