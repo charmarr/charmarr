@@ -116,8 +116,6 @@ config:
         Get token from https://plex.tv/claim
         Token expires in 4 minutes and is single-use.
 
-        Leave empty to claim manually via web UI after deployment.
-
         Note: Token is only used if server is not already claimed.
 
     hardware-transcoding:
