@@ -10,10 +10,10 @@ Install just:
 sudo snap install just
 ```
 
-Download and run the [charmarr-primitives](https://github.com/adhityaravi/fire-flake/blob/main/fire-flake/justfiles/charmarr-primitives.just) recipe:
+Download the [charmarr-primitives](https://github.com/charmarr/charmarr/blob/main/justfiles/charmarr-primitives.just) justfile and run the setup recipe:
 
 ```bash
-curl -O https://raw.githubusercontent.com/adhityaravi/fire-flake/main/fire-flake/justfiles/charmarr-primitives.just
+curl -O https://raw.githubusercontent.com/charmarr/charmarr/main/justfiles/charmarr-primitives.just
 just -f charmarr-primitives.just charmarr-primitives-setup
 ```
 
@@ -26,7 +26,7 @@ juju clouds    # should show mcrk8s
 juju models    # should show charmarr model
 ```
 
-The recipe also includes a nuke command to remove everything it set up:
+The justfile also includes a nuke recipe to remove everything it set up:
 
 ```bash
 just -f charmarr-primitives.just charmarr-primitives-nuke
