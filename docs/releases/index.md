@@ -5,4 +5,4 @@ Charmarr follows a track-based release model. Each track represents a major vers
 | Track | Risk | Description |
 |-------|------|-------------|
 | latest | edge | Development builds, no release notes |
-| [Track 1](track-1.md) | stable | Initial release with full arr stack |
+| [Track 1](track-1.md) | stable | Initial release with full arr stack (TBD) |
