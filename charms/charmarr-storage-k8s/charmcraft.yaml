@@ -155,7 +155,7 @@ config:
 
     cleanup-on-remove:
       type: boolean
-      default: false
+      default: true
       description: |
         Delete charm-managed K8s storage resources when the charm is removed.
 
