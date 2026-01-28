@@ -7,29 +7,29 @@ Got a clean Ubuntu machine? Bootstrap everything with one command using [just](h
 Install just:
 
 ```bash
-sudo snap install just
+sudo snap install just --classic
 ```
 
-Download the [charmarr-primitives](https://github.com/charmarr/charmarr/blob/main/justfiles/charmarr-primitives.just) justfile and run the setup recipe:
+Download the [justfile](https://github.com/charmarr/charmarr/blob/main/justfiles/charmarr-primitives.just) and run setup:
 
 ```bash
 curl -O https://raw.githubusercontent.com/charmarr/charmarr/main/justfiles/charmarr-primitives.just
-just -f charmarr-primitives.just charmarr-primitives-setup
+just -f charmarr-primitives.just setup
 ```
 
-This installs and configures MicroK8s with all required addons, bootstraps Juju, and creates a `charmarr` model. And a clean cluster is ready for Charmarr deployment.
+This uses [concierge](https://github.com/canonical/concierge) to install MicroK8s with required addons, bootstrap Juju, and create a `charmarr` model.
 
 Verify it worked:
 
 ```bash
-juju clouds    # should show mcrk8s
+juju clouds    # should show microk8s
 juju models    # should show charmarr model
 ```
 
-The justfile also includes a nuke recipe to remove everything it set up:
+To remove everything:
 
 ```bash
-just -f charmarr-primitives.just charmarr-primitives-nuke
+just -f charmarr-primitives.just nuke
 ```
 
 ---
@@ -56,7 +56,7 @@ Already have a cluster? Here's the shopping list.
 ### MicroK8s Addons
 
 ```bash
-sudo microk8s enable dns rbac hostpath-storage metrics-server metallb registry
+sudo microk8s enable dns hostpath-storage metallb
 ```
 
 ### Juju Setup
