@@ -17,12 +17,12 @@ curl -O https://raw.githubusercontent.com/charmarr/charmarr/main/justfiles/charm
 just -f charmarr-primitives.just setup
 ```
 
-This uses [concierge](https://github.com/canonical/concierge) to install MicroK8s with required addons, bootstrap Juju, and create a `charmarr` model.
+This installs MicroK8s with required addons, bootstraps Juju, and creates a `charmarr` model.
 
 Verify it worked:
 
 ```bash
-juju clouds    # should show microk8s
+juju clouds    # should show mcrk8s
 juju models    # should show charmarr model
 ```
 
