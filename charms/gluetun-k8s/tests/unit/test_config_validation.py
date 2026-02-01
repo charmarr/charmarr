@@ -155,3 +155,75 @@ def test_leader_continues_when_scaled_beyond_one(ctx):
     )
     # Leader continues with normal status (config validation in this case)
     assert state.unit_status == ops.BlockedStatus("cluster-cidrs config is required")
+
+
+def test_override_bypasses_openvpn_rejection(ctx, mock_k8s_privileged):
+    """Override mode allows openvpn (normally rejected)."""
+    import json
+
+    state = ctx.run(
+        ctx.on.config_changed(),
+        State(
+            leader=True,
+            containers=[GLUETUN_CONTAINER],
+            config={
+                "cluster-cidrs": "10.1.0.0/16",
+                "vpn-type": "openvpn",
+                "custom-overrides": json.dumps({"VPN_TYPE": "openvpn"}),
+            },
+        ),
+    )
+    assert state.unit_status != ops.BlockedStatus("OpenVPN is not supported")
+
+
+def test_override_still_requires_cluster_cidrs(ctx):
+    """Override mode still requires cluster-cidrs."""
+    import json
+
+    state = ctx.run(
+        ctx.on.config_changed(),
+        State(
+            leader=True,
+            containers=[GLUETUN_CONTAINER],
+            config={
+                "custom-overrides": json.dumps({"VPN_TYPE": "openvpn"}),
+            },
+        ),
+    )
+    assert state.unit_status == ops.BlockedStatus("cluster-cidrs config is required")
+
+
+def test_override_does_not_require_wireguard_secret(ctx, mock_k8s_privileged):
+    """Override mode does not require wireguard-private-key-secret."""
+    import json
+
+    state = ctx.run(
+        ctx.on.config_changed(),
+        State(
+            leader=True,
+            containers=[GLUETUN_CONTAINER],
+            config={
+                "cluster-cidrs": "10.1.0.0/16",
+                "custom-overrides": json.dumps(
+                    {"VPN_TYPE": "openvpn", "OPENVPN_USER": "u", "OPENVPN_PASSWORD": "p"}
+                ),
+            },
+        ),
+    )
+    assert state.unit_status != ops.BlockedStatus("wireguard-private-key-secret is required")
+
+
+def test_override_invalid_json_blocked(ctx):
+    """Invalid JSON in custom-overrides is blocked."""
+    state = ctx.run(
+        ctx.on.config_changed(),
+        State(
+            leader=True,
+            containers=[GLUETUN_CONTAINER],
+            config={
+                "cluster-cidrs": "10.1.0.0/16",
+                "custom-overrides": "not-valid-json",
+            },
+        ),
+    )
+    assert "custom-overrides" in state.unit_status.message

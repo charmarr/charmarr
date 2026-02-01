@@ -112,6 +112,19 @@ config:
         Unique ID for each gluetun-k8s instance in the cluster.
         If not running multiple instances, change the default only if you know what you're doing.
 
+    custom-overrides:
+      type: string
+      default: ""
+      description: |
+        JSON object of extra environment variables to set on the gluetun container.
+        Values are merged on top of the charm's built-in environment and take
+        precedence on conflict (e.g. setting DOT here overrides dns-over-tls config).
+
+        When set, config validation is relaxed (e.g. openvpn is allowed) and the
+        charm runs in override mode with no config sanity guarantees.
+
+        Example: '{"VPN_TYPE": "openvpn", "OPENVPN_USER": "foo", "OPENVPN_PASSWORD": "bar"}'
+
     dns-over-tls:
       type: boolean
       default: false

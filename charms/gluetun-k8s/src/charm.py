@@ -4,6 +4,7 @@
 
 """Gluetun VPN Gateway Charm."""
 
+import json
 import logging
 from typing import Any
 
@@ -70,6 +71,29 @@ class GluetunCharm(ops.CharmBase):
         value = str(self.config.get(key, default)).strip()
         return value.lower() if lowercase else value
 
+    def _get_custom_overrides(self) -> dict[str, str]:
+        """Parse custom-overrides config into a dict.
+
+        Returns:
+            Parsed environment overrides, or empty dict if unset.
+
+        Raises:
+            json.JSONDecodeError: If the config value is not valid JSON.
+            ValueError: If the parsed value is not a JSON object.
+        """
+        raw = self._get_config_str("custom-overrides")
+        if not raw:
+            return {}
+        parsed = json.loads(raw)
+        if not isinstance(parsed, dict):
+            raise ValueError("custom-overrides must be a JSON object")
+        return {str(k): str(v) for k, v in parsed.items()}
+
+    @property
+    def _override_mode(self) -> bool:
+        """Check if custom overrides are active."""
+        return bool(self._get_config_str("custom-overrides"))
+
     def _validate_vpn_type(self) -> str | None:
         """Validate VPN type is WireGuard."""
         vpn_type = self._get_config_str("vpn-type", "wireguard", lowercase=True)
@@ -104,12 +128,30 @@ class GluetunCharm(ops.CharmBase):
 
         return None
 
+    def _validate_custom_overrides(self) -> str | None:
+        """Validate custom-overrides JSON is parseable."""
+        try:
+            self._get_custom_overrides()
+        except (json.JSONDecodeError, ValueError) as e:
+            return f"custom-overrides: {e}"
+        return None
+
+    def _validate_override_config(self) -> str | None:
+        """Validate config in override mode (relaxed)."""
+        if err := self._validate_custom_overrides():
+            return err
+        if not self._get_config_str("cluster-cidrs"):
+            return "cluster-cidrs config is required"
+        return None
+
     def _validate_config(self) -> str | None:
         """Validate charm configuration.
 
         Returns:
             Error message if config is invalid, None if valid.
         """
+        if self._override_mode:
+            return self._validate_override_config()
         return (
             self._validate_vpn_type()
             or self._validate_required_config()
@@ -160,34 +202,41 @@ class GluetunCharm(ops.CharmBase):
             }
         }
 
-    def _build_pebble_layer(self, private_key: str) -> Layer:
+    def _build_pebble_layer(self, private_key: str | None = None) -> Layer:
         """Build Pebble layer for gluetun service."""
         provider = self._get_config_str("vpn-provider", lowercase=True)
         cluster_cidrs = self._get_config_str("cluster-cidrs")
         dns_over_tls = self.config.get("dns-over-tls", False)
 
-        env = {
-            "VPN_SERVICE_PROVIDER": provider,
-            "VPN_TYPE": "wireguard",
-            "WIREGUARD_PRIVATE_KEY": private_key,
+        env: dict[str, str] = {
             "VPN_BLOCK_OTHER_TRAFFIC": "true",
             "FIREWALL_OUTBOUND_SUBNETS": cluster_cidrs,
             "DOT": "on" if dns_over_tls else "off",
         }
 
-        if addr := self._get_config_str("wireguard-addresses"):
-            env["WIREGUARD_ADDRESSES"] = addr
+        if provider:
+            env["VPN_SERVICE_PROVIDER"] = provider
+
+        if private_key:
+            env["VPN_TYPE"] = "wireguard"
+            env["WIREGUARD_PRIVATE_KEY"] = private_key
+
+            if addr := self._get_config_str("wireguard-addresses"):
+                env["WIREGUARD_ADDRESSES"] = addr
+
+            if provider == "custom":
+                env["VPN_ENDPOINT_IP"] = self._get_config_str("vpn-endpoint-ip")
+                env["VPN_ENDPOINT_PORT"] = str(
+                    self.config.get("vpn-endpoint-port", DEFAULT_WIREGUARD_PORT)
+                )
+                env["WIREGUARD_PUBLIC_KEY"] = self._get_config_str("wireguard-public-key")
+
         if countries := self._get_config_str("server-countries"):
             env["SERVER_COUNTRIES"] = countries
         if cities := self._get_config_str("server-cities"):
             env["SERVER_CITIES"] = cities
 
-        if provider == "custom":
-            env["VPN_ENDPOINT_IP"] = self._get_config_str("vpn-endpoint-ip")
-            env["VPN_ENDPOINT_PORT"] = str(
-                self.config.get("vpn-endpoint-port", DEFAULT_WIREGUARD_PORT)
-            )
-            env["WIREGUARD_PUBLIC_KEY"] = self._get_config_str("wireguard-public-key")
+        env.update(self._get_custom_overrides())
 
         return Layer(
             {
@@ -335,6 +384,9 @@ class GluetunCharm(ops.CharmBase):
             logger.debug("Config validation failed: %s", config_error)
             return
 
+        if self._override_mode:
+            logger.warning("Override mode: config validation bypassed, gluetun may misbehave")
+
         # Returns True if patch applied (pod restarting), False if already privileged
         if self._ensure_gluetun_privileged():
             return
@@ -343,7 +395,7 @@ class GluetunCharm(ops.CharmBase):
             return
 
         private_key = self._get_private_key()
-        if not private_key:
+        if not private_key and not self._override_mode:
             return
 
         # Configure Pebble layer and start service
@@ -403,6 +455,8 @@ class GluetunCharm(ops.CharmBase):
         """Add status for secret access."""
         if self._validate_config():
             return
+        if self._override_mode:
+            return
         if not self._get_private_key():
             event.add_status(ops.BlockedStatus("Secret not found or missing private-key"))
 
@@ -414,7 +468,7 @@ class GluetunCharm(ops.CharmBase):
             return
         if self._validate_config():
             return
-        if not self._get_private_key():
+        if not self._get_private_key() and not self._override_mode:
             return
 
         health = self._check_vpn_health()
