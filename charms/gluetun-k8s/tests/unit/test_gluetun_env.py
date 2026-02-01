@@ -80,3 +80,85 @@ def test_env_for_custom_provider(ctx, mock_k8s_privileged):
     assert env.get("VPN_SERVICE_PROVIDER") == "custom"
     assert env.get("VPN_ENDPOINT_IP") == "1.2.3.4"
     assert env.get("WIREGUARD_PUBLIC_KEY") == "server-pubkey"
+
+
+def test_override_env_merges_on_top(ctx, mock_k8s_privileged):
+    """Custom overrides are merged into the gluetun environment."""
+    import json
+
+    secret = Secret(tracked_content={"private-key": "key"})
+    container = Container(name="gluetun", can_connect=True)
+    state = ctx.run(
+        ctx.on.config_changed(),
+        State(
+            leader=True,
+            containers=[container],
+            config={
+                "cluster-cidrs": "10.1.0.0/16",
+                "vpn-provider": "nordvpn",
+                "wireguard-private-key-secret": secret.id,
+                "custom-overrides": json.dumps({"EXTRA_VAR": "extra_value"}),
+            },
+            secrets=[secret],
+        ),
+    )
+    container_out = state.get_container("gluetun")
+    layer = container_out.layers.get("gluetun")
+    env = layer.services["gluetun"].environment
+    assert env.get("EXTRA_VAR") == "extra_value"
+    assert env.get("VPN_SERVICE_PROVIDER") == "nordvpn"
+
+
+def test_override_env_overrides_base_values(ctx, mock_k8s_privileged):
+    """Custom overrides take precedence over charm-built values."""
+    import json
+
+    secret = Secret(tracked_content={"private-key": "key"})
+    container = Container(name="gluetun", can_connect=True)
+    state = ctx.run(
+        ctx.on.config_changed(),
+        State(
+            leader=True,
+            containers=[container],
+            config={
+                "cluster-cidrs": "10.1.0.0/16",
+                "vpn-provider": "nordvpn",
+                "wireguard-private-key-secret": secret.id,
+                "custom-overrides": json.dumps({"VPN_TYPE": "openvpn", "DOT": "on"}),
+            },
+            secrets=[secret],
+        ),
+    )
+    container_out = state.get_container("gluetun")
+    layer = container_out.layers.get("gluetun")
+    env = layer.services["gluetun"].environment
+    assert env.get("VPN_TYPE") == "openvpn"
+    assert env.get("DOT") == "on"
+
+
+def test_override_without_private_key(ctx, mock_k8s_privileged):
+    """Override mode builds layer without wireguard keys when no secret is set."""
+    import json
+
+    container = Container(name="gluetun", can_connect=True)
+    state = ctx.run(
+        ctx.on.config_changed(),
+        State(
+            leader=True,
+            containers=[container],
+            config={
+                "cluster-cidrs": "10.1.0.0/16",
+                "vpn-provider": "expressvpn",
+                "custom-overrides": json.dumps(
+                    {"VPN_TYPE": "openvpn", "OPENVPN_USER": "u", "OPENVPN_PASSWORD": "p"}
+                ),
+            },
+        ),
+    )
+    container_out = state.get_container("gluetun")
+    layer = container_out.layers.get("gluetun")
+    env = layer.services["gluetun"].environment
+    assert env.get("VPN_TYPE") == "openvpn"
+    assert env.get("VPN_SERVICE_PROVIDER") == "expressvpn"
+    assert env.get("OPENVPN_USER") == "u"
+    assert "WIREGUARD_PRIVATE_KEY" not in env

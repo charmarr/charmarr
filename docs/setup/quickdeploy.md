@@ -174,6 +174,33 @@ Only WireGuard is supported. OpenVPN is not supported.
 
 For most commercial VPNs, only the `wireguard_private_key` is needed. Custom WireGuard setups require additional variables: `wireguard_addresses`, `vpn_endpoint_ip`, `vpn_endpoint_port`, and `wireguard_public_key`.
 
+!!! warning
+    OpenVPN is not officially supported. If your VPN provider only supports OpenVPN, or you need to pass custom environment variables to Gluetun, use the `custom-overrides` config to enter override mode. In override mode, WireGuard validation is bypassed and the provided JSON is merged on top of the charm's built-in environment.
+
+    Unlike `wireguard_private_key` which is stored as a Juju secret and encrypted at rest, `custom-overrides` is plain text charm config. Credentials passed here are not encrypted.
+
+    ```hcl
+    module "charmarr" {
+      source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
+
+      # ... your other config ...
+
+      vpn_provider = "protonvpn"
+
+      gluetun = {
+        config = {
+          "custom-overrides" = jsonencode({
+            VPN_TYPE         = "openvpn"
+            OPENVPN_USER     = "your-username"
+            OPENVPN_PASSWORD = "your-password"
+          })
+        }
+      }
+    }
+    ```
+
+    Override mode relaxes config validation. Misconfiguration may result in silent failures that require inspecting the Gluetun container logs to diagnose. See the [Gluetun wiki](https://github.com/qdm12/gluetun-wiki) for available environment variables.
+
 **Cluster CIDRs**{#cluster-cidrs}
 
 Comma-separated list of CIDRs to exclude from VPN routing (required when VPN is enabled). Include:
