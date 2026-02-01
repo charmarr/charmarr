@@ -55,7 +55,11 @@
     **Without a VPN, your real IP is exposed to torrent trackers and usenet providers.**
 
 ??? question "Can I use OpenVPN instead of WireGuard?"
-    No. Charmarr only supports WireGuard for now. OpenVPN support is planned.
+    Not officially. WireGuard is the supported protocol. However, you can use the `custom-overrides` config to enter override mode, which bypasses WireGuard validation and lets you pass arbitrary environment variables to Gluetun, including OpenVPN credentials.
+
+    Note that unlike the WireGuard private key (stored as a Juju secret, encrypted at rest), `custom-overrides` is plain text charm config. Credentials passed here are not encrypted.
+
+    See [Quick Deploy - VPN](setup/quickdeploy.md#vpn) and [Manual Deploy - VPN Gateway](setup/manual.md#vpn-gateway) for configuration examples.
 
 ??? question "Do I need the service mesh?"
     Probably not. It's enterprise-level network hardening made as simple as it can get for homelab use. Do I need it? Most likely not. But homelab is not a place where one does things one needs, it's a place where one does things one wants and can. Does Charmarr make service mesh accessible to any homelab user? Absolutely.
