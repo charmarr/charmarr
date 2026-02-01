@@ -105,7 +105,7 @@ See [VPN Provider](quickdeploy.md#vpn-provider) and [Cluster CIDRs](quickdeploy.
       custom-overrides='{"VPN_TYPE": "openvpn", "OPENVPN_USER": "your-username", "OPENVPN_PASSWORD": "your-password"}'
     ```
 
-    Override mode relaxes config validation. The charm makes no guarantees about the resulting Gluetun configuration. See the [Gluetun wiki](https://github.com/qdm12/gluetun-wiki) for available environment variables.
+    Override mode relaxes config validation. Misconfiguration may result in silent failures that require inspecting the Gluetun container logs to diagnose. See the [Gluetun wiki](https://github.com/qdm12/gluetun-wiki) for available environment variables.
 
 ---
 

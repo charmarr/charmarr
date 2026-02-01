@@ -209,13 +209,11 @@ class GluetunCharm(ops.CharmBase):
         dns_over_tls = self.config.get("dns-over-tls", False)
 
         env: dict[str, str] = {
+            "VPN_SERVICE_PROVIDER": provider,
             "VPN_BLOCK_OTHER_TRAFFIC": "true",
             "FIREWALL_OUTBOUND_SUBNETS": cluster_cidrs,
             "DOT": "on" if dns_over_tls else "off",
         }
-
-        if provider:
-            env["VPN_SERVICE_PROVIDER"] = provider
 
         if private_key:
             env["VPN_TYPE"] = "wireguard"
