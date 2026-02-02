@@ -93,7 +93,7 @@ juju config gluetun \
 
 See [VPN Provider](quickdeploy.md#vpn-provider) and [Cluster CIDRs](quickdeploy.md#cluster-cidrs) for help determining these values.
 
-!!! warning
+!!! warning "OpenVPN Support"
     OpenVPN is not officially supported. If your VPN provider only supports OpenVPN, or you need to pass custom environment variables to Gluetun, use the `custom-overrides` config to enter override mode. In override mode, WireGuard validation is bypassed and the provided JSON is merged on top of the charm's built-in environment.
 
     Unlike `wireguard-private-key-secret` which is stored as a Juju secret and encrypted at rest, `custom-overrides` is plain text charm config. Credentials passed here are not encrypted.

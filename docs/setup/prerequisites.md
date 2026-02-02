@@ -88,7 +88,7 @@ See the Juju docs for [add-k8s](https://documentation.ubuntu.com/juju/3.6/refere
 
 ## Ingress & Security
 
-Charmarr lets you opt-in to [Istio Ambient](https://istio.io/latest/docs/ambient/overview/) for ingress and service mesh security. Enabling both is **strongly recommended** if your cluster is compatible as it greatly simplifies ingress setup and provides cluster internal network security between services.
+Charmarr lets you opt-in to [Istio Ambient](https://istio.io/latest/docs/ambient/overview/). Enabling Istio provides ingress to all Charmarr apps via the Istio ingress gateway, which is recommended if the cluster is compatible as it simplifies ingress setup. On top, it is possible to enable mesh which hardens internal traffic with zero-trust. See [Networking](../security/network.md) for details.
 
 ### Compatibility Checklist
 

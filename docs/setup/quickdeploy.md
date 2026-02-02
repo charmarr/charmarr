@@ -159,7 +159,7 @@ By default, `enable_vpn = true` deploys Gluetun and integrates it with qBittorre
 
 **Provider**{#vpn-provider}
 
-Only WireGuard is supported. OpenVPN is not supported.
+WireGuard is the default and recommended protocol.
 
 | Provider | Value |
 |----------|-------|
@@ -174,7 +174,7 @@ Only WireGuard is supported. OpenVPN is not supported.
 
 For most commercial VPNs, only the `wireguard_private_key` is needed. Custom WireGuard setups require additional variables: `wireguard_addresses`, `vpn_endpoint_ip`, `vpn_endpoint_port`, and `wireguard_public_key`.
 
-!!! warning
+!!! warning "OpenVPN Support"
     OpenVPN is not officially supported. If your VPN provider only supports OpenVPN, or you need to pass custom environment variables to Gluetun, use the `custom-overrides` config to enter override mode. In override mode, WireGuard validation is bypassed and the provided JSON is merged on top of the charm's built-in environment.
 
     Unlike `wireguard_private_key` which is stored as a Juju secret and encrypted at rest, `custom-overrides` is plain text charm config. Credentials passed here are not encrypted.
