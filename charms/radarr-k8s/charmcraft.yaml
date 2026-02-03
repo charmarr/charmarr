@@ -60,7 +60,7 @@ resources:
   radarr-image:
     type: oci-image
     description: OCI image for Radarr (LinuxServer)
-    upstream-source: lscr.io/linuxserver/radarr:6.0.4.10291-ls290
+    upstream-source: lscr.io/linuxserver/radarr:6.0.4.10291-ls291
   recyclarr-image:
     type: oci-image
     description: OCI image for Recyclarr
