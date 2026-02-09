@@ -60,7 +60,7 @@ resources:
   sonarr-image:
     type: oci-image
     description: OCI image for Sonarr (LinuxServer)
-    upstream-source: lscr.io/linuxserver/sonarr:4.0.16.2944-ls301
+    upstream-source: lscr.io/linuxserver/sonarr:4.0.16.2944-ls302
   recyclarr-image:
     type: oci-image
     description: OCI image for Recyclarr
