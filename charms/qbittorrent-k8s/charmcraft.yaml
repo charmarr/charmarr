@@ -54,7 +54,7 @@ resources:
   qbittorrent-image:
     type: oci-image
     description: OCI image for qBittorrent (LinuxServer)
-    upstream-source: lscr.io/linuxserver/qbittorrent:5.1.4-r1-ls438
+    upstream-source: lscr.io/linuxserver/qbittorrent:5.1.4-r2-ls440
 
 storage:
   config:
