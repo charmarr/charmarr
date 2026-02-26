@@ -64,7 +64,7 @@ resources:
   recyclarr-image:
     type: oci-image
     description: OCI image for Recyclarr
-    upstream-source: ghcr.io/recyclarr/recyclarr:7.5.2
+    upstream-source: ghcr.io/recyclarr/recyclarr:8.3.2
 
 storage:
   config:
