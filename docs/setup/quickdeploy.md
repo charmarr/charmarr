@@ -313,15 +313,15 @@ module "charmarr" {
 
 **Path Prefixes**
 
-The arr apps and download clients are configured with path prefixes for ingress routing:
+Path prefixes default to the Juju app name (e.g., deploying as `radarr` gives path `/radarr`). With a typical deployment:
 
-| App | Default Path |
-|-----|--------------|
-| Radarr | `/radarr` |
-| Sonarr | `/sonarr` |
-| Prowlarr | `/prowlarr` |
-| qBittorrent | `/qbittorrent` |
-| SABnzbd | `/sabnzbd` |
+| App Name | Default Path |
+|----------|--------------|
+| radarr | `/radarr` |
+| sonarr | `/sonarr` |
+| prowlarr | `/prowlarr` |
+| qbittorrent | `/qbittorrent` |
+| sabnzbd | `/sabnzbd` |
 
 With Istio ingress, these paths are automatically configured. If you're using your own ingress controller, configure it to route these paths to the respective services.
 
@@ -339,6 +339,22 @@ module "charmarr" {
 
   qbittorrent = {
     ingress_path = "/"  # serve at root
+  }
+}
+```
+
+**Ingress Port**
+
+The ingress listener port defaults to 80. To use a different port:
+
+```hcl
+module "charmarr" {
+  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
+
+  # ... your other config ...
+
+  radarr = {
+    ingress_port = 8080
   }
 }
 ```

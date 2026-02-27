@@ -56,11 +56,8 @@ plex-ingress/0*    active    idle    10.1.239.97    Serving at 192.168.0.134
 Open in browser:
 
 ```
-http://192.168.0.134:443
+http://192.168.0.134
 ```
-
-!!! note
-    Yes, `http` with port `443`. There is a method behind this madness. This is intentional for future Tailscale integration. And not configurable at this time.
 
 ### Complete Plex Setup
 
@@ -100,7 +97,7 @@ overseerr-ingress/0*    active    idle    10.1.239.116    Serving at 192.168.0.1
 Open in browser:
 
 ```
-http://192.168.0.132:443
+http://192.168.0.132
 ```
 
 ### Complete Overseerr Setup
@@ -154,7 +151,7 @@ Radarr(s) and Sonarr(s) should automatically appear. Charmarr added them for you
 Get the arr ingress IP from `juju status` and open Prowlarr:
 
 ```
-http://ARR_INGRESS_IP:443/prowlarr
+http://ARR_INGRESS_IP/prowlarr
 ```
 
 Add your indexers. The more the merrier.
@@ -164,7 +161,7 @@ Add your indexers. The more the merrier.
 If using usenet indexers, configure SABnzbd:
 
 ```
-http://ARR_INGRESS_IP:443/sabnzbd
+http://ARR_INGRESS_IP/sabnzbd
 ```
 
 Add a usenet server like [Frugal Usenet](https://frugalusenet.com/) or [Eweka](https://www.eweka.nl/).
@@ -174,7 +171,7 @@ Add a usenet server like [Frugal Usenet](https://frugalusenet.com/) or [Eweka](h
 There's no mandatory need to access qBittorrent, but if you want to customize settings:
 
 ```
-http://ARR_INGRESS_IP:443/qbittorrent
+http://ARR_INGRESS_IP/qbittorrent
 ```
 
 Credentials are pre-configured by Charmarr. To retrieve them:
