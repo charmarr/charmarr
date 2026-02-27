@@ -159,9 +159,9 @@ config:
       description: Port for the Istio ingress gateway listener.
     ingress-path:
       type: string
-      default: "/sonarr"
+      default: ""
       description: |
-        URL path prefix for ingress routing.
+        URL path prefix for ingress routing. Defaults to app name if unset.
         Example: /sonarr means access via https://gateway.example.com/sonarr
     timezone:
       type: string

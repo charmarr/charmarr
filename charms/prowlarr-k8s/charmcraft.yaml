@@ -118,9 +118,9 @@ config:
       description: Port for the Istio ingress gateway listener.
     ingress-path:
       type: string
-      default: "/prowlarr"
+      default: ""
       description: |
-        URL path prefix for ingress routing.
+        URL path prefix for ingress routing. Defaults to app name if unset.
         Requests to this path are rewritten to / before forwarding to Prowlarr.
         Example: /prowlarr means access via https://gateway.example.com/prowlarr
     timezone:

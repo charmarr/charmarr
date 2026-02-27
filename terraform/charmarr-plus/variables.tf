@@ -180,7 +180,7 @@ variable "qbittorrent" {
     revision     = optional(number, null)
     config       = optional(map(string), {})
     ingress_port = optional(number, 80)
-    ingress_path = optional(string, "/qbittorrent")
+    ingress_path = optional(string, "")
   })
   default = {}
 }
@@ -192,7 +192,7 @@ variable "sabnzbd" {
     revision     = optional(number, null)
     config       = optional(map(string), {})
     ingress_port = optional(number, 80)
-    ingress_path = optional(string, "/sabnzbd")
+    ingress_path = optional(string, "")
   })
   default = {}
 }
@@ -204,7 +204,7 @@ variable "prowlarr" {
     revision     = optional(number, null)
     config       = optional(map(string), {})
     ingress_port = optional(number, 80)
-    ingress_path = optional(string, "/prowlarr")
+    ingress_path = optional(string, "")
   })
   default = {}
 }
@@ -230,7 +230,7 @@ variable "radarr_hd" {
     revision       = optional(number, null)
     config         = optional(map(string), {})
     ingress_port   = optional(number, 80)
-    ingress_path   = optional(string, "/radarr-hd")
+    ingress_path   = optional(string, "")
     trash_profiles = optional(string, "hd-bluray-web")
   })
   default = {}
@@ -243,7 +243,7 @@ variable "radarr_uhd" {
     revision       = optional(number, null)
     config         = optional(map(string), {})
     ingress_port   = optional(number, 80)
-    ingress_path   = optional(string, "/radarr-uhd")
+    ingress_path   = optional(string, "")
     trash_profiles = optional(string, "")
   })
   default = {}
@@ -256,7 +256,7 @@ variable "radarr_anime" {
     revision       = optional(number, null)
     config         = optional(map(string), {})
     ingress_port   = optional(number, 80)
-    ingress_path   = optional(string, "/radarr-anime")
+    ingress_path   = optional(string, "")
     trash_profiles = optional(string, "")
   })
   default = {}
@@ -273,7 +273,7 @@ variable "sonarr_hd" {
     revision       = optional(number, null)
     config         = optional(map(string), {})
     ingress_port   = optional(number, 80)
-    ingress_path   = optional(string, "/sonarr-hd")
+    ingress_path   = optional(string, "")
     trash_profiles = optional(string, "web-1080p")
   })
   default = {}
@@ -286,7 +286,7 @@ variable "sonarr_uhd" {
     revision       = optional(number, null)
     config         = optional(map(string), {})
     ingress_port   = optional(number, 80)
-    ingress_path   = optional(string, "/sonarr-uhd")
+    ingress_path   = optional(string, "")
     trash_profiles = optional(string, "")
   })
   default = {}
@@ -299,7 +299,7 @@ variable "sonarr_anime" {
     revision       = optional(number, null)
     config         = optional(map(string), {})
     ingress_port   = optional(number, 80)
-    ingress_path   = optional(string, "/sonarr-anime")
+    ingress_path   = optional(string, "")
     trash_profiles = optional(string, "")
   })
   default = {}

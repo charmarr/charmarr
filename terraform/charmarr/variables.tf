@@ -180,7 +180,7 @@ variable "qbittorrent" {
     revision     = optional(number, null)
     config       = optional(map(string), {})
     ingress_port = optional(number, 80)
-    ingress_path = optional(string, "/qbittorrent")
+    ingress_path = optional(string, "")
   })
   default = {}
 }
@@ -192,7 +192,7 @@ variable "sabnzbd" {
     revision     = optional(number, null)
     config       = optional(map(string), {})
     ingress_port = optional(number, 80)
-    ingress_path = optional(string, "/sabnzbd")
+    ingress_path = optional(string, "")
   })
   default = {}
 }
@@ -204,7 +204,7 @@ variable "prowlarr" {
     revision     = optional(number, null)
     config       = optional(map(string), {})
     ingress_port = optional(number, 80)
-    ingress_path = optional(string, "/prowlarr")
+    ingress_path = optional(string, "")
   })
   default = {}
 }
@@ -226,7 +226,7 @@ variable "radarr" {
     revision       = optional(number, null)
     config         = optional(map(string), {})
     ingress_port   = optional(number, 80)
-    ingress_path   = optional(string, "/radarr")
+    ingress_path   = optional(string, "")
     trash_profiles = optional(string, "")
   })
   default = {}
@@ -239,7 +239,7 @@ variable "sonarr" {
     revision       = optional(number, null)
     config         = optional(map(string), {})
     ingress_port   = optional(number, 80)
-    ingress_path   = optional(string, "/sonarr")
+    ingress_path   = optional(string, "")
     trash_profiles = optional(string, "")
   })
   default = {}

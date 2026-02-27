@@ -124,7 +124,7 @@ class SABnzbdCharm(ops.CharmBase):
 
     def _get_url_base(self) -> str | None:
         """Get URL base path from config, or None if root/empty."""
-        url_base = str(self.config.get("ingress-path", "/sabnzbd"))
+        url_base = str(self.config["ingress-path"]) or f"/{self.app.name}"
         return url_base if url_base and url_base != "/" else None
 
     @property
@@ -309,7 +309,7 @@ class SABnzbdCharm(ops.CharmBase):
         if not self.model.get_relation("istio-ingress-route"):
             return
 
-        path = str(self.config.get("ingress-path", "/sabnzbd"))
+        path = str(self.config["ingress-path"]) or f"/{self.app.name}"
         listener = Listener(port=int(self.config["ingress-port"]), protocol=ProtocolType.HTTP)
 
         config = IstioIngressRouteConfig(

@@ -74,14 +74,9 @@ variable "ingress_port" {
 }
 
 variable "ingress_path" {
-  description = "URL path prefix for ingress routing"
+  description = "URL path prefix for ingress routing. Defaults to app name if unset."
   type        = string
-  default     = "/radarr"
-
-  validation {
-    condition     = length(var.ingress_path) > 0 && substr(var.ingress_path, 0, 1) == "/"
-    error_message = "ingress_path must start with /"
-  }
+  default     = ""
 }
 
 variable "timezone" {
