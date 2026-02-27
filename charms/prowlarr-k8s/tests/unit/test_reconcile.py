@@ -143,7 +143,7 @@ def test_reconcile_skips_write_when_config_matches(ctx, mock_k8s, tmp_path):
     config_dir.mkdir()
     config_file = config_dir / "config.xml"
     initial_config = (
-        f"<Config><ApiKey>{TEST_API_KEY}</ApiKey><UrlBase>/prowlarr</UrlBase>"
+        f"<Config><ApiKey>{TEST_API_KEY}</ApiKey><UrlBase>/prowlarr-k8s</UrlBase>"
         "<Port>9696</Port><BindAddress>*</BindAddress></Config>"
     )
     config_file.write_text(initial_config)
