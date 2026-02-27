@@ -46,7 +46,6 @@ Any WireGuard-compatible provider supported by Gluetun. ProtonVPN recommended.
 
 ## Known Limitations
 
-- **Ingress port not configurable** — All services use port 443
 - **Single replica only** — Apps cannot scale horizontally (upstream SQLite limitation)
 - **Bring your own backup** — No integrated backup solution; see [Backup](../backup/index.md)
 - **WireGuard only** — OpenVPN not supported

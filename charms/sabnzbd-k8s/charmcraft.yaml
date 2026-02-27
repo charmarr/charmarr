@@ -113,10 +113,14 @@ config:
       description: |
         Application log level for the charm.
         One of: trace, debug, info, warn, error
+    ingress-port:
+      type: int
+      default: 80
+      description: Port for the Istio ingress gateway listener.
     ingress-path:
       type: string
-      default: "/sabnzbd"
-      description: URL path prefix for ingress routing
+      default: ""
+      description: URL path prefix for ingress routing. Defaults to app name if unset.
     timezone:
       type: string
       default: "Etc/UTC"

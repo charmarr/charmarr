@@ -39,6 +39,12 @@ variable "revision" {
   default     = null
 }
 
+variable "ingress_port" {
+  description = "Port for the Istio ingress gateway listener"
+  type        = number
+  default     = 80
+}
+
 variable "log_level" {
   description = "Application log level (debug, info, warn, error)"
   type        = string

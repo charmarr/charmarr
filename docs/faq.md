@@ -76,24 +76,25 @@
 ??? question "How do I access the web UIs?"
     With Istio ingress, each app is accessible via the ingress gateway. The URLs follow this pattern:
 
-    - Radarr: `http://<ARR_INGRESS_IP>:443/radarr`
-    - Sonarr: `http://<ARR_INGRESS_IP>:443/sonarr`
-    - Prowlarr: `http://<ARR_INGRESS_IP>:443/prowlarr`
-    - qBittorrent: `http://<ARR_INGRESS_IP>:443/qbittorrent`
-    - Plex: `http://<PLEX_INGRESS_IP>:443`
-    - Overseerr: `http://<OVERSEERR_INGRESS_IP>:443`
+    - Radarr: `http://<ARR_INGRESS_IP>/radarr`
+    - Sonarr: `http://<ARR_INGRESS_IP>/sonarr`
+    - Prowlarr: `http://<ARR_INGRESS_IP>/prowlarr`
+    - qBittorrent: `http://<ARR_INGRESS_IP>/qbittorrent`
+    - Plex: `http://<PLEX_INGRESS_IP>`
+    - Overseerr: `http://<OVERSEERR_INGRESS_IP>`
+
+    The ingress port defaults to 80. If you changed it via `ingress-port`, append it to the URL (e.g., `http://<IP>:8080/radarr`).
+
+    Path prefixes default to the Juju app name. If you deployed with a custom name (e.g., `radarr-4k`), the path is `/<app-name>`. Override with the `ingress-path` config.
 
     See [Post-Deploy](setup/post-deploy.md) for details on finding ingress IPs. If you're not using Istio, find the URLs based on your ingress setup.
-
-??? question "Why port 443 with HTTP?"
-    This applies when using Istio ingress. Charmarr plans to integrate with Tailscale to securely expose ingress services on your tailnet for remote access. The Tailscale operator exposes all service ports, so Charmarr uses port 443 to be ready for this integration. The port may become configurable in the future. For now, yes, it's unfortunately HTTP on port 443. If you're using your own ingress controller, you can configure any port you prefer.
 
 ??? question "Can I add more Radarr/Sonarr instances?"
     Yes. Deploy additional instances with unique names and variants. For example:
 
     ```bash
     juju deploy radarr-k8s --trust radarr-4k
-    juju config radarr-4k variant=4k ingress-path=/radarr-4k
+    juju config radarr-4k variant=4k
     ```
 
     See [Manual Deploy](setup/manual.md#media-managers) for details.

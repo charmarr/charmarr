@@ -314,9 +314,9 @@ class QBittorrentCharm(ops.CharmBase):
         if not self.model.get_relation("istio-ingress-route"):
             return
 
-        path = str(self.config.get("ingress-path", "/qbt"))
+        path = str(self.config["ingress-path"]) or f"/{self.app.name}"
         path_with_slash = path.rstrip("/") + "/"
-        listener = Listener(port=443, protocol=ProtocolType.HTTP)
+        listener = Listener(port=int(self.config["ingress-port"]), protocol=ProtocolType.HTTP)
 
         config = IstioIngressRouteConfig(
             model=self.model.name,

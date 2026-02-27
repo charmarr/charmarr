@@ -156,7 +156,7 @@ def test_reconcile_skips_write_when_config_matches(ctx, mock_k8s, tmp_path):
     config_dir.mkdir()
     config_file = config_dir / "config.xml"
     config_content = (
-        f"<Config><ApiKey>{TEST_API_KEY}</ApiKey><UrlBase>/sonarr</UrlBase>"
+        f"<Config><ApiKey>{TEST_API_KEY}</ApiKey><UrlBase>/sonarr-k8s</UrlBase>"
         "<Port>8989</Port><BindAddress>*</BindAddress></Config>"
     )
     config_file.write_text(config_content)

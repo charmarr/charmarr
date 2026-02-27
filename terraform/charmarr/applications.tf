@@ -108,6 +108,7 @@ module "qbittorrent" {
   constraints         = var.qbittorrent.constraints
   revision            = var.qbittorrent.revision
   config              = var.qbittorrent.config
+  ingress_port        = var.qbittorrent.ingress_port
   ingress_path        = var.qbittorrent.ingress_path
   credential_rotation = "monthly"
 }
@@ -122,6 +123,7 @@ module "sabnzbd" {
   constraints         = var.sabnzbd.constraints
   revision            = var.sabnzbd.revision
   config              = var.sabnzbd.config
+  ingress_port        = var.sabnzbd.ingress_port
   ingress_path        = var.sabnzbd.ingress_path
   credential_rotation = "monthly"
 }
@@ -136,6 +138,7 @@ module "prowlarr" {
   constraints      = var.prowlarr.constraints
   revision         = var.prowlarr.revision
   config           = var.prowlarr.config
+  ingress_port     = var.prowlarr.ingress_port
   ingress_path     = var.prowlarr.ingress_path
   api_key_rotation = "monthly"
 }
@@ -162,6 +165,7 @@ module "radarr" {
   constraints      = var.radarr.constraints
   revision         = var.radarr.revision
   config           = var.radarr.config
+  ingress_port     = var.radarr.ingress_port
   ingress_path     = var.radarr.ingress_path
   api_key_rotation = "monthly"
 }
@@ -176,6 +180,7 @@ module "sonarr" {
   constraints      = var.sonarr.constraints
   revision         = var.sonarr.revision
   config           = var.sonarr.config
+  ingress_port     = var.sonarr.ingress_port
   ingress_path     = var.sonarr.ingress_path
   api_key_rotation = "monthly"
 }

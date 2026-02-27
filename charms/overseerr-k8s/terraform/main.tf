@@ -18,7 +18,8 @@ resource "juju_application" "overseerr" {
 
   config = merge(
     {
-      log-level = var.log_level
+      ingress-port = var.ingress_port
+      log-level    = var.log_level
     },
     var.config
   )

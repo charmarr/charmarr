@@ -152,7 +152,7 @@ juju config radarr variant=standard trash-profiles=hd-bluray-web
 
 # 4K instance (uses uhd-bluray-web by default)
 juju deploy radarr-k8s --trust --channel=latest/edge radarr-4k
-juju config radarr-4k variant=4k ingress-path=/radarr-4k
+juju config radarr-4k variant=4k
 ```
 
 Deploy as many managers as needed with unique names and ingress paths.
@@ -289,15 +289,15 @@ Istio provides ingress and service mesh security. Check the [Compatibility Check
 
 **Path Prefixes**
 
-The arr apps and download clients are configured with default path prefixes:
+Path prefixes default to the Juju app name (e.g., deploying as `radarr` gives path `/radarr`):
 
-| App | Default Path |
-|-----|--------------|
-| Radarr | `/radarr` |
-| Sonarr | `/sonarr` |
-| Prowlarr | `/prowlarr` |
-| qBittorrent | `/qbittorrent` |
-| SABnzbd | `/sabnzbd` |
+| App Name | Default Path |
+|----------|--------------|
+| radarr | `/radarr` |
+| sonarr | `/sonarr` |
+| prowlarr | `/prowlarr` |
+| qbittorrent | `/qbittorrent` |
+| sabnzbd | `/sabnzbd` |
 
 With Istio ingress, these paths are automatically configured. If you're using your own ingress controller, configure it to route these paths to the respective services.
 
@@ -306,6 +306,12 @@ To use different paths, or set `/` to serve at root (no path prefix):
 ```bash
 juju config radarr ingress-path=/movies
 juju config qbittorrent ingress-path=/
+```
+
+The ingress listener port defaults to 80. To change it:
+
+```bash
+juju config radarr ingress-port=8080
 ```
 
 ### Deploy Istio

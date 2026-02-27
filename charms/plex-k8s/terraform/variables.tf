@@ -52,6 +52,12 @@ variable "hardware_transcoding" {
   default     = false
 }
 
+variable "ingress_port" {
+  description = "Port for the Istio ingress gateway listener"
+  type        = number
+  default     = 80
+}
+
 variable "timezone" {
   description = "IANA timezone (e.g., America/New_York, Europe/London)"
   type        = string

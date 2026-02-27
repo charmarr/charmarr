@@ -20,6 +20,7 @@ resource "juju_application" "sabnzbd" {
     {
       unsafe-mode         = tostring(var.unsafe_mode)
       log-level           = var.log_level
+      ingress-port        = var.ingress_port
       ingress-path        = var.ingress_path
       timezone            = var.timezone
       credential-rotation = var.credential_rotation

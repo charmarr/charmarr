@@ -67,15 +67,16 @@ variable "log_level" {
   }
 }
 
-variable "ingress_path" {
-  description = "URL path prefix for ingress routing"
-  type        = string
-  default     = "/radarr"
+variable "ingress_port" {
+  description = "Port for the Istio ingress gateway listener"
+  type        = number
+  default     = 80
+}
 
-  validation {
-    condition     = length(var.ingress_path) > 0 && substr(var.ingress_path, 0, 1) == "/"
-    error_message = "ingress_path must start with /"
-  }
+variable "ingress_path" {
+  description = "URL path prefix for ingress routing. Defaults to app name if unset."
+  type        = string
+  default     = ""
 }
 
 variable "timezone" {

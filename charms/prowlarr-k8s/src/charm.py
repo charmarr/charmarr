@@ -120,7 +120,7 @@ class ProwlarrCharm(ops.CharmBase):
 
     def _get_url_base(self) -> str | None:
         """Get URL base path from config, or None if root/empty."""
-        url_base = str(self.config.get("ingress-path", "/prowlarr"))
+        url_base = str(self.config["ingress-path"]) or f"/{self.app.name}"
         return url_base if url_base and url_base != "/" else None
 
     @property
@@ -368,8 +368,8 @@ class ProwlarrCharm(ops.CharmBase):
         if not self.model.get_relation("istio-ingress-route"):
             return
 
-        path = self._get_url_base() or "/prowlarr"
-        listener = Listener(port=443, protocol=ProtocolType.HTTP)
+        path = str(self.config["ingress-path"]) or f"/{self.app.name}"
+        listener = Listener(port=int(self.config["ingress-port"]), protocol=ProtocolType.HTTP)
 
         config = IstioIngressRouteConfig(
             model=self.model.name,
