@@ -97,6 +97,10 @@ config:
       description: |
         Application log level.
         One of: debug, info, warn, error
+    ingress-port:
+      type: int
+      default: 80
+      description: Port for the Istio ingress gateway listener.
 
 actions:
   rotate-api-key:

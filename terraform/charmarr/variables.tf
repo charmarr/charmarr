@@ -179,6 +179,7 @@ variable "qbittorrent" {
     constraints  = optional(string, "arch=amd64")
     revision     = optional(number, null)
     config       = optional(map(string), {})
+    ingress_port = optional(number, 80)
     ingress_path = optional(string, "/qbittorrent")
   })
   default = {}
@@ -190,6 +191,7 @@ variable "sabnzbd" {
     constraints  = optional(string, "arch=amd64")
     revision     = optional(number, null)
     config       = optional(map(string), {})
+    ingress_port = optional(number, 80)
     ingress_path = optional(string, "/sabnzbd")
   })
   default = {}
@@ -201,6 +203,7 @@ variable "prowlarr" {
     constraints  = optional(string, "arch=amd64")
     revision     = optional(number, null)
     config       = optional(map(string), {})
+    ingress_port = optional(number, 80)
     ingress_path = optional(string, "/prowlarr")
   })
   default = {}
@@ -222,6 +225,7 @@ variable "radarr" {
     constraints    = optional(string, "arch=amd64")
     revision       = optional(number, null)
     config         = optional(map(string), {})
+    ingress_port   = optional(number, 80)
     ingress_path   = optional(string, "/radarr")
     trash_profiles = optional(string, "")
   })
@@ -234,6 +238,7 @@ variable "sonarr" {
     constraints    = optional(string, "arch=amd64")
     revision       = optional(number, null)
     config         = optional(map(string), {})
+    ingress_port   = optional(number, 80)
     ingress_path   = optional(string, "/sonarr")
     trash_profiles = optional(string, "")
   })

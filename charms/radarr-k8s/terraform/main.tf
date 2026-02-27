@@ -21,6 +21,7 @@ resource "juju_application" "radarr" {
       variant          = var.variant
       trash-profiles   = var.trash_profiles
       log-level        = var.log_level
+      ingress-port     = var.ingress_port
       ingress-path     = var.ingress_path
       timezone         = var.timezone
       api-key-rotation = var.api_key_rotation

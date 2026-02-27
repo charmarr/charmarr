@@ -20,6 +20,7 @@ resource "juju_application" "plex" {
     {
       claim-token          = var.claim_token
       hardware-transcoding = tostring(var.hardware_transcoding)
+      ingress-port         = var.ingress_port
       timezone             = var.timezone
     },
     var.config

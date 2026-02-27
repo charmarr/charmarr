@@ -19,6 +19,7 @@ resource "juju_application" "prowlarr" {
   config = merge(
     {
       log-level        = var.log_level
+      ingress-port     = var.ingress_port
       ingress-path     = var.ingress_path
       timezone         = var.timezone
       sync-level       = var.sync_level

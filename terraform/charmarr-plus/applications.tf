@@ -108,6 +108,7 @@ module "qbittorrent" {
   constraints         = var.qbittorrent.constraints
   revision            = var.qbittorrent.revision
   config              = var.qbittorrent.config
+  ingress_port        = var.qbittorrent.ingress_port
   ingress_path        = var.qbittorrent.ingress_path
   credential_rotation = "monthly"
 }
@@ -122,6 +123,7 @@ module "sabnzbd" {
   constraints         = var.sabnzbd.constraints
   revision            = var.sabnzbd.revision
   config              = var.sabnzbd.config
+  ingress_port        = var.sabnzbd.ingress_port
   ingress_path        = var.sabnzbd.ingress_path
   credential_rotation = "monthly"
 }
@@ -136,6 +138,7 @@ module "prowlarr" {
   constraints      = var.prowlarr.constraints
   revision         = var.prowlarr.revision
   config           = var.prowlarr.config
+  ingress_port     = var.prowlarr.ingress_port
   ingress_path     = var.prowlarr.ingress_path
   api_key_rotation = "monthly"
 }
@@ -167,6 +170,7 @@ module "radarr_hd" {
   revision         = var.radarr_hd.revision
   config           = var.radarr_hd.config
   variant          = "standard"
+  ingress_port     = var.radarr_hd.ingress_port
   ingress_path     = var.radarr_hd.ingress_path
   trash_profiles   = var.radarr_hd.trash_profiles
   api_key_rotation = "monthly"
@@ -183,6 +187,7 @@ module "radarr_uhd" {
   revision         = var.radarr_uhd.revision
   config           = var.radarr_uhd.config
   variant          = "4k"
+  ingress_port     = var.radarr_uhd.ingress_port
   ingress_path     = var.radarr_uhd.ingress_path
   trash_profiles   = var.radarr_uhd.trash_profiles
   api_key_rotation = "monthly"
@@ -199,6 +204,7 @@ module "radarr_anime" {
   revision         = var.radarr_anime.revision
   config           = var.radarr_anime.config
   variant          = "anime"
+  ingress_port     = var.radarr_anime.ingress_port
   ingress_path     = var.radarr_anime.ingress_path
   trash_profiles   = var.radarr_anime.trash_profiles
   api_key_rotation = "monthly"
@@ -219,6 +225,7 @@ module "sonarr_hd" {
   revision         = var.sonarr_hd.revision
   config           = var.sonarr_hd.config
   variant          = "standard"
+  ingress_port     = var.sonarr_hd.ingress_port
   ingress_path     = var.sonarr_hd.ingress_path
   trash_profiles   = var.sonarr_hd.trash_profiles
   api_key_rotation = "monthly"
@@ -235,6 +242,7 @@ module "sonarr_uhd" {
   revision         = var.sonarr_uhd.revision
   config           = var.sonarr_uhd.config
   variant          = "4k"
+  ingress_port     = var.sonarr_uhd.ingress_port
   ingress_path     = var.sonarr_uhd.ingress_path
   trash_profiles   = var.sonarr_uhd.trash_profiles
   api_key_rotation = "monthly"
@@ -251,6 +259,7 @@ module "sonarr_anime" {
   revision         = var.sonarr_anime.revision
   config           = var.sonarr_anime.config
   variant          = "anime"
+  ingress_port     = var.sonarr_anime.ingress_port
   ingress_path     = var.sonarr_anime.ingress_path
   trash_profiles   = var.sonarr_anime.trash_profiles
   api_key_rotation = "monthly"

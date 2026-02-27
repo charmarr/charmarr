@@ -50,6 +50,12 @@ variable "log_level" {
   }
 }
 
+variable "ingress_port" {
+  description = "Port for the Istio ingress gateway listener"
+  type        = number
+  default     = 80
+}
+
 variable "ingress_path" {
   description = "URL path prefix for ingress routing"
   type        = string

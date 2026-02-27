@@ -310,7 +310,7 @@ class SABnzbdCharm(ops.CharmBase):
             return
 
         path = str(self.config.get("ingress-path", "/sabnzbd"))
-        listener = Listener(port=443, protocol=ProtocolType.HTTP)
+        listener = Listener(port=int(self.config["ingress-port"]), protocol=ProtocolType.HTTP)
 
         config = IstioIngressRouteConfig(
             model=self.model.name,
