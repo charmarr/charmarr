@@ -36,7 +36,7 @@ def radarr_accessible_via_ingress(juju: jubilant.Juju, credentials: ArrCredentia
 
     parsed = urlparse(credentials.base_url)
     url_base = parsed.path.rstrip("/")
-    url = f"http://{ingress_ip}:443{url_base}/api/v3/system/status"
+    url = f"http://{ingress_ip}:80{url_base}/api/v3/system/status"
     response = http_from_unit(
         juju,
         "radarr/0",

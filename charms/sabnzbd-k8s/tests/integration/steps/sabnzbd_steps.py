@@ -52,7 +52,7 @@ def api_accessible_via_ingress(juju: jubilant.Juju, api_key: ApiKey) -> None:
     ingress_ip = get_ingress_ip(juju)
     assert ingress_ip, "Could not get istio-ingress IP"
 
-    url = f"http://{ingress_ip}:443/sabnzbd/api?mode=version&output=json&apikey={api_key.api_key}"
+    url = f"http://{ingress_ip}:80/sabnzbd/api?mode=version&output=json&apikey={api_key.api_key}"
     response = http_request(juju, url)
     assert response.status_code == 200, (
         f"API via ingress failed: {response.status_code} - {response.body}"

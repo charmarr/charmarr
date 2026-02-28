@@ -43,7 +43,7 @@ def plex_accessible_via_ingress(juju: jubilant.Juju) -> None:
     ingress_ip = get_ingress_ip(juju, "istio-ingress")
     assert ingress_ip is not None, "Could not get ingress IP"
 
-    url = f"http://{ingress_ip}:443/identity"
+    url = f"http://{ingress_ip}:80/identity"
     response = http_from_unit(juju, "plex/0", url)
     assert response.status_code == 200
 

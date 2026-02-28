@@ -93,6 +93,6 @@ def overseerr_accessible_via_ingress(juju: jubilant.Juju) -> None:
     ingress_ip = get_ingress_ip(juju, "istio-ingress")
     assert ingress_ip is not None, "Could not get ingress IP"
 
-    url = f"http://{ingress_ip}:443/api/v1/status"
+    url = f"http://{ingress_ip}:80/api/v1/status"
     response = http_from_unit(juju, "overseerr/0", url)
     assert response.status_code == 200

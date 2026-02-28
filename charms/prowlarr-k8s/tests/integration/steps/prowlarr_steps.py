@@ -71,7 +71,7 @@ def prowlarr_accessible_via_ingress(juju: jubilant.Juju, credentials: ArrCredent
 
     parsed = urlparse(credentials.base_url)
     url_base = parsed.path.rstrip("/")
-    url = f"http://{ingress_ip}:443{url_base}/api/v1/system/status"
+    url = f"http://{ingress_ip}:80{url_base}/api/v1/system/status"
     response = http_from_unit(
         juju,
         "prowlarr/0",
