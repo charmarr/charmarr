@@ -71,7 +71,7 @@ def webui_accessible_via_ingress(juju: jubilant.Juju, credentials: Credentials) 
     ingress_ip = get_ingress_ip(juju)
     assert ingress_ip, "Could not get istio-ingress IP"
 
-    base_url = f"http://{ingress_ip}:80/qbt"
+    base_url = f"http://{ingress_ip}:80/qbittorrent"
     login_url = f"{base_url}/api/v2/auth/login"
     login_body = f"username={credentials.username}&password={credentials.password}"
     login_response = http_request(
