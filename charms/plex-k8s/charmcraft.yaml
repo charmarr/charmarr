@@ -55,7 +55,7 @@ resources:
   plex-image:
     type: oci-image
     description: OCI image for Plex Media Server (LinuxServer)
-    upstream-source: lscr.io/linuxserver/plex:1.42.2.10156-f737b826c-ls289
+    upstream-source: lscr.io/linuxserver/plex:1.43.0.10492-121068a07-ls295
 
 storage:
   config:
