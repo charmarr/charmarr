@@ -5,6 +5,19 @@ on:
 
 jobs:
   quality:
-    uses: charmarr/.github/.github/workflows/charm-ci.yaml@v1
+    uses: charmarr/.github/.github/workflows/charm-ci.yaml@v2
     with:
       charm-path: charms/charmarr-storage-k8s
+      use-parrot: true
+    secrets: inherit
+
+  integration:
+    needs: quality
+    uses: charmarr/.github/.github/workflows/charm-integration.yaml@v2
+    with:
+      charm-path: charms/charmarr-storage-k8s
+      use-parrot: false
+      substrate-channel: "1.32/stable"
+      load-nfs-modules: true
+      classic-microk8s-suites: '["test_native_nfs_backend.py"]'
+    secrets: inherit

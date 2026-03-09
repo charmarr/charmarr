@@ -5,6 +5,16 @@ on:
 
 jobs:
   quality:
-    uses: charmarr/.github/.github/workflows/charm-ci.yaml@v1
+    uses: charmarr/.github/.github/workflows/charm-ci.yaml@v2
     with:
       charm-path: charms/prowlarr-k8s
+      use-parrot: true
+    secrets: inherit
+
+  integration:
+    needs: quality
+    uses: charmarr/.github/.github/workflows/charm-integration.yaml@v2
+    with:
+      charm-path: charms/prowlarr-k8s
+      use-parrot: false
+    secrets: inherit
