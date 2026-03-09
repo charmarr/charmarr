@@ -9,13 +9,13 @@ on:
 
 jobs:
   quality:
-    uses: charmarr/.github/.github/workflows/charm-ci.yaml@v1
+    uses: charmarr/.github/.github/workflows/charm-ci.yaml@v2
     with:
       charm-path: charms/plex-k8s
 
   publish:
     needs: quality
-    uses: charmarr/.github/.github/workflows/charm-publish.yaml@v1
+    uses: charmarr/.github/.github/workflows/charm-publish.yaml@v2
     with:
       charm-path: charms/plex-k8s
       channel: latest/edge

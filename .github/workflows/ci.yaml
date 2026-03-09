@@ -78,63 +78,74 @@ jobs:
     needs: detect
     if: needs.detect.outputs.multimeter == 'true'
     uses: ./.github/workflows/_multimeter-k8s-ci.yaml
+    secrets: inherit
 
   storage:
     name: Storage
     needs: detect
     if: needs.detect.outputs.storage == 'true'
     uses: ./.github/workflows/_storage-k8s-ci.yaml
+    secrets: inherit
 
   gluetun:
     name: Gluetun
     needs: detect
     if: needs.detect.outputs.gluetun == 'true'
     uses: ./.github/workflows/_gluetun-k8s-ci.yaml
+    secrets: inherit
 
   qbittorrent:
     name: qBittorrent
     needs: detect
     if: needs.detect.outputs.qbittorrent == 'true'
     uses: ./.github/workflows/_qbittorrent-k8s-ci.yaml
+    secrets: inherit
 
   sabnzbd:
     name: SABnzbd
     needs: detect
     if: needs.detect.outputs.sabnzbd == 'true'
     uses: ./.github/workflows/_sabnzbd-k8s-ci.yaml
+    secrets: inherit
 
   flaresolverr:
     name: FlareSolverr
     needs: detect
     if: needs.detect.outputs.flaresolverr == 'true'
     uses: ./.github/workflows/_flaresolverr-k8s-ci.yaml
+    secrets: inherit
 
   prowlarr:
     name: Prowlarr
     needs: detect
     if: needs.detect.outputs.prowlarr == 'true'
     uses: ./.github/workflows/_prowlarr-k8s-ci.yaml
+    secrets: inherit
 
   radarr:
     name: Radarr
     needs: detect
     if: needs.detect.outputs.radarr == 'true'
     uses: ./.github/workflows/_radarr-k8s-ci.yaml
+    secrets: inherit
 
   sonarr:
     name: Sonarr
     needs: detect
     if: needs.detect.outputs.sonarr == 'true'
     uses: ./.github/workflows/_sonarr-k8s-ci.yaml
+    secrets: inherit
 
   plex:
     name: Plex
     needs: detect
     if: needs.detect.outputs.plex == 'true'
     uses: ./.github/workflows/_plex-k8s-ci.yaml
+    secrets: inherit
 
   overseerr:
     name: Overseerr
     needs: detect
     if: needs.detect.outputs.overseerr == 'true'
     uses: ./.github/workflows/_overseerr-k8s-ci.yaml
+    secrets: inherit
