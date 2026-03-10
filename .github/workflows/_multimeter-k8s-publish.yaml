@@ -9,14 +9,14 @@ on:
 
 jobs:
   quality:
-    uses: charmarr/.github/.github/workflows/charm-ci.yaml@v1
+    uses: charmarr/.github/.github/workflows/charm-ci.yaml@v2
     with:
       charm-path: charms/charmarr-multimeter-k8s
       run-terraform-validate: false
 
   publish:
     needs: quality
-    uses: charmarr/.github/.github/workflows/charm-publish.yaml@v1
+    uses: charmarr/.github/.github/workflows/charm-publish.yaml@v2
     with:
       charm-path: charms/charmarr-multimeter-k8s
       channel: latest/edge
