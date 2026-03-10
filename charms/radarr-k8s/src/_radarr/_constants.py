@@ -6,5 +6,5 @@
 CONTAINER_NAME = "radarr"
 SERVICE_NAME = "radarr"
 WEBUI_PORT = 7878
-CONFIG_FILE = "/confgi/config.xml"
+CONFIG_FILE = "/config/config.xml"
 API_KEY_SECRET_LABEL = "api-key"
