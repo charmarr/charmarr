@@ -5,7 +5,7 @@
 """Charmarr Storage Charm - workload-less charm for shared PVC management."""
 
 import logging
-from enum import Enum
+from enum import StrEnum
 
 import ops
 from lightkube import ApiError
@@ -36,7 +36,7 @@ from charmarr_lib.core.interfaces import MediaStorageProvider, MediaStorageProvi
 logger = logging.getLogger(__name__)
 
 
-class BackendType(str, Enum):
+class BackendType(StrEnum):
     """Storage backend types."""
 
     STORAGE_CLASS = "storage-class"
@@ -44,7 +44,7 @@ class BackendType(str, Enum):
     HOSTPATH = "hostpath"
 
 
-class AccessMode(str, Enum):
+class AccessMode(StrEnum):
     """PVC access modes."""
 
     READ_WRITE_MANY = "ReadWriteMany"
