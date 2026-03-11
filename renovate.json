@@ -5,6 +5,7 @@
   "schedule": ["before 9am on monday"],
   "timezone": "UTC",
   "labels": ["dependencies"],
+  "gitIgnoredAuthors": ["266865120+charmarr-parrot[bot]@users.noreply.github.com"],
   "lockFileMaintenance": {
     "enabled": true,
     "schedule": ["before 9am on monday"]
