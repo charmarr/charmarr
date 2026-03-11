@@ -3,7 +3,7 @@
 
 """API client for Prowlarr (/api/v1)."""
 
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from charmarr_lib.core import BaseArrApiClient, MediaManagerConnection
 
 
-class IndexerProxyType(str, Enum):
+class IndexerProxyType(StrEnum):
     """Prowlarr indexer proxy types."""
 
     FLARESOLVERR = "FlareSolverr"
