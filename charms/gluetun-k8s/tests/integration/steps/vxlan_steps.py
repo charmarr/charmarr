@@ -4,10 +4,20 @@
 """VXLAN configuration step definitions for gluetun-k8s integration tests."""
 
 import jubilant
-from pytest_bdd import parsers, then, when
+from pytest_bdd import given, parsers, then, when
 
 from charmarr_lib.testing import wait_for_active_idle
 from tests.integration.helpers import get_gateway_client_config
+
+DEFAULT_VXLAN_ID = "42"
+
+
+@given("the gluetun config is set to defaults")
+def reset_gluetun_config(juju: jubilant.Juju, cluster_cidrs: str) -> None:
+    """Ensure gluetun config is at known defaults before each scenario."""
+    juju.cli("config", "gluetun", f"vxlan-id={DEFAULT_VXLAN_ID}")
+    juju.cli("config", "gluetun", f"cluster-cidrs={cluster_cidrs}")
+    wait_for_active_idle(juju)
 
 
 @when(parsers.parse('the gluetun config "{key}" is set to "{value}"'))

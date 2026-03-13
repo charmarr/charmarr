@@ -5,6 +5,7 @@ Feature: VXLAN ID Propagation
     Given the gluetun-k8s charm is deployed with valid VPN config
     And the charmarr-multimeter charm is deployed
     And charmarr-multimeter is related to gluetun via vpn-gateway
+    And the gluetun config is set to defaults
 
   Scenario: Default VXLAN ID is used in client containers
     Then the multimeter client containers should use VXLAN ID 42
