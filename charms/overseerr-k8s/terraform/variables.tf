@@ -55,3 +55,14 @@ variable "log_level" {
     error_message = "log_level must be one of: debug, info, warn, error"
   }
 }
+
+variable "api_key_rotation" {
+  description = "Auto-rotate API key schedule (disabled, daily, monthly, yearly)"
+  type        = string
+  default     = "disabled"
+
+  validation {
+    condition     = contains(["disabled", "daily", "monthly", "yearly"], var.api_key_rotation)
+    error_message = "api_key_rotation must be one of: disabled, daily, monthly, yearly"
+  }
+}

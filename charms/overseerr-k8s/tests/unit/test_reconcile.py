@@ -3,10 +3,11 @@
 
 """Unit tests for OverseerrCharm reconciliation."""
 
-from unittest.mock import patch
+import json
+from unittest.mock import MagicMock, patch
 
 import ops
-from ops.testing import Container, State
+from ops.testing import Container, Exec, Secret, State
 
 from .conftest import OVERSEERR_CONTAINER
 
@@ -94,3 +95,38 @@ def test_reconcile_sets_port(ctx):
     port = next(iter(state.opened_ports))
     assert port.port == 5055
     assert port.protocol == "tcp"
+
+
+def test_reconcile_syncs_secret_rotation_policy(ctx):
+    """Reconcile syncs the rotation policy on the API key secret."""
+    settings = {"main": {"apiKey": "existing-api-key"}}
+    existing_secret = Secret(
+        tracked_content={"api-key": "existing-api-key"},
+        label="api-key",
+        owner="app",
+    )
+    container = Container(
+        name="overseerr",
+        can_connect=True,
+        execs={Exec(["chown", "-R", "1000:1000", "/config"])},
+    )
+
+    with (
+        patch("charm.ensure_pebble_user"),
+        patch.object(
+            ops.Container, "pull", return_value=MagicMock(read=lambda: json.dumps(settings))
+        ),
+        patch("charm.sync_secret_rotation_policy") as mock_sync,
+    ):
+        ctx.run(
+            ctx.on.config_changed(),
+            State(
+                leader=True,
+                containers=[container],
+                secrets=[existing_secret],
+                config={"api-key-rotation": "daily"},
+            ),
+        )
+
+    mock_sync.assert_called_once()
+    assert mock_sync.call_args.args[1] == "daily"

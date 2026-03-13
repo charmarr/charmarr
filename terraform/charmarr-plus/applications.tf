@@ -286,13 +286,14 @@ module "plex" {
 module "overseerr" {
   source = "git::https://github.com/charmarr/charmarr//charms/overseerr-k8s/terraform?ref=main"
 
-  model       = var.model
-  owner       = var.owner
-  app_name    = "overseerr"
-  channel     = var.channel
-  constraints = var.overseerr.constraints
-  revision    = var.overseerr.revision
-  config      = var.overseerr.config
+  model            = var.model
+  owner            = var.owner
+  app_name         = "overseerr"
+  channel          = var.channel
+  constraints      = var.overseerr.constraints
+  revision         = var.overseerr.revision
+  config           = var.overseerr.config
+  api_key_rotation = "monthly"
 }
 
 # -----------------------------------------------------------------------------

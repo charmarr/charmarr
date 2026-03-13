@@ -41,8 +41,10 @@ from charmarr_lib.core import (
     RequestManager,
     ensure_pebble_user,
     generate_api_key,
+    get_secret_rotation_policy,
     observe_events,
     reconcilable_events_k8s,
+    sync_secret_rotation_policy,
 )
 from charmarr_lib.core.interfaces import (
     MediaManagerProviderData,
@@ -80,6 +82,7 @@ class OverseerrCharm(ops.CharmBase):
         framework.observe(self._media_manager.on.changed, self._reconcile)
         framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
         framework.observe(self._ingress.on.ready, self._configure_ingress)
+        framework.observe(self.on.secret_rotate, self._on_secret_rotate)
         framework.observe(self.on.rotate_api_key_action, self._on_rotate_api_key_action)
 
     def _get_api_key(self) -> str | None:
@@ -112,6 +115,9 @@ class OverseerrCharm(ops.CharmBase):
                 {"api-key": api_key},
                 label=API_KEY_SECRET_LABEL,
                 description="Overseerr API key",
+                rotate=get_secret_rotation_policy(
+                    str(self.config.get("api-key-rotation", "disabled"))
+                ),
             )
             logger.info("Created API key secret")
             return self._get_secret_id(secret)
@@ -497,6 +503,14 @@ class OverseerrCharm(ops.CharmBase):
 
         self._ensure_api_key_secret(api_key)
 
+        try:
+            secret = self.model.get_secret(label=API_KEY_SECRET_LABEL)
+            sync_secret_rotation_policy(
+                secret, str(self.config.get("api-key-rotation", "disabled"))
+            )
+        except ops.SecretNotFoundError:
+            logger.warning("API key secret not found when syncing rotation policy")
+
         if not self._is_workload_ready(api_key):
             return
 
@@ -554,6 +568,34 @@ class OverseerrCharm(ops.CharmBase):
                 return
 
         event.add_status(ops.ActiveStatus())
+
+    def _on_secret_rotate(self, event: ops.SecretRotateEvent) -> None:
+        """Handle secret rotation by generating new API key."""
+        if event.secret.label != API_KEY_SECRET_LABEL:
+            return
+        if not self.unit.is_leader():
+            return
+
+        new_api_key = generate_api_key()
+        event.secret.set_content({"api-key": new_api_key})
+        logger.info("Rotated API key secret")
+
+        if not self._container.can_connect():
+            return
+
+        try:
+            settings_content = self._container.pull(SETTINGS_FILE).read()
+            settings = json.loads(settings_content)
+            settings.setdefault("main", {})["apiKey"] = new_api_key
+            self._container.push(SETTINGS_FILE, json.dumps(settings, indent=2))
+        except (ops.pebble.PathError, json.JSONDecodeError):
+            logger.warning("Failed to update settings.json during secret rotation")
+            return
+
+        if self._is_service_running():
+            self._container.stop(SERVICE_NAME)
+
+        self._container.replan()
 
     def _on_rotate_api_key_action(self, event: ops.ActionEvent) -> None:
         """Handle rotate-api-key action."""
