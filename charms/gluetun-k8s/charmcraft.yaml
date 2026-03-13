@@ -1,7 +1,7 @@
 name: gluetun-k8s
 type: charm
 title: Gluetun VPN Gateway
-summary: VPN gateway for Kubernetes workloads using gluetun and pod-gateway
+summary: VPN gateway for Kubernetes charms using gluetun and pod-gateway
 description: |
   Runs gluetun as a VPN client with pod-gateway VXLAN overlay networking.
   Consumer pods route traffic through this gateway via the vpn-gateway relation.
