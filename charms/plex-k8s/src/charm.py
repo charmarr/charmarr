@@ -98,6 +98,7 @@ class PlexCharm(ops.CharmBase):
         framework.observe(self._media_manager.on.changed, self._reconcile)
         framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
         framework.observe(self._ingress.on.ready, self._configure_ingress)
+        framework.observe(self.on.config_changed, self._configure_ingress)
         framework.observe(self.on.force_reclaim_action, self._on_force_reclaim_action)
 
     @property

@@ -238,3 +238,28 @@ def test_reconcile_sets_port(ctx, mock_k8s):
     port = next(iter(state.opened_ports))
     assert port.port == 32400
     assert port.protocol == "tcp"
+
+
+def test_configure_ingress_submits_route_on_config_changed(ctx, mock_k8s):
+    """Configure ingress submits route config when config_changed fires with an ingress relation."""
+    ingress_relation = Relation(
+        endpoint="istio-ingress-route",
+        interface="istio_ingress_route",
+    )
+
+    with (
+        patch("charm.reconcile_storage_volume"),
+        patch("charm.ensure_pebble_user"),
+    ):
+        state = ctx.run(
+            ctx.on.config_changed(),
+            State(
+                leader=True,
+                containers=[PLEX_CONTAINER],
+                relations=[_make_storage_relation(), ingress_relation],
+            ),
+        )
+
+    relation_out = next(r for r in state.relations if r.endpoint == "istio-ingress-route")
+    assert "config" in relation_out.local_app_data
+

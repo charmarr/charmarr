@@ -82,6 +82,7 @@ class OverseerrCharm(ops.CharmBase):
         framework.observe(self._media_manager.on.changed, self._reconcile)
         framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
         framework.observe(self._ingress.on.ready, self._configure_ingress)
+        framework.observe(self.on.config_changed, self._configure_ingress)
         framework.observe(self.on.secret_rotate, self._on_secret_rotate)
         framework.observe(self.on.rotate_api_key_action, self._on_rotate_api_key_action)
 
@@ -417,7 +418,7 @@ class OverseerrCharm(ops.CharmBase):
         self._media_manager.publish_data(data)
         logger.info("Published media manager requirer data")
 
-    def _configure_ingress(self, _: ops.EventBase) -> None:  # pragma: no cover
+    def _configure_ingress(self, _: ops.EventBase) -> None:
         """Submit ingress route config to istio-ingress gateway.
 
         Overseerr does not support URL path prefixes - it must be served from root.
