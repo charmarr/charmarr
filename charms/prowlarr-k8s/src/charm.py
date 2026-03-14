@@ -99,8 +99,6 @@ class ProwlarrCharm(ops.CharmBase):
         framework.observe(self._media_indexer.on.changed, self._reconcile)
         framework.observe(self._flaresolverr.on.changed, self._reconcile)
         framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
-        framework.observe(self._ingress.on.ready, self._configure_ingress)
-        framework.observe(self.on.config_changed, self._configure_ingress)
         framework.observe(self.on.secret_rotate, self._on_secret_rotate)
         framework.observe(self.on.rotate_api_key_action, self._on_rotate_api_key_action)
         framework.observe(self.on.sync_indexers_action, self._on_sync_indexers_action)
@@ -361,7 +359,7 @@ class ProwlarrCharm(ops.CharmBase):
         self._media_indexer.publish_data(data)
         logger.info("Published media indexer provider data")
 
-    def _configure_ingress(self, _: ops.EventBase) -> None:
+    def _configure_ingress(self) -> None:
         """Submit ingress route config to istio-ingress gateway."""
         if not self.unit.is_leader():
             return
@@ -449,7 +447,8 @@ class ProwlarrCharm(ops.CharmBase):
 
         Orchestrates the reconciliation process by delegating to focused sub-methods:
         1. Non-leader units: register readiness check and exit early
-        2. Leader unit: full reconciliation of workload and integrations
+        2. Submit ingress route config (if ingress relation exists)
+        3. Leader unit: full reconciliation of workload and integrations
         """
         if not self.unit.is_leader():
             self._reconcile_non_leader()
@@ -461,6 +460,8 @@ class ProwlarrCharm(ops.CharmBase):
                 "Run: juju scale-application %s 1",
                 self.app.name,
             )
+
+        self._configure_ingress()
 
         if not self._container.can_connect():
             return

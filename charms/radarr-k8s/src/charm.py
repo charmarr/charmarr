@@ -113,8 +113,6 @@ class RadarrCharm(ops.CharmBase):
         framework.observe(self._download_client.on.changed, self._reconcile)
         framework.observe(self._media_storage.on.changed, self._reconcile)
         framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
-        framework.observe(self._ingress.on.ready, self._configure_ingress)
-        framework.observe(self.on.config_changed, self._configure_ingress)
         framework.observe(self.on.secret_rotate, self._on_secret_rotate)
         framework.observe(self.on.rotate_api_key_action, self._on_rotate_api_key_action)
         framework.observe(self.on.sync_trash_profiles_action, self._on_sync_trash_profiles_action)
@@ -395,7 +393,7 @@ class RadarrCharm(ops.CharmBase):
         self._download_client.publish_data(data)
         logger.info("Published download client requirer data")
 
-    def _configure_ingress(self, _: ops.EventBase) -> None:
+    def _configure_ingress(self) -> None:
         """Submit ingress route config to istio-ingress gateway."""
         if not self.unit.is_leader():
             return
@@ -452,12 +450,13 @@ class RadarrCharm(ops.CharmBase):
 
         Reconciliation steps:
         1. Non-leader: register readiness check (for K8s probe) and exit
-        2. Wait for Pebble connection
-        3. Ensure API key exists in Juju secret
-        4. Write config file if missing or API key mismatch
-        5. Reconcile VPN gateway client (if related)
-        6. Configure Pebble layer and start service
-        7. Once workload ready:
+        2. Submit ingress route config (if ingress relation exists)
+        3. Wait for Pebble connection
+        4. Ensure API key exists in Juju secret
+        5. Write config file if missing or API key mismatch
+        6. Reconcile VPN gateway client (if related)
+        7. Configure Pebble layer and start service
+        8. Once workload ready:
            - Sync Trash Guides profiles via Recyclarr (if configured)
            - Reconcile download clients from relations
            - Reconcile root folder from config
@@ -478,6 +477,8 @@ class RadarrCharm(ops.CharmBase):
                 "Run: juju scale-application %s 1",
                 self.app.name,
             )
+
+        self._configure_ingress()
 
         if not self._container.can_connect():
             return
