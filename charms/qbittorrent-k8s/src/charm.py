@@ -113,8 +113,6 @@ class QBittorrentCharm(ops.CharmBase):
         framework.observe(self._vpn_gateway.on.changed, self._reconcile)
         framework.observe(self.on["download-client"].relation_changed, self._reconcile)
         framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
-        framework.observe(self._ingress.on.ready, self._configure_ingress)
-        framework.observe(self.on.config_changed, self._configure_ingress)
         framework.observe(self.on.secret_rotate, self._on_secret_rotate)
 
     @property
@@ -307,7 +305,7 @@ class QBittorrentCharm(ops.CharmBase):
         self._download_client.publish_data(data)
         logger.info("Published download client provider data")
 
-    def _configure_ingress(self, _: ops.EventBase) -> None:
+    def _configure_ingress(self) -> None:
         """Submit ingress route config to istio-ingress gateway."""
         if not self.unit.is_leader():
             return
@@ -404,14 +402,15 @@ class QBittorrentCharm(ops.CharmBase):
 
         Reconciliation steps:
         1. Non-leader: register readiness check (for K8s probe) and exit
-        2. Wait for Pebble connection
-        3. Wait for media-storage relation (provides PVC and PUID/PGID)
-        4. Create credentials if not exist
-        5. Publish download client data to related media managers
-        6. Write config file if not exist
-        7. Mount shared storage PVC
-        8. Reconcile VPN gateway client (if related)
-        9. Configure Pebble layer and start service
+        2. Submit ingress route config (if ingress relation exists)
+        3. Wait for Pebble connection
+        4. Wait for media-storage relation (provides PVC and PUID/PGID)
+        5. Create credentials if not exist
+        6. Publish download client data to related media managers
+        7. Write config file if not exist
+        8. Mount shared storage PVC
+        9. Reconcile VPN gateway client (if related)
+        10. Configure Pebble layer and start service
         """
         # Non-leader: register readiness check so K8s removes from Service endpoints
         if not self.unit.is_leader():
@@ -430,6 +429,8 @@ class QBittorrentCharm(ops.CharmBase):
                 "Run: juju scale-application %s 1",
                 self.app.name,
             )
+
+        self._configure_ingress()
 
         if not self._container.can_connect():
             return

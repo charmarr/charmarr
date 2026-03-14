@@ -97,7 +97,6 @@ class PlexCharm(ops.CharmBase):
         framework.observe(self._media_storage.on.changed, self._reconcile)
         framework.observe(self._media_manager.on.changed, self._reconcile)
         framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
-        framework.observe(self._ingress.on.ready, self._configure_ingress)
         framework.observe(self.on.force_reclaim_action, self._on_force_reclaim_action)
 
     @property
@@ -314,7 +313,7 @@ class PlexCharm(ops.CharmBase):
         except PlexApiError as e:
             logger.warning("Failed to reconcile Plex libraries: %s", e)
 
-    def _configure_ingress(self, _: ops.EventBase) -> None:
+    def _configure_ingress(self) -> None:
         """Submit ingress route config to istio-ingress gateway.
 
         Note: Plex does not support URL path prefixes. Use a dedicated ingress.
@@ -353,12 +352,13 @@ class PlexCharm(ops.CharmBase):
 
         Reconciliation steps:
         1. Non-leader: register readiness check and exit
-        2. Wait for Pebble connection
-        3. Wait for media-storage relation
-        4. Mount shared storage PVC
-        5. Reconcile hardware transcoding (if enabled)
-        6. Configure Pebble layer with claim token (if unclaimed)
-        7. Start workload
+        2. Submit ingress route config (if ingress relation exists)
+        3. Wait for Pebble connection
+        4. Wait for media-storage relation
+        5. Mount shared storage PVC
+        6. Reconcile hardware transcoding (if enabled)
+        7. Configure Pebble layer with claim token (if unclaimed)
+        8. Start workload
         """
         if not self.unit.is_leader():
             if self._container.can_connect():
@@ -375,6 +375,8 @@ class PlexCharm(ops.CharmBase):
                 "Run: juju scale-application %s 1",
                 self.app.name,
             )
+
+        self._configure_ingress()
 
         if not self._container.can_connect():
             return
