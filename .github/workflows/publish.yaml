@@ -12,7 +12,6 @@ on:
         type: choice
         options:
           - auto
-          - multimeter
           - storage
           - gluetun
           - qbittorrent
@@ -38,7 +37,6 @@ jobs:
     name: Detect changes
     runs-on: ubuntu-latest
     outputs:
-      multimeter: ${{ steps.check.outputs.multimeter }}
       storage: ${{ steps.check.outputs.storage }}
       gluetun: ${{ steps.check.outputs.gluetun }}
       qbittorrent: ${{ steps.check.outputs.qbittorrent }}
@@ -59,9 +57,6 @@ jobs:
           CHARM_INPUT: ${{ inputs.charm }}
         run: |
           # Manual selection
-          if [[ "$CHARM_INPUT" == "multimeter" || "$CHARM_INPUT" == "all" ]]; then
-            echo "multimeter=true" >> "$GITHUB_OUTPUT"
-          fi
           if [[ "$CHARM_INPUT" == "storage" || "$CHARM_INPUT" == "all" ]]; then
             echo "storage=true" >> "$GITHUB_OUTPUT"
           fi
@@ -97,9 +92,6 @@ jobs:
           if [[ -z "$CHARM_INPUT" || "$CHARM_INPUT" == "auto" ]]; then
             changed=$(git diff --name-only HEAD~1 HEAD)
 
-            if echo "$changed" | grep -q "^charms/charmarr-multimeter-k8s/"; then
-              echo "multimeter=true" >> "$GITHUB_OUTPUT"
-            fi
             if echo "$changed" | grep -q "^charms/charmarr-storage-k8s/"; then
               echo "storage=true" >> "$GITHUB_OUTPUT"
             fi
@@ -131,15 +123,6 @@ jobs:
               echo "overseerr=true" >> "$GITHUB_OUTPUT"
             fi
           fi
-
-  multimeter:
-    name: Multimeter
-    needs: detect
-    if: needs.detect.outputs.multimeter == 'true'
-    uses: ./.github/workflows/_multimeter-k8s-publish.yaml
-    with:
-      dry-run: ${{ inputs.dry-run || false }}
-    secrets: inherit
 
   storage:
     name: Storage

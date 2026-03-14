@@ -12,13 +12,13 @@ variable "owner" {
 variable "channel" {
   description = "Default channel for Charmarr charms"
   type        = string
-  default     = "latest/edge"
+  default     = "1/stable"
 }
 
 variable "istio_channel" {
   description = "Channel for Istio charms (istio-k8s, istio-ingress-k8s, istio-beacon-k8s)"
   type        = string
-  default     = "2/edge"
+  default     = "2/stable"
 }
 
 variable "enable_istio" {

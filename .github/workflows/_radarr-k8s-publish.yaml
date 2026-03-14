@@ -18,7 +18,7 @@ jobs:
     uses: charmarr/.github/.github/workflows/charm-publish.yaml@v2
     with:
       charm-path: charms/radarr-k8s
-      channel: latest/edge
+      channel: 1/stable
       dry-run: ${{ inputs.dry-run || false }}
     secrets:
       CHARMHUB_TOKEN: ${{ secrets.CHARMHUB_TOKEN }}

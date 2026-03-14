@@ -20,7 +20,7 @@ First, we lay the groundwork: shared storage and VPN.
 Shared storage enables hardlinks between download clients and media managers. See [Storage](../charms/storage.md) for why this matters.
 
 ```bash
-juju deploy charmarr-storage-k8s --trust --channel=latest/edge storage
+juju deploy charmarr-storage-k8s --trust --channel=1/stable storage
 ```
 
 Configure based on your storage backend:
@@ -72,7 +72,7 @@ The VPN gateway anonymizes external traffic from privacy-sensitive charms. See [
 Deploy gluetun:
 
 ```bash
-juju deploy gluetun-k8s --trust --channel=latest/edge gluetun
+juju deploy gluetun-k8s --trust --channel=1/stable gluetun
 ```
 
 Create and grant the VPN secret (key is encrypted at rest):
@@ -116,8 +116,8 @@ Now for the fun part: the actual media apps.
 ### Download Clients
 
 ```bash
-juju deploy qbittorrent-k8s --trust --channel=latest/edge qbittorrent
-juju deploy sabnzbd-k8s --trust --channel=latest/edge sabnzbd
+juju deploy qbittorrent-k8s --trust --channel=1/stable qbittorrent
+juju deploy sabnzbd-k8s --trust --channel=1/stable sabnzbd
 ```
 
 Configure ingress paths and credential rotation:
@@ -134,8 +134,8 @@ Want more download clients? Deploy additional instances with different names.
 ### Media Managers
 
 ```bash
-juju deploy radarr-k8s --trust --channel=latest/edge radarr
-juju deploy sonarr-k8s --trust --channel=latest/edge sonarr
+juju deploy radarr-k8s --trust --channel=1/stable radarr
+juju deploy sonarr-k8s --trust --channel=1/stable sonarr
 ```
 
 Configure variant and trash profiles:
@@ -151,7 +151,7 @@ Configure variant and trash profiles:
 juju config radarr variant=standard trash-profiles=hd-bluray-web
 
 # 4K instance (uses uhd-bluray-web by default)
-juju deploy radarr-k8s --trust --channel=latest/edge radarr-4k
+juju deploy radarr-k8s --trust --channel=1/stable radarr-4k
 juju config radarr-4k variant=4k
 ```
 
@@ -160,15 +160,15 @@ Deploy as many managers as needed with unique names and ingress paths.
 ### Indexer
 
 ```bash
-juju deploy prowlarr-k8s --trust --channel=latest/edge prowlarr
-juju deploy flaresolverr-k8s --trust --channel=latest/edge flaresolverr
+juju deploy prowlarr-k8s --trust --channel=1/stable prowlarr
+juju deploy flaresolverr-k8s --trust --channel=1/stable flaresolverr
 ```
 
 ### Media Server & Requester
 
 ```bash
-juju deploy plex-k8s --trust --channel=latest/edge plex
-juju deploy overseerr-k8s --trust --channel=latest/edge overseerr
+juju deploy plex-k8s --trust --channel=1/stable plex
+juju deploy overseerr-k8s --trust --channel=1/stable overseerr
 ```
 
 Enable hardware transcoding for Plex (requires Intel QuickSync and Plex Pass):
@@ -319,7 +319,7 @@ juju config radarr ingress-port=8080
 **Control Plane:**
 
 ```bash
-juju deploy istio-k8s --trust --channel=2/edge istio
+juju deploy istio-k8s --trust --channel=2/stable istio
 ```
 
 !!! warning
@@ -328,9 +328,9 @@ juju deploy istio-k8s --trust --channel=2/edge istio
 **Ingress Gateways:**
 
 ```bash
-juju deploy istio-ingress-k8s --trust --channel=2/edge arr-ingress
-juju deploy istio-ingress-k8s --trust --channel=2/edge plex-ingress
-juju deploy istio-ingress-k8s --trust --channel=2/edge overseerr-ingress
+juju deploy istio-ingress-k8s --trust --channel=2/stable arr-ingress
+juju deploy istio-ingress-k8s --trust --channel=2/stable plex-ingress
+juju deploy istio-ingress-k8s --trust --channel=2/stable overseerr-ingress
 ```
 
 **Beacon (for service mesh):**
@@ -338,7 +338,7 @@ juju deploy istio-ingress-k8s --trust --channel=2/edge overseerr-ingress
 Required only for mTLS and authorization policies. See [Networking](../security/network.md) for details.
 
 ```bash
-juju deploy istio-beacon-k8s --trust --channel=2/edge beacon
+juju deploy istio-beacon-k8s --trust --channel=2/stable beacon
 ```
 
 ### Connect Ingress
