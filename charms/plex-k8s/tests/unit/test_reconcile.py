@@ -262,4 +262,3 @@ def test_configure_ingress_submits_route_on_config_changed(ctx, mock_k8s):
 
     relation_out = next(r for r in state.relations if r.endpoint == "istio-ingress-route")
     assert "config" in relation_out.local_app_data
-
