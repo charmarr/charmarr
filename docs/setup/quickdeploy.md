@@ -50,7 +50,7 @@ variable "wireguard_private_key" {
 }
 
 module "charmarr" {
-  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
+  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=track/1"
 
   model = "charmarr"
 
@@ -76,7 +76,7 @@ Shared storage enables hardlinks between download clients and media managers. Se
 
 ```hcl
 module "charmarr" {
-  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
+  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=track/1"
 
   # ... your other config ...
 
@@ -92,7 +92,7 @@ module "charmarr" {
 
 ```hcl
 module "charmarr" {
-  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
+  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=track/1"
 
   # ... your other config ...
 
@@ -106,7 +106,7 @@ module "charmarr" {
 
 ```hcl
 module "charmarr" {
-  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
+  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=track/1"
 
   # ... your other config ...
 
@@ -136,7 +136,7 @@ ls -ln /path/to/your/media
 
 ```hcl
 module "charmarr" {
-  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
+  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=track/1"
 
   # ... your other config ...
 
@@ -181,7 +181,7 @@ For most commercial VPNs, only the `wireguard_private_key` is needed. Custom Wir
 
     ```hcl
     module "charmarr" {
-      source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
+      source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=track/1"
 
       # ... your other config ...
 
@@ -240,7 +240,7 @@ If you use a different tunneling solution (e.g., Tailscale exit node, network-le
 
 ```hcl
 module "charmarr" {
-  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
+  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=track/1"
 
   # ... your other config ...
 
@@ -271,7 +271,7 @@ If your hardware supports it:
 
 ```hcl
 module "charmarr" {
-  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
+  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=track/1"
 
   # ... your other config ...
 
@@ -287,7 +287,7 @@ Enable Istio for ingress and mesh security (see [Compatibility Checklist](prereq
 
 ```hcl
 module "charmarr" {
-  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
+  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=track/1"
 
   # ... your other config ...
 
@@ -329,7 +329,7 @@ To use different paths, or set `"/"` to serve at root (no path prefix):
 
 ```hcl
 module "charmarr" {
-  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
+  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=track/1"
 
   # ... your other config ...
 
@@ -349,7 +349,7 @@ The ingress listener port defaults to 80. To use a different port:
 
 ```hcl
 module "charmarr" {
-  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
+  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=track/1"
 
   # ... your other config ...
 
@@ -371,7 +371,7 @@ Or without VPN (when `enable_vpn = false`):
 tofu init && tofu apply -auto-approve
 ```
 
-See the [charmarr module](https://github.com/charmarr/charmarr/tree/main/terraform/charmarr) for all available variables.
+See the [charmarr module](https://github.com/charmarr/charmarr/tree/track/1/terraform/charmarr) for all available variables.
 
 ---
 
@@ -389,7 +389,7 @@ variable "wireguard_private_key" {
 }
 
 module "charmarr_plus" {
-  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr-plus?ref=main"
+  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr-plus?ref=track/1"
 
   model = "charmarr"
 
@@ -421,10 +421,10 @@ Or without VPN (when `enable_vpn = false`):
 tofu init && tofu apply -auto-approve
 ```
 
-See the [charmarr-plus module](https://github.com/charmarr/charmarr/tree/main/terraform/charmarr-plus) for all available variables.
+See the [charmarr-plus module](https://github.com/charmarr/charmarr/tree/track/1/terraform/charmarr-plus) for all available variables.
 
 !!! tip
-    Want a truly custom Charmarr with different Radarrs, multiple download clients, etc.? Use the [charmarr](https://github.com/charmarr/charmarr/tree/main/terraform/charmarr) and [charmarr-plus](https://github.com/charmarr/charmarr/tree/main/terraform/charmarr-plus) modules as templates to create your own charmarr bundle.
+    Want a truly custom Charmarr with different Radarrs, multiple download clients, etc.? Use the [charmarr](https://github.com/charmarr/charmarr/tree/track/1/terraform/charmarr) and [charmarr-plus](https://github.com/charmarr/charmarr/tree/track/1/terraform/charmarr-plus) modules as templates to create your own charmarr bundle.
 
 !!! tip
     After deployment, the [Manual Deploy](manual.md) page can be used as a reference to customize your stack with the Juju CLI. It's fun.
