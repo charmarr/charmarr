@@ -1,0 +1,39 @@
+name: "nightly: track/1"
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 22 * * *'
+
+jobs:
+  integration:
+    name: charmarr deployment (track/1)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: track/1
+
+      - name: Setup environment
+        uses: charmarr/.github/actions/charm/setup@v2
+        with:
+          juju: "true"
+          charmcraft: "false"
+
+      - name: Install OpenTofu
+        run: |
+          sudo snap install opentofu --classic
+
+      - name: Install test dependencies
+        run: |
+          uv venv
+          uv pip install pytest pytest-bdd jubilant pytest-jubilant charmarr-lib-testing tenacity
+
+      - name: Run integration tests
+        env:
+          WIREGUARD_PRIVATE_KEY: ${{ secrets.WIREGUARD_PRIVATE_KEY }}
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          source .venv/bin/activate
+          pytest tests/integration/charmarr/ -v --tb=short --log-cli-level=WARNING
