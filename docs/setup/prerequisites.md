@@ -10,10 +10,10 @@ Install just:
 sudo snap install just --classic
 ```
 
-Download the [justfile](https://github.com/charmarr/charmarr/blob/main/justfiles/charmarr-primitives.just) and run setup:
+Download the [justfile](https://github.com/charmarr/charmarr/blob/track/1/justfiles/charmarr-primitives.just) and run setup:
 
 ```bash
-curl -O https://raw.githubusercontent.com/charmarr/charmarr/main/justfiles/charmarr-primitives.just
+curl -O https://raw.githubusercontent.com/charmarr/charmarr/track/1/justfiles/charmarr-primitives.just
 just -f charmarr-primitives.just setup
 ```
 

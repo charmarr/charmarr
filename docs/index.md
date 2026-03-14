@@ -68,7 +68,7 @@ Really. The deployment looks like this:
     }
 
     module "charmarr" {
-      source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
+      source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=track/1"
 
       model                 = "charmarr"
       wireguard_private_key = var.wireguard_private_key
