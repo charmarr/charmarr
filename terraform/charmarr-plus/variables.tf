@@ -18,7 +18,7 @@ variable "channel" {
 variable "istio_channel" {
   description = "Channel for Istio charms (istio-k8s, istio-ingress-k8s, istio-beacon-k8s)"
   type        = string
-  default     = "2/edge"
+  default     = "dev/edge"
 }
 
 variable "enable_istio" {

@@ -319,7 +319,7 @@ juju config radarr ingress-port=8080
 **Control Plane:**
 
 ```bash
-juju deploy istio-k8s --trust --channel=2/edge istio
+juju deploy istio-k8s --trust --channel=dev/edge istio
 ```
 
 !!! warning
@@ -328,9 +328,9 @@ juju deploy istio-k8s --trust --channel=2/edge istio
 **Ingress Gateways:**
 
 ```bash
-juju deploy istio-ingress-k8s --trust --channel=2/edge arr-ingress
-juju deploy istio-ingress-k8s --trust --channel=2/edge plex-ingress
-juju deploy istio-ingress-k8s --trust --channel=2/edge overseerr-ingress
+juju deploy istio-ingress-k8s --trust --channel=dev/edge arr-ingress
+juju deploy istio-ingress-k8s --trust --channel=dev/edge plex-ingress
+juju deploy istio-ingress-k8s --trust --channel=dev/edge overseerr-ingress
 ```
 
 **Beacon (for service mesh):**
@@ -338,7 +338,7 @@ juju deploy istio-ingress-k8s --trust --channel=2/edge overseerr-ingress
 Required only for mTLS and authorization policies. See [Networking](../security/network.md) for details.
 
 ```bash
-juju deploy istio-beacon-k8s --trust --channel=2/edge beacon
+juju deploy istio-beacon-k8s --trust --channel=dev/edge beacon
 ```
 
 ### Connect Ingress
