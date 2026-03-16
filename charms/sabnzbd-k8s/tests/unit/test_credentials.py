@@ -55,6 +55,43 @@ port = 8080
 
         assert changed is False
 
+    def test_includes_extra_allowed_hosts(self):
+        """Extra allowed hosts are appended to the default whitelist."""
+        result, changed = reconcile_sabnzbd_config(
+            None,
+            api_key="test-key",
+            app_name="sabnzbd-k8s",
+            extra_allowed_hosts="my.tailscale.host",
+        )
+
+        assert changed is True
+        assert "sabnzbd-k8s, localhost, my.tailscale.host" in result
+
+    def test_wildcard_extra_allowed_hosts_disables_check(self):
+        """Setting extra_allowed_hosts to '*' disables hostname checking."""
+        result, changed = reconcile_sabnzbd_config(
+            None,
+            api_key="test-key",
+            app_name="sabnzbd-k8s",
+            extra_allowed_hosts="*",
+        )
+
+        assert changed is True
+        assert "host_whitelist = *" in result
+
+    def test_extra_allowed_hosts_change_triggers_update(self):
+        """Changing extra_allowed_hosts causes changed=True."""
+        content, _ = reconcile_sabnzbd_config(None, api_key="test-key", app_name="sabnzbd-k8s")
+
+        _, changed = reconcile_sabnzbd_config(
+            content,
+            api_key="test-key",
+            app_name="sabnzbd-k8s",
+            extra_allowed_hosts="new.host.example.com",
+        )
+
+        assert changed is True
+
 
 class TestBuildSabnzbdConfig:
     """Tests for build_sabnzbd_config function."""
@@ -79,3 +116,25 @@ class TestBuildSabnzbdConfig:
         result = build_sabnzbd_config("key", "app", url_base=None)
 
         assert "url_base" not in result
+
+    def test_includes_extra_allowed_hosts(self):
+        """Extra allowed hosts are appended to the default whitelist."""
+        result = build_sabnzbd_config(
+            "key", "my-app", extra_allowed_hosts="proxy.example.com, other.host"
+        )
+
+        assert "my-app, localhost, proxy.example.com, other.host" in result
+
+    def test_wildcard_extra_allowed_hosts(self):
+        """Setting extra_allowed_hosts to '*' produces wildcard whitelist."""
+        result = build_sabnzbd_config("key", "my-app", extra_allowed_hosts="*")
+
+        assert "host_whitelist = *" in result
+
+    def test_no_extra_allowed_hosts_uses_defaults(self):
+        """Without extra_allowed_hosts, only default hosts are whitelisted."""
+        result = build_sabnzbd_config("key", "my-app", extra_allowed_hosts=None)
+
+        assert "my-app, localhost" in result
+        # Ensure no trailing comma (i.e. no extra hosts appended)
+        assert "my-app, localhost," not in result

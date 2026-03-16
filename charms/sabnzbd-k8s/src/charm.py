@@ -165,11 +165,14 @@ class SABnzbdCharm(ops.CharmBase):
         if self._container.exists(CONFIG_FILE):
             content = self._container.pull(CONFIG_FILE).read()
 
+        extra_allowed_hosts = str(self.config.get("host-whitelist", "")) or None
+
         updated, changed = reconcile_sabnzbd_config(
             content,
             api_key=api_key,
             app_name=self.app.name,
             url_base=self._get_url_base(),
+            extra_allowed_hosts=extra_allowed_hosts,
         )
 
         if changed:
