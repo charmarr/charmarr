@@ -131,6 +131,15 @@ config:
       description: |
         Auto-rotate API key and sync to related apps.
         Options: disabled, daily, monthly, yearly
+    host-whitelist:
+      type: string
+      default: ""
+      description: |
+        Additional hostnames to allow in SABnzbd's hostname verification check.
+        Comma-separated list of hostnames (e.g. "my.tailscale.host, proxy.example.com").
+        Set to * to disable hostname checking entirely (not recommended for production).
+        The app name and localhost are always included by default.
+        See: https://sabnzbd.org/wiki/extra/hostname-check.html
 
 actions:
   rotate-api-key:

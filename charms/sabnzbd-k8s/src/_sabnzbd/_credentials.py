@@ -13,8 +13,25 @@ from _sabnzbd._constants import WEBUI_PORT
 IniSection = dict[str, Any]
 
 
+def _build_host_whitelist(app_name: str, extra_allowed_hosts: str | None) -> str:
+    """Build the host_whitelist value for sabnzbd.ini.
+
+    If extra_allowed_hosts is '*', returns '*' to disable hostname checking.
+    Otherwise, appends any extra hosts to the default 'app_name, localhost' list.
+    """
+    if extra_allowed_hosts and extra_allowed_hosts.strip() == "*":
+        return "*"
+    base = f"{app_name}, localhost"
+    if extra_allowed_hosts and extra_allowed_hosts.strip():
+        return f"{base}, {extra_allowed_hosts.strip()}"
+    return base
+
+
 def build_sabnzbd_config(
-    api_key: str, app_name: str = "sabnzbd-k8s", url_base: str | None = None
+    api_key: str,
+    app_name: str = "sabnzbd-k8s",
+    url_base: str | None = None,
+    extra_allowed_hosts: str | None = None,
 ) -> str:
     """Build minimal sabnzbd.ini with API key, host/port, and URL base settings."""
     config: ConfigObj = ConfigObj()
@@ -22,7 +39,7 @@ def build_sabnzbd_config(
         "api_key": api_key,
         "host": "0.0.0.0",
         "port": str(WEBUI_PORT),
-        "host_whitelist": f"{app_name}, localhost",
+        "host_whitelist": _build_host_whitelist(app_name, extra_allowed_hosts),
     }
     if url_base:
         misc = cast(IniSection, config["misc"])
@@ -51,6 +68,7 @@ def reconcile_sabnzbd_config(
     api_key: str,
     app_name: str,
     url_base: str | None = None,
+    extra_allowed_hosts: str | None = None,
 ) -> tuple[str, bool]:
     """Reconcile sabnzbd.ini idempotently, preserving user settings.
 
@@ -59,7 +77,7 @@ def reconcile_sabnzbd_config(
         the config was modified and a service restart is needed.
     """
     if content is None:
-        return build_sabnzbd_config(api_key, app_name, url_base), True
+        return build_sabnzbd_config(api_key, app_name, url_base, extra_allowed_hosts), True
 
     config = _parse_config(content)
 
@@ -70,7 +88,7 @@ def reconcile_sabnzbd_config(
     misc["api_key"] = api_key
     misc["host"] = "0.0.0.0"
     misc["port"] = str(WEBUI_PORT)
-    misc["host_whitelist"] = f"{app_name}, localhost"
+    misc["host_whitelist"] = _build_host_whitelist(app_name, extra_allowed_hosts)
 
     if url_base:
         misc["url_base"] = url_base
