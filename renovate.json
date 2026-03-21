@@ -82,9 +82,16 @@
       "automerge": false
     },
     {
-      "description": "track/*: block major OCI updates",
+      "description": "track/*: block major OCI updates (feature frozen)",
       "matchBaseBranches": ["/^track/.*/"],
       "matchManagers": ["regex"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "track/*: block major Python dependency updates (feature frozen)",
+      "matchBaseBranches": ["/^track/.*/"],
+      "matchManagers": ["pep621", "uv"],
       "matchUpdateTypes": ["major"],
       "enabled": false
     },
