@@ -82,10 +82,10 @@
       "automerge": false
     },
     {
-      "description": "track/*: block major and minor OCI updates (feature frozen)",
+      "description": "track/*: block major OCI updates (feature frozen)",
       "matchBaseBranches": ["/^track/.*/"],
       "matchManagers": ["regex"],
-      "matchUpdateTypes": ["major", "minor"],
+      "matchUpdateTypes": ["major"],
       "enabled": false
     },
     {
