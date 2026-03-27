@@ -181,7 +181,7 @@ class VeleroBackupProvider(Object):
         spec: VeleroBackupSpec,
         refresh_event: BoundEvent | list[BoundEvent] | None = None,
     ):
-        """Intialize the provider with the specified backup configuration.
+        """Initialize the provider with the specified backup configuration.
 
         Args:
             charm (CharmBase): The charm instance that provides backup.
@@ -214,7 +214,7 @@ class VeleroBackupProvider(Object):
         if not self._charm.model.unit.is_leader():
             logger.warning(
                 "VeleroBackupProvider handled send_data event when it is not a leader. "
-                "Skiping event - no data sent"
+                "Skipping event - no data sent"
             )
             return
 
@@ -223,7 +223,7 @@ class VeleroBackupProvider(Object):
         if not relations:
             logger.warning(
                 "VeleroBackupProvider handled send_data event but no relation '%s' found "
-                "Skiping event - no data sent",
+                "Skipping event - no data sent",
                 self._relation_name,
             )
             return
