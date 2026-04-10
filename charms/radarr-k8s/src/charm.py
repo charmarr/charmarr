@@ -537,6 +537,12 @@ class RadarrCharm(ops.CharmBase):
 
         if self._is_workload_ready(api_key):
             # Sync Trash Guides profiles (runs recyclarr if trash-profiles configured)
+            # TODO(parrot): config-changed hook fails in recyclarr integration test since
+            # Radarr was bumped from 6.0.4 → 6.1.1 (via renovate, image tag
+            # lscr.io/linuxserver/radarr:6.1.1.10360-ls298). The sync_trash_profiles
+            # call below is the likely entry point - investigate whether Radarr 6.1.1
+            # changed the API contract for quality profiles or host config endpoints
+            # that Recyclarr relies on during config-changed.
             try:
                 self._sync_trash_profiles(api_key)
             except RecyclarrError as e:
