@@ -17,6 +17,7 @@ from ops.pebble import Layer
 from pydantic import BaseModel
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
+from _speedtest_action import handle_run_speedtest
 from charmarr_lib.core import K8sResourceManager, observe_events, reconcilable_events_k8s
 from charmarr_lib.vpn import (
     ISTIO_ZTUNNEL_LINK_LOCAL,
@@ -58,6 +59,7 @@ class GluetunCharm(ops.CharmBase):
 
         observe_events(self, reconcilable_events_k8s, self._reconcile)
         framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
+        framework.observe(self.on.run_speedtest_action, self._on_run_speedtest_action)
 
     @property
     def k8s(self) -> K8sResourceManager:
@@ -474,6 +476,11 @@ class GluetunCharm(ops.CharmBase):
             event.add_status(ops.ActiveStatus(f"VPN connected ({health.external_ip})"))
         else:
             event.add_status(ops.WaitingStatus("VPN not connected"))
+
+
+    def _on_run_speedtest_action(self, event: ops.ActionEvent) -> None:
+        """Handle run-speedtest action."""
+        handle_run_speedtest(event, self._container)
 
 
 if __name__ == "__main__":

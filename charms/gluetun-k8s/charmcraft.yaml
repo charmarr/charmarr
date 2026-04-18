@@ -39,6 +39,12 @@ resources:
     description: Gluetun VPN client container
     upstream-source: ghcr.io/qdm12/gluetun:v3.41.1
 
+actions:
+  run-speedtest:
+    description: |
+      Run a speedtest via the VPN tunnel to measure download/upload throughput and latency.
+      Results reflect actual VPN performance since the test runs within the pod network namespace.
+
 provides:
   vpn-gateway:
     interface: vpn-gateway
