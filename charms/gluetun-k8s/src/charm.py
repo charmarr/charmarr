@@ -477,7 +477,6 @@ class GluetunCharm(ops.CharmBase):
         else:
             event.add_status(ops.WaitingStatus("VPN not connected"))
 
-
     def _on_run_speedtest_action(self, event: ops.ActionEvent) -> None:
         """Handle run-speedtest action."""
         handle_run_speedtest(event, self._container)
