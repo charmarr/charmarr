@@ -5,10 +5,20 @@
 
 import sys
 from pathlib import Path
+from types import ModuleType
 from unittest.mock import MagicMock, patch
 
 import pytest
 from ops.testing import Context
+
+# Mock the speedtest module (speedtest-cli) which is a runtime-only dependency
+# not available in the unit test environment.
+_mock_speedtest = ModuleType("speedtest")
+_mock_speedtest.Speedtest = type("Speedtest", (), {})  # type: ignore[attr-defined]
+_mock_speedtest.ConfigRetrievalError = type("ConfigRetrievalError", (Exception,), {})  # type: ignore[attr-defined]
+_mock_speedtest.NoMatchedServers = type("NoMatchedServers", (Exception,), {})  # type: ignore[attr-defined]
+_mock_speedtest.SpeedtestException = type("SpeedtestException", (Exception,), {})  # type: ignore[attr-defined]
+sys.modules["speedtest"] = _mock_speedtest
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
