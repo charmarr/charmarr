@@ -69,7 +69,7 @@ indent-style = "space"
 line-ending = "lf"
 
 [tool.pyright]
-extraPaths = ["src", "lib"]
+extraPaths = ["src", "lib", "typings"]
 pythonVersion = "3.12"
 pythonPlatform = "Linux"
 typeCheckingMode = "standard"
