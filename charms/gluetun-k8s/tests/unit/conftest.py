@@ -22,7 +22,7 @@ sys.modules["speedtest"] = _mock_speedtest
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-from charm import GluetunCharm
+from charm import GluetunCharm  # noqa: E402
 
 
 @pytest.fixture
