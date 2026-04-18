@@ -10,7 +10,6 @@ with the gluetun container and therefore subject to VPN routing rules.
 import logging
 
 import ops
-import speedtest
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +22,12 @@ def handle_run_speedtest(event: ops.ActionEvent, container: ops.Container) -> No
     """
     if not container.can_connect():
         event.fail("Cannot connect to gluetun container — is gluetun running?")
+        return
+
+    try:
+        import speedtest
+    except ImportError:
+        event.fail("speedtest-cli package is not available")
         return
 
     logger.info("Running speedtest via VPN tunnel")
