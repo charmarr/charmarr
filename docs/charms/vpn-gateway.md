@@ -112,3 +112,32 @@ The charm requires:
 - **Cluster CIDRs** so internal traffic bypasses the VPN
 
 See [gluetun-k8s on Charmhub](https://charmhub.io/gluetun-k8s) for all options.
+
+### Actions
+
+#### `speedtest`
+
+Measure throughput through the active VPN tunnel using a bundled [librespeed-cli](https://github.com/librespeed/speedtest-cli) binary. The test runs inside the gluetun container, so all traffic traverses the VPN — useful for verifying the link or comparing servers.
+
+```bash
+juju run gluetun-k8s/0 speedtest --wait=3m
+```
+
+A typical run takes about 60 seconds (download phase + upload phase + setup), so set `--wait` to at least `2m`.
+
+**Parameters:**
+
+| Param       | Type | Default | Description                                                            |
+|-------------|------|---------|------------------------------------------------------------------------|
+| `server-id` | int  | _auto_  | Pin a specific [LibreSpeed server ID](https://librespeed.org/) — by default the closest server is auto-selected. |
+| `duration`  | int  | `15`    | Per-direction test duration in seconds.                                |
+| `timeout`   | int  | `30`    | HTTP request timeout in seconds.                                       |
+
+**Result keys:**
+
+- `download-mbps`, `upload-mbps` — throughput in megabits/sec
+- `ping-ms`, `jitter-ms` — latency to the test server
+- `bytes-sent`, `bytes-received` — raw byte counts
+- `server-name`, `server-url` — the server that was selected
+
+The action fails if the unit is not the leader, the charm is misconfigured, or the VPN is not connected (the kill switch would block the test anyway).

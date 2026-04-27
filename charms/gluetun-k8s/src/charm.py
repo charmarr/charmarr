@@ -17,6 +17,7 @@ from ops.pebble import Layer
 from pydantic import BaseModel
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
+from _speedtest import handle_speedtest
 from charmarr_lib.core import K8sResourceManager, observe_events, reconcilable_events_k8s
 from charmarr_lib.vpn import (
     ISTIO_ZTUNNEL_LINK_LOCAL,
@@ -58,6 +59,7 @@ class GluetunCharm(ops.CharmBase):
 
         observe_events(self, reconcilable_events_k8s, self._reconcile)
         framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
+        framework.observe(self.on.speedtest_action, self._on_speedtest_action)
 
     @property
     def k8s(self) -> K8sResourceManager:
@@ -414,6 +416,19 @@ class GluetunCharm(ops.CharmBase):
             input_cidrs=[],  # gluetun handles INPUT rules via post-rules.txt
         )
         self._vpn_gateway.publish_data(provider_data)
+
+    def _on_speedtest_action(self, event: ops.ActionEvent) -> None:
+        """Run a LibreSpeed throughput test through the VPN tunnel."""
+        if not self.unit.is_leader():
+            event.fail("Run on the leader unit (only the leader operates the VPN)")
+            return
+        if self._validate_config():
+            event.fail("Charm is misconfigured; resolve config before running speedtest")
+            return
+        if not self._check_vpn_health().connected:
+            event.fail("VPN is not connected; speedtest would be blocked by the kill switch")
+            return
+        handle_speedtest(event, self._container)
 
     def _on_collect_unit_status(self, event: ops.CollectStatusEvent) -> None:
         """Collect all unit statuses without early returns.
