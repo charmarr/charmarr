@@ -29,6 +29,16 @@ parts:
     build-packages: [git]
     build-snaps: [astral-uv]
 
+  librespeed-cli:
+    plugin: dump
+    source: https://github.com/librespeed/speedtest-cli/releases/download/v1.0.12/librespeed-cli_1.0.12_linux_amd64.tar.gz
+    source-type: tar
+    source-checksum: sha256/78bf5cd10fc00006224efb82f5767b95ba414a7ca4dc315a7ed2b774ed80813c
+    organize:
+      librespeed-cli: bin/librespeed-cli
+    stage: [bin/librespeed-cli]
+    prime: [bin/librespeed-cli]
+
 containers:
   gluetun:
     resource: gluetun-image
@@ -135,4 +145,27 @@ config:
         to port 53 on all interfaces, conflicting with pod-gateway's dnsmasq
         which binds to the VXLAN interface (172.16.0.1:53). This causes bind
         errors and connection instability. Keep disabled.
+
+actions:
+  speedtest:
+    description: |
+      Run a LibreSpeed throughput test through the active VPN tunnel.
+
+      Uses the bundled librespeed-cli binary, executed inside the gluetun
+      container so the test traverses the VPN. Returns download/upload speeds
+      in Mbps along with ping and jitter in milliseconds.
+    params:
+      server-id:
+        type: integer
+        description: |
+          Optional LibreSpeed server ID. If unset, the closest server is
+          auto-selected from libreSpeed.org's public server list.
+      duration:
+        type: integer
+        default: 15
+        description: Per-direction test duration in seconds.
+      timeout:
+        type: integer
+        default: 30
+        description: HTTP request timeout in seconds.
 
