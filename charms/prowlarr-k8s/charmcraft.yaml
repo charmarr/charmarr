@@ -58,7 +58,7 @@ resources:
   prowlarr-image:
     type: oci-image
     description: OCI image for Prowlarr (LinuxServer)
-    upstream-source: lscr.io/linuxserver/prowlarr:2.3.5.5327-ls141
+    upstream-source: lscr.io/linuxserver/prowlarr:2.3.5.5327-ls145
 
 storage:
   config:
