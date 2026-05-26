@@ -1,0 +1,163 @@
+name: seerr-k8s
+type: charm
+title: Seerr
+summary: Content request management for Plex, Jellyfin, and Emby
+description: |
+  Seerr is a request management and media discovery tool for Plex,
+  Jellyfin, and Emby. Successor to Overseerr and Jellyseerr.
+
+  This charm provides:
+  - Automatic Radarr/Sonarr configuration via relations
+  - Ingress integration for external access (Istio)
+  - Migration from overseerr-k8s via Juju actions
+
+  After deployment:
+  1. Access Seerr UI via ingress or port-forward
+  2. Complete media server setup (Plex OAuth / Jellyfin URL / Emby URL)
+  3. Select libraries to sync
+  4. Radarr/Sonarr already configured via relations
+
+  Migration from overseerr-k8s:
+    juju run overseerr/0 export-config
+    juju scp --container=overseerr overseerr/0:/config/overseerr-export.tgz .
+    juju deploy seerr-k8s seerr
+    juju scp --container=seerr ./overseerr-export.tgz seerr/0:/app/config/import.tgz
+    juju run seerr/0 import-config path=/app/config/import.tgz
+
+links:
+  documentation: https://github.com/charmarr/charmarr
+  source: https://github.com/charmarr/charmarr
+  issues: https://github.com/charmarr/charmarr/issues
+
+assumes:
+  - k8s-api
+  - juju >= 3.6
+
+base: ubuntu@24.04
+platforms:
+  amd64:
+
+parts:
+  charm:
+    source: .
+    plugin: uv
+    build-packages: [git]
+    build-snaps: [astral-uv]
+
+charm-libs:
+  - lib: istio_beacon_k8s.service_mesh
+    version: "0"
+  - lib: istio_ingress_k8s.istio_ingress_route
+    version: "0"
+  # FIXME: velero_libs.velero_backup_config not yet on Charmhub.
+  # Check with Kubeflow team when it's published, then fetch via charmcraft fetch-libs.
+  # Currently vendored from https://github.com/canonical/velero-operator
+  # - lib: velero_libs.velero_backup_config
+  #   version: "0"
+
+containers:
+  seerr:
+    resource: seerr-image
+    mounts:
+      - storage: config
+        location: /app/config
+
+resources:
+  seerr-image:
+    type: oci-image
+    description: OCI image for Seerr (official seerr-team)
+    upstream-source: ghcr.io/seerr-team/seerr:v3.2.0
+
+storage:
+  config:
+    type: filesystem
+    location: /app/config
+    minimum-size: 1G
+    description: Seerr configuration and database.
+
+provides:
+  provide-cmr-mesh:
+    interface: cross_model_mesh
+    optional: true
+    description: Access cross-model applications via service mesh
+  velero-backup-config:
+    interface: velero_backup_config
+    limit: 1
+    optional: true
+    description: Configure Velero backups for config storage
+
+requires:
+  require-cmr-mesh:
+    interface: cross_model_mesh
+    optional: true
+    description: Allow cross-model access via service mesh
+  media-manager:
+    interface: media-manager
+    description: Connection to media managers (Radarr, Sonarr)
+  media-server:
+    interface: media-server
+    description: Connection to media servers (Plex, Jellyfin) for service mesh
+  service-mesh:
+    interface: service_mesh
+    limit: 1
+    optional: true
+    description: Subscribe this charm into a service mesh
+  istio-ingress-route:
+    interface: istio_ingress_route
+    limit: 1
+    optional: true
+    description: Ingress routing via Istio gateway
+
+config:
+  options:
+    log-level:
+      type: string
+      default: "info"
+      description: |
+        Application log level.
+        One of: debug, info, warn, error
+    ingress-port:
+      type: int
+      default: 80
+      description: Port for the Istio ingress gateway listener.
+    api-key-rotation:
+      type: string
+      default: "disabled"
+      description: |
+        Auto-rotate API key and sync to related apps.
+        Options: disabled, daily, monthly, yearly
+
+actions:
+  rotate-api-key:
+    description: |
+      Rotate Seerr API key.
+      Note: This regenerates the key in Seerr and updates the Juju secret.
+      External integrations using the old key will need to be updated manually.
+  import-config:
+    description: |
+      Import an overseerr-k8s configuration tarball produced by
+      overseerr-k8s's export-config action.
+
+      Expected workflow:
+        juju run overseerr/0 export-config
+        juju scp --container=overseerr overseerr/0:/config/overseerr-export.tgz .
+        juju scp --container=seerr ./overseerr-export.tgz <unit>:/app/config/import.tgz
+        juju run <unit> import-config path=/app/config/import.tgz
+
+      Stops the workload, extracts the tarball into /app/config, fixes
+      ownership, and replans. Seerr will auto-migrate the Overseerr
+      schema on next start. The action refuses to overwrite a populated
+      /app/config unless force=true is passed.
+    params:
+      path:
+        type: string
+        description: Absolute path of the tarball inside the workload container.
+      sha256:
+        type: string
+        description: Optional sha256 to verify before extracting.
+      force:
+        type: boolean
+        default: false
+        description: Extract even if /app/config already contains files.
+    required:
+      - path
