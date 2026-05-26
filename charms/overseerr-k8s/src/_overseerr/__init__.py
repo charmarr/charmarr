@@ -6,9 +6,13 @@
 from _overseerr._api import OverseerrApi, OverseerrApiError
 from _overseerr._constants import (
     API_KEY_SECRET_LABEL,
+    CONFIG_DIR,
     CONTAINER_NAME,
     DEFAULT_PGID,
     DEFAULT_PUID,
+    DEPRECATION_LOG,
+    DEPRECATION_MESSAGE,
+    EXPORT_TARBALL_PATH,
     SERVICE_NAME,
     SETTINGS_FILE,
     WEBUI_PORT,
@@ -16,9 +20,13 @@ from _overseerr._constants import (
 
 __all__ = [
     "API_KEY_SECRET_LABEL",
+    "CONFIG_DIR",
     "CONTAINER_NAME",
     "DEFAULT_PGID",
     "DEFAULT_PUID",
+    "DEPRECATION_LOG",
+    "DEPRECATION_MESSAGE",
+    "EXPORT_TARBALL_PATH",
     "SERVICE_NAME",
     "SETTINGS_FILE",
     "WEBUI_PORT",

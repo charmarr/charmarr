@@ -1,8 +1,19 @@
 name: overseerr-k8s
 type: charm
 title: Overseerr
-summary: Content request management for Plex
+summary: "[DEPRECATED] Content request management for Plex - migrate to seerr-k8s"
 description: |
+  DEPRECATED: Upstream Overseerr has merged with Jellyseerr into the new
+  Seerr project. This charm is in maintenance mode - no new features will
+  be added. Migrate to seerr-k8s for ongoing support and feature parity.
+
+  Migration path:
+    juju run overseerr/0 export-config
+    juju scp --container=overseerr overseerr/0:/config/overseerr-export.tgz .
+    juju deploy seerr-k8s seerr
+    juju scp --container=seerr ./overseerr-export.tgz seerr/0:/app/config/import.tgz
+    juju run seerr/0 import-config path=/app/config/import.tgz
+
   Overseerr charm with automatic Radarr/Sonarr configuration via relations.
 
 links:
@@ -114,3 +125,14 @@ actions:
       Rotate Overseerr API key.
       Note: This regenerates the key in Overseerr and updates the Juju secret.
       External integrations using the old key will need to be updated manually.
+  export-config:
+    description: |
+      Export the Overseerr configuration (settings.json and database) as a
+      tarball at /config/overseerr-export.tgz for migration to seerr-k8s.
+
+      The tarball excludes logs, cache, and temporary files. Pull it from
+      the workload container with:
+        juju scp --container=overseerr <unit>:/config/overseerr-export.tgz .
+
+      Then import into seerr-k8s with the import-config action. Returns the
+      tarball path, size in bytes, sha256 checksum, and a copy hint.

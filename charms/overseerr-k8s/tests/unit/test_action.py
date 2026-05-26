@@ -138,6 +138,79 @@ def test_secret_rotate_non_leader_does_nothing(ctx):
     mock_generate.assert_not_called()
 
 
+def test_export_config_fails_non_leader(ctx):
+    """Action fails on non-leader unit."""
+    container = Container(name="overseerr", can_connect=True)
+
+    with pytest.raises(ActionFailed, match="leader"):
+        ctx.run(
+            ctx.on.action("export-config"),
+            State(leader=False, containers=[container]),
+        )
+
+
+def test_export_config_fails_no_pebble(ctx):
+    """Action fails when Pebble not connected."""
+    container = Container(name="overseerr", can_connect=False)
+
+    with pytest.raises(ActionFailed, match="Pebble"):
+        ctx.run(
+            ctx.on.action("export-config"),
+            State(leader=True, containers=[container]),
+        )
+
+
+def test_export_config_returns_path_size_sha256(ctx):
+    """Successful export returns path, size, sha256, and copy command."""
+    container = Container(
+        name="overseerr",
+        can_connect=True,
+        execs={
+            Exec(["tar", "-czf", "/config/overseerr-export.tgz"], return_code=0),
+            Exec(
+                ["sha256sum", "/config/overseerr-export.tgz"],
+                stdout="abc123def456  /config/overseerr-export.tgz\n",
+                return_code=0,
+            ),
+            Exec(
+                ["stat", "-c", "%s", "/config/overseerr-export.tgz"],
+                stdout="42\n",
+                return_code=0,
+            ),
+        },
+    )
+
+    ctx.run(
+        ctx.on.action("export-config"),
+        State(leader=True, containers=[container]),
+    )
+
+    results = ctx.action_results
+    assert results is not None
+    assert results["path"] == "/config/overseerr-export.tgz"
+    assert results["size"] == "42"
+    assert results["sha256"] == "abc123def456"
+    assert "juju scp" in results["copy-command"]
+    assert "overseerr-export.tgz" in results["copy-command"]
+
+
+def test_export_config_fails_when_tar_fails(ctx):
+    """Action fails if tar exec fails."""
+    container = Container(
+        name="overseerr",
+        can_connect=True,
+        execs={
+            Exec(["tar", "-czf", "/config/overseerr-export.tgz"], return_code=1),
+        },
+    )
+
+    with pytest.raises(ActionFailed, match="tarball"):
+        ctx.run(
+            ctx.on.action("export-config"),
+            State(leader=True, containers=[container]),
+        )
+
+
 def test_secret_rotate_wrong_label_does_nothing(ctx):
     """Secret rotation is ignored for secrets with non-API-key labels."""
     other_secret = Secret(

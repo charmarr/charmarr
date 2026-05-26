@@ -26,9 +26,13 @@ from charms.velero_libs.v0.velero_backup_config import VeleroBackupProvider, Vel
 
 from _overseerr import (
     API_KEY_SECRET_LABEL,
+    CONFIG_DIR,
     CONTAINER_NAME,
     DEFAULT_PGID,
     DEFAULT_PUID,
+    DEPRECATION_LOG,
+    DEPRECATION_MESSAGE,
+    EXPORT_TARBALL_PATH,
     SERVICE_NAME,
     SETTINGS_FILE,
     WEBUI_PORT,
@@ -83,6 +87,7 @@ class OverseerrCharm(ops.CharmBase):
         framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
         framework.observe(self.on.secret_rotate, self._on_secret_rotate)
         framework.observe(self.on.rotate_api_key_action, self._on_rotate_api_key_action)
+        framework.observe(self.on.export_config_action, self._on_export_config_action)
 
     def _get_api_key(self) -> str | None:
         """Read API key from settings.json."""
@@ -465,6 +470,8 @@ class OverseerrCharm(ops.CharmBase):
         8. Store API key in Juju secret
         9. Reconcile Radarr/Sonarr servers from relations
         """
+        logger.warning(DEPRECATION_LOG)
+
         if not self.unit.is_leader():
             if self._container.can_connect():
                 self._container.add_layer(
@@ -569,7 +576,7 @@ class OverseerrCharm(ops.CharmBase):
                 event.add_status(ops.WaitingStatus("Complete setup in web UI"))
                 return
 
-        event.add_status(ops.ActiveStatus())
+        event.add_status(ops.ActiveStatus(DEPRECATION_MESSAGE))
 
     def _on_secret_rotate(self, event: ops.SecretRotateEvent) -> None:
         """Handle secret rotation by generating new API key."""
@@ -633,6 +640,59 @@ class OverseerrCharm(ops.CharmBase):
             logger.info("Restarted Overseerr after API key rotation")
 
         event.set_results({"result": "API key rotated successfully"})
+
+    def _on_export_config_action(self, event: ops.ActionEvent) -> None:
+        """Tar /config into a tarball for migration to seerr-k8s."""
+        if not self.unit.is_leader():
+            event.fail("This action can only run on the leader unit")
+            return
+
+        if not self._container.can_connect():
+            event.fail("Cannot connect to Pebble")
+            return
+
+        try:
+            self._container.exec(
+                [
+                    "tar",
+                    "-czf",
+                    EXPORT_TARBALL_PATH,
+                    "-C",
+                    CONFIG_DIR,
+                    "--exclude=./logs",
+                    "--exclude=./cache",
+                    "--exclude=./overseerr-export.tgz",
+                    "--exclude=*.tmp",
+                    ".",
+                ]
+            ).wait_output()
+        except ops.pebble.ExecError as e:
+            event.fail(f"Failed to create tarball: {e}")
+            return
+
+        try:
+            sha_out, _ = self._container.exec(["sha256sum", EXPORT_TARBALL_PATH]).wait_output()
+            size_out, _ = self._container.exec(
+                ["stat", "-c", "%s", EXPORT_TARBALL_PATH]
+            ).wait_output()
+        except ops.pebble.ExecError as e:
+            event.fail(f"Failed to inspect tarball: {e}")
+            return
+
+        sha256 = sha_out.split()[0]
+        size = size_out.strip()
+
+        event.set_results(
+            {
+                "path": EXPORT_TARBALL_PATH,
+                "size": size,
+                "sha256": sha256,
+                "copy-command": (
+                    f"juju scp --container={CONTAINER_NAME} "
+                    f"{self.unit.name}:{EXPORT_TARBALL_PATH} ./overseerr-export.tgz"
+                ),
+            }
+        )
 
 
 if __name__ == "__main__":
