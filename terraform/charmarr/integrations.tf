@@ -172,6 +172,7 @@ resource "juju_integration" "flaresolverr_prowlarr" {
 # -----------------------------------------------------------------------------
 
 resource "juju_integration" "radarr_overseerr" {
+  count      = var.enable_overseerr ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
@@ -180,8 +181,23 @@ resource "juju_integration" "radarr_overseerr" {
   }
 
   application {
-    name     = module.overseerr.app_name
-    endpoint = module.overseerr.requires.media_manager
+    name     = module.overseerr[0].app_name
+    endpoint = module.overseerr[0].requires.media_manager
+  }
+}
+
+resource "juju_integration" "radarr_seerr" {
+  count      = var.enable_seerr ? 1 : 0
+  model_uuid = data.juju_model.model.uuid
+
+  application {
+    name     = module.radarr.app_name
+    endpoint = module.radarr.provides.media_manager
+  }
+
+  application {
+    name     = module.seerr[0].app_name
+    endpoint = module.seerr[0].requires.media_manager
   }
 }
 
@@ -200,6 +216,7 @@ resource "juju_integration" "radarr_plex" {
 }
 
 resource "juju_integration" "sonarr_overseerr" {
+  count      = var.enable_overseerr ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
@@ -208,8 +225,23 @@ resource "juju_integration" "sonarr_overseerr" {
   }
 
   application {
-    name     = module.overseerr.app_name
-    endpoint = module.overseerr.requires.media_manager
+    name     = module.overseerr[0].app_name
+    endpoint = module.overseerr[0].requires.media_manager
+  }
+}
+
+resource "juju_integration" "sonarr_seerr" {
+  count      = var.enable_seerr ? 1 : 0
+  model_uuid = data.juju_model.model.uuid
+
+  application {
+    name     = module.sonarr.app_name
+    endpoint = module.sonarr.provides.media_manager
+  }
+
+  application {
+    name     = module.seerr[0].app_name
+    endpoint = module.seerr[0].requires.media_manager
   }
 }
 
@@ -232,6 +264,7 @@ resource "juju_integration" "sonarr_plex" {
 # -----------------------------------------------------------------------------
 
 resource "juju_integration" "plex_overseerr" {
+  count      = var.enable_overseerr ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
@@ -240,8 +273,23 @@ resource "juju_integration" "plex_overseerr" {
   }
 
   application {
-    name     = module.overseerr.app_name
-    endpoint = module.overseerr.requires.media_server
+    name     = module.overseerr[0].app_name
+    endpoint = module.overseerr[0].requires.media_server
+  }
+}
+
+resource "juju_integration" "plex_seerr" {
+  count      = var.enable_seerr ? 1 : 0
+  model_uuid = data.juju_model.model.uuid
+
+  application {
+    name     = module.plex.app_name
+    endpoint = module.plex.provides.media_server
+  }
+
+  application {
+    name     = module.seerr[0].app_name
+    endpoint = module.seerr[0].requires.media_server
   }
 }
 
@@ -355,7 +403,7 @@ resource "juju_integration" "beacon_plex" {
 }
 
 resource "juju_integration" "beacon_overseerr" {
-  count      = var.enable_mesh ? 1 : 0
+  count      = var.enable_mesh && var.enable_overseerr ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
@@ -364,8 +412,23 @@ resource "juju_integration" "beacon_overseerr" {
   }
 
   application {
-    name     = module.overseerr.app_name
-    endpoint = module.overseerr.requires.service_mesh
+    name     = module.overseerr[0].app_name
+    endpoint = module.overseerr[0].requires.service_mesh
+  }
+}
+
+resource "juju_integration" "beacon_seerr" {
+  count      = var.enable_mesh && var.enable_seerr ? 1 : 0
+  model_uuid = data.juju_model.model.uuid
+
+  application {
+    name     = module.beacon[0].app_name
+    endpoint = "service-mesh"
+  }
+
+  application {
+    name     = module.seerr[0].app_name
+    endpoint = module.seerr[0].requires.service_mesh
   }
 }
 
@@ -464,7 +527,7 @@ resource "juju_integration" "plex_ingress_plex" {
 }
 
 resource "juju_integration" "overseerr_ingress_overseerr" {
-  count      = var.enable_istio ? 1 : 0
+  count      = var.enable_istio && var.enable_overseerr ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
@@ -473,7 +536,22 @@ resource "juju_integration" "overseerr_ingress_overseerr" {
   }
 
   application {
-    name     = module.overseerr.app_name
-    endpoint = module.overseerr.requires.istio_ingress_route
+    name     = module.overseerr[0].app_name
+    endpoint = module.overseerr[0].requires.istio_ingress_route
+  }
+}
+
+resource "juju_integration" "seerr_ingress_seerr" {
+  count      = var.enable_istio && var.enable_seerr ? 1 : 0
+  model_uuid = data.juju_model.model.uuid
+
+  application {
+    name     = module.seerr_ingress[0].app_name
+    endpoint = "istio-ingress-route"
+  }
+
+  application {
+    name     = module.seerr[0].app_name
+    endpoint = module.seerr[0].requires.istio_ingress_route
   }
 }
