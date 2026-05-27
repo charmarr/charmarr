@@ -1,0 +1,20 @@
+name: "Seerr K8s: CI"
+
+on:
+  workflow_call:
+
+jobs:
+  quality:
+    uses: charmarr/.github/.github/workflows/charm-ci.yaml@v2
+    with:
+      charm-path: charms/seerr-k8s
+      use-parrot: true
+    secrets: inherit
+
+  integration:
+    needs: quality
+    uses: charmarr/.github/.github/workflows/charm-integration.yaml@v2
+    with:
+      charm-path: charms/seerr-k8s
+      use-parrot: false
+    secrets: inherit
