@@ -161,7 +161,7 @@ class SeerrCharm(ops.CharmBase):
             "services": {
                 SERVICE_NAME: {
                     "override": "replace",
-                    "command": "/usr/bin/node /app/dist/index.js",
+                    "command": "/usr/local/bin/node /app/dist/index.js",
                     "startup": "enabled",
                     "user-id": DEFAULT_PUID,
                     "group-id": DEFAULT_PGID,
@@ -610,10 +610,12 @@ class SeerrCharm(ops.CharmBase):
         event.set_results({"result": "API key rotated successfully"})
 
     def _on_import_config_action(self, event: ops.ActionEvent) -> None:
-        """Extract an overseerr-k8s export tarball into /app/config.
+        """Wipe /app/config and replace it with the contents of a tarball.
 
-        Seerr's upstream auto-migration handles the schema upgrade on the
-        next start - this action just unpacks the tarball and replans.
+        This is a migration command: it always overwrites. The workload is
+        stopped, /app/config is cleared, the tarball is extracted, the
+        workload is replanned. Seerr's upstream auto-migration handles
+        the schema upgrade on next start.
         """
         if not self.unit.is_leader():
             event.fail("This action can only run on the leader unit")
@@ -625,7 +627,6 @@ class SeerrCharm(ops.CharmBase):
 
         path = str(event.params.get("path", "")).strip()
         expected_sha = str(event.params.get("sha256", "")).strip()
-        force = bool(event.params.get("force", False))
 
         if not path:
             event.fail("path parameter is required")
@@ -648,33 +649,20 @@ class SeerrCharm(ops.CharmBase):
                 event.fail(f"sha256 mismatch: expected {expected_sha}, got {actual_sha}")
                 return
 
-        if not force:
-            try:
-                existing = self._container.list_files(CONFIG_DIR)
-            except ops.pebble.Error as e:
-                event.fail(f"Failed to list {CONFIG_DIR}: {e}")
-                return
-            real_files = [f for f in existing if f.path != path and not f.name.startswith(".")]
-            if real_files:
-                event.fail(
-                    f"{CONFIG_DIR} is not empty (found {len(real_files)} entries). "
-                    "Pass force=true to extract anyway."
-                )
-                return
-
         if self._is_service_running():
             self._container.stop(SERVICE_NAME)
 
+        # Move the tarball out of CONFIG_DIR before wiping so we don't
+        # delete the archive we're about to extract.
+        staged = "/tmp/seerr-import.tgz"
         try:
-            self._container.exec(["tar", "-xzf", path, "-C", CONFIG_DIR]).wait_output()
+            self._container.exec(["mv", path, staged]).wait_output()
+            self._container.exec(["sh", "-c", f"rm -rf {CONFIG_DIR}/* {CONFIG_DIR}/.[!.]*"]).wait()
+            self._container.exec(["tar", "-xzf", staged, "-C", CONFIG_DIR]).wait_output()
+            self._container.exec(["rm", "-f", staged]).wait()
         except ops.pebble.ExecError as e:
             event.fail(f"Failed to extract tarball: {e}")
             return
-
-        try:
-            self._container.exec(["rm", "-f", path]).wait()
-        except ops.pebble.ExecError:
-            logger.warning("Failed to remove tarball at %s after import", path)
 
         self._container.exec(["chown", "-R", f"{DEFAULT_PUID}:{DEFAULT_PGID}", CONFIG_DIR]).wait()
 

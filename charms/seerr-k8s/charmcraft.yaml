@@ -17,11 +17,12 @@ description: |
   3. Select libraries to sync
   4. Radarr/Sonarr already configured via relations
 
-  Migration from overseerr-k8s:
+  Migration from overseerr-k8s (using kubectl cp - juju scp is broken
+  for K8s sidecars on Juju 3.6.x):
     juju run overseerr/0 export-config
-    juju scp --container=overseerr overseerr/0:/config/overseerr-export.tgz .
+    kubectl -n <model> cp -c overseerr overseerr-0:/config/overseerr-export.tgz ./export.tgz
     juju deploy seerr-k8s seerr
-    juju scp --container=seerr ./overseerr-export.tgz seerr/0:/app/config/import.tgz
+    kubectl -n <model> cp -c seerr ./export.tgz seerr-0:/app/config/import.tgz
     juju run seerr/0 import-config path=/app/config/import.tgz
 
 links:
@@ -135,19 +136,22 @@ actions:
       External integrations using the old key will need to be updated manually.
   import-config:
     description: |
-      Import an overseerr-k8s configuration tarball produced by
-      overseerr-k8s's export-config action.
+      Replace /app/config with the contents of an overseerr-k8s export
+      tarball. ALWAYS OVERWRITES — this is a migration command, not a
+      merge. Run immediately after deploying seerr; any seerr setup done
+      before import-config will be lost.
 
       Expected workflow:
         juju run overseerr/0 export-config
-        juju scp --container=overseerr overseerr/0:/config/overseerr-export.tgz .
-        juju scp --container=seerr ./overseerr-export.tgz <unit>:/app/config/import.tgz
-        juju run <unit> import-config path=/app/config/import.tgz
+        kubectl -n <model> cp -c overseerr overseerr-0:/config/overseerr-export.tgz ./export.tgz
+        juju deploy seerr-k8s seerr
+        kubectl -n <model> cp -c seerr ./export.tgz seerr-0:/app/config/import.tgz
+        juju run seerr/0 import-config path=/app/config/import.tgz
 
-      Stops the workload, extracts the tarball into /app/config, fixes
+      Stops the workload, wipes /app/config, extracts the tarball, fixes
       ownership, and replans. Seerr will auto-migrate the Overseerr
-      schema on next start. The action refuses to overwrite a populated
-      /app/config unless force=true is passed.
+      schema on next start (a settings.old.json backup is preserved
+      inside the workload by Seerr itself).
     params:
       path:
         type: string
@@ -155,9 +159,5 @@ actions:
       sha256:
         type: string
         description: Optional sha256 to verify before extracting.
-      force:
-        type: boolean
-        default: false
-        description: Extract even if /app/config already contains files.
     required:
       - path

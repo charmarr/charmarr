@@ -191,8 +191,8 @@ def test_import_config_fails_missing_tarball(ctx):
         )
 
 
-def test_import_config_fails_when_config_dir_populated(ctx, tmp_path):
-    """Action refuses to overwrite a populated /app/config without force."""
+def test_import_config_success(ctx, tmp_path):
+    """Action wipes /app/config, extracts the tarball, and replans."""
     tarball = tmp_path / "import.tgz"
     tarball.write_bytes(b"fake tarball content")
     leftover = tmp_path / "settings.json"
@@ -204,31 +204,11 @@ def test_import_config_fails_when_config_dir_populated(ctx, tmp_path):
         mounts={
             "config": Mount(location="/app/config", source=tmp_path),
         },
-    )
-
-    assert leftover.exists()
-
-    with pytest.raises(ActionFailed, match="not empty"):
-        ctx.run(
-            ctx.on.action("import-config", params={"path": "/app/config/import.tgz"}),
-            State(leader=True, containers=[container]),
-        )
-
-
-def test_import_config_success(ctx, tmp_path):
-    """Action extracts tarball and replans on success."""
-    tarball = tmp_path / "import.tgz"
-    tarball.write_bytes(b"fake tarball content")
-
-    container = Container(
-        name="seerr",
-        can_connect=True,
-        mounts={
-            "config": Mount(location="/app/config", source=tmp_path),
-        },
         execs={
-            Exec(["tar", "-xzf", "/app/config/import.tgz"], return_code=0),
-            Exec(["rm", "-f", "/app/config/import.tgz"], return_code=0),
+            Exec(["mv", "/app/config/import.tgz", "/tmp/seerr-import.tgz"], return_code=0),
+            Exec(["sh", "-c"], return_code=0),
+            Exec(["tar", "-xzf", "/tmp/seerr-import.tgz", "-C", "/app/config"], return_code=0),
+            Exec(["rm", "-f", "/tmp/seerr-import.tgz"], return_code=0),
             Exec(["chown", "-R", "1000:1000", "/app/config"], return_code=0),
         },
     )
@@ -272,35 +252,3 @@ def test_import_config_sha256_mismatch(ctx, tmp_path):
             ),
             State(leader=True, containers=[container]),
         )
-
-
-def test_import_config_force_overwrites_populated(ctx, tmp_path):
-    """force=true allows extraction even when /app/config has files."""
-    tarball = tmp_path / "import.tgz"
-    tarball.write_bytes(b"fake tarball content")
-    leftover = tmp_path / "settings.json"
-    leftover.write_text("{}")
-
-    container = Container(
-        name="seerr",
-        can_connect=True,
-        mounts={
-            "config": Mount(location="/app/config", source=tmp_path),
-        },
-        execs={
-            Exec(["tar", "-xzf", "/app/config/import.tgz"], return_code=0),
-            Exec(["rm", "-f", "/app/config/import.tgz"], return_code=0),
-            Exec(["chown", "-R", "1000:1000", "/app/config"], return_code=0),
-        },
-    )
-
-    with patch("charm.SeerrCharm._is_service_running", return_value=False):
-        ctx.run(
-            ctx.on.action(
-                "import-config",
-                params={"path": "/app/config/import.tgz", "force": True},
-            ),
-            State(leader=True, containers=[container]),
-        )
-
-    assert ctx.action_results is not None

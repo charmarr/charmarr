@@ -682,14 +682,15 @@ class OverseerrCharm(ops.CharmBase):
         sha256 = sha_out.split()[0]
         size = size_out.strip()
 
+        pod_name = self.unit.name.replace("/", "-")
         event.set_results(
             {
                 "path": EXPORT_TARBALL_PATH,
                 "size": size,
                 "sha256": sha256,
                 "copy-command": (
-                    f"juju scp --container={CONTAINER_NAME} "
-                    f"{self.unit.name}:{EXPORT_TARBALL_PATH} ./overseerr-export.tgz"
+                    f"kubectl -n {self.model.name} cp -c {CONTAINER_NAME} "
+                    f"{pod_name}:{EXPORT_TARBALL_PATH} ./overseerr-export.tgz"
                 ),
             }
         )

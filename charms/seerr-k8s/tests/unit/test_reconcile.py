@@ -56,7 +56,7 @@ def test_reconcile_adds_pebble_layer(ctx):
     layer = container.layers["seerr"]
     assert "seerr" in layer.services
     service = layer.services["seerr"]
-    assert service.command == "/usr/bin/node /app/dist/index.js"
+    assert service.command == "/usr/local/bin/node /app/dist/index.js"
     assert service.user_id == 1000
     assert service.group_id == 1000
     assert service.working_dir == "/app"

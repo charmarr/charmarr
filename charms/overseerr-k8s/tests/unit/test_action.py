@@ -190,7 +190,7 @@ def test_export_config_returns_path_size_sha256(ctx):
     assert results["path"] == "/config/overseerr-export.tgz"
     assert results["size"] == "42"
     assert results["sha256"] == "abc123def456"
-    assert "juju scp" in results["copy-command"]
+    assert "kubectl" in results["copy-command"]
     assert "overseerr-export.tgz" in results["copy-command"]
 
 
