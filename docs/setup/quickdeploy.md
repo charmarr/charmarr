@@ -17,7 +17,7 @@ Both bundles include:
 <table>
   <tr>
     <td><img src="../../assets/logos/plex.png" class="inline-icon"> Plex</td>
-    <td><img src="../../assets/logos/overseerr.png" class="inline-icon"> Overseerr</td>
+    <td><img src="../../assets/logos/overseerr.png" class="inline-icon"> Seerr <sup>1</sup></td>
     <td><img src="../../assets/logos/prowlarr.png" class="inline-icon"> Prowlarr</td>
     <td><img src="../../assets/logos/flaresolverr.png" class="inline-icon"> FlareSolverr</td>
   </tr>
@@ -28,6 +28,10 @@ Both bundles include:
     <td><img src="../../assets/logos/recyclarr.png" class="inline-icon"> Recyclarr</td>
   </tr>
 </table>
+
+<small><sup>1</sup> Seerr is the successor to Overseerr (and Jellyseerr). The bundle can deploy
+Overseerr instead, or both side-by-side during migration. See
+[Media Requester](#media-requester) below.</small>
 
 !!! note
     charmarr-plus has slightly higher CPU requirements due to additional Radarr/Sonarr instances. During initial deployment, expect higher CPU and RAM usage. It flatlines once settled.
@@ -63,6 +67,11 @@ module "charmarr" {
   wireguard_private_key = var.wireguard_private_key
   vpn_provider          = "protonvpn"
   cluster_cidrs         = "10.1.0.0/16,10.152.183.0/24,192.168.1.0/24"
+
+  # Media requester (Seerr is the recommended choice for new deployments;
+  # Overseerr is deprecated and kept for backward compatibility)
+  enable_overseerr = false
+  enable_seerr     = true
 }
 ```
 
@@ -264,6 +273,37 @@ When `enable_vpn = false`, Gluetun is not deployed and download clients are not 
 
 !!! warning
     Without VPN integration, your real IP is exposed to torrent trackers and usenet providers. Only disable VPN if you have an alternative tunneling solution in place.
+
+#### Media Requester
+
+Charmarr supports two request managers: **Seerr** (current, recommended) and
+**Overseerr** (deprecated, kept for backward compatibility).
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `enable_seerr` | `false` | Deploy `seerr-k8s`. Set to `true` for new deployments. |
+| `enable_overseerr` | `true` | Deploy `overseerr-k8s`. Existing track 1 deployments rely on this default; new deployments should set it to `false`. |
+
+**New deployments** (recommended):
+
+```hcl
+module "charmarr" {
+  # ... your other config ...
+
+  enable_overseerr = false
+  enable_seerr     = true
+}
+```
+
+**Existing Overseerr deployments**: leave both at default on first
+upgrade — your deployment will not change. When you're ready to migrate
+to Seerr, set `enable_seerr = true` to run both side-by-side, follow the
+[migration runbook](../migration/overseerr-to-seerr.md), then set
+`enable_overseerr = false` to decommission Overseerr.
+
+!!! warning
+    `enable_overseerr` and the overseerr module will be removed in a
+    future release. Migrate before upgrading.
 
 #### Plex Hardware Transcoding
 

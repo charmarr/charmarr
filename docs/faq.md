@@ -81,7 +81,7 @@
     - Prowlarr: `http://<ARR_INGRESS_IP>/prowlarr`
     - qBittorrent: `http://<ARR_INGRESS_IP>/qbittorrent`
     - Plex: `http://<PLEX_INGRESS_IP>`
-    - Overseerr: `http://<OVERSEERR_INGRESS_IP>`
+    - Seerr: `http://<SEERR_INGRESS_IP>`
 
     The ingress port defaults to 80. If you changed it via `ingress-port`, append it to the URL (e.g., `http://<IP>:8080/radarr`).
 
@@ -108,6 +108,17 @@
     Want to see your favorite *arr charmed? [Open an issue](https://github.com/charmarr/charmarr/issues) or contribute a charm yourself!
 
 ## Migration
+
+??? question "I'm on Overseerr. How do I move to Seerr?"
+    Upstream Overseerr has merged with Jellyseerr into a new project,
+    **Seerr**. The `overseerr-k8s` charm is deprecated and will be removed
+    in a future release.
+
+    Both charms can coexist on `latest`: set `enable_seerr = true` to
+    deploy Seerr alongside your existing Overseerr, follow the
+    [migration runbook](migration/overseerr-to-seerr.md) to transfer your
+    requests, users, and settings, then set `enable_overseerr = false` to
+    decommission Overseerr.
 
 ??? question "Can I migrate from Docker Compose?"
     Yes. Charmarr delivers a complex architecture with simplicity. Setup and maintenance should be easier than managing Docker Compose files manually. However, migration paths from existing setups are not yet documented or tested.

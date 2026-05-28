@@ -5,7 +5,7 @@ Self-hosted [Servarr](https://wiki.servarr.com) and friends automatically config
 ```mermaid
 flowchart LR
     subgraph request["Requests"]
-        overseerr[Overseerr]
+        seerr[Seerr]
     end
 
     subgraph indexing["Indexing"]
@@ -35,7 +35,7 @@ flowchart LR
         plex[Plex]
     end
 
-    overseerr --> radarr & sonarr
+    seerr --> radarr & sonarr
     flaresolverr --> prowlarr
     prowlarr --> radarr & sonarr
     recyclarr -.-> radarr & sonarr

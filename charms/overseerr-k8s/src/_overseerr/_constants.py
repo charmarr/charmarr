@@ -16,8 +16,8 @@ EXPORT_TARBALL_PATH = "/config/overseerr-export.tgz"
 DEPRECATION_MESSAGE = "Deprecated - migrate to seerr-k8s"
 DEPRECATION_LOG = (
     "overseerr-k8s is DEPRECATED. Upstream Overseerr has merged with Jellyseerr "
-    "into Seerr. Migrate to seerr-k8s. Run 'juju run <overseerr-unit> export-config' "
-    "to start. See https://docs.seerr.dev/migration-guide/"
+    "into Seerr. Migrate to seerr-k8s. See "
+    "https://charmarr.tv/migration/overseerr-to-seerr/"
 )
 
 # Hardcoded PUID/PGID since Overseerr doesn't require storage relation

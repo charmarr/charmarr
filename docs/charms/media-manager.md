@@ -14,7 +14,7 @@ The charms talk to other charms to figure out how to set everything up. The orde
 | **Prowlarr** | `media-indexer` | Publishes API URL so Prowlarr can push indexers |
 | **qBittorrent/SABnzbd** | `download-client` | Gets their connection info, configures them as download clients |
 | **Plex** | `media-manager` | Publishes root folders and content type so Plex can create libraries |
-| **Overseerr** | `media-manager` | Publishes API URL, quality profiles, root folders so Overseerr can send requests |
+| **Seerr** | `media-manager` | Publishes API URL, quality profiles, root folders so Seerr can send requests |
 | **VPN Gateway** | `vpn-gateway` | Optional VPN routing (if related) |
 | **Ingress** | `istio_ingress_route` | Enables external access |
 
@@ -47,7 +47,7 @@ sequenceDiagram
 
     RC->>App: Create root folder
     RC-->>Prowlarr: Here's my API URL
-    RC-->>Plex/Overseerr: Here's my profiles and folders
+    RC-->>Plex/Seerr: Here's my profiles and folders
 ```
 
 ### Variants
@@ -62,7 +62,7 @@ Deploy multiple instances with different variants to separate content:
 
 Each variant uses its app name as the download client category (e.g., `radarr`, `radarr-4k`). The download clients create matching categories automatically.
 
-Each Radarr/Sonarr charm includes a [Recyclarr](https://recyclarr.dev/) sidecar that syncs quality profiles from [TRaSH Guides](https://trash-guides.info/). Recyclarr runs on every reconcile if configured. It's idempotent, so running it multiple times is safe. The profiles it creates are published to Overseerr automatically.
+Each Radarr/Sonarr charm includes a [Recyclarr](https://recyclarr.dev/) sidecar that syncs quality profiles from [TRaSH Guides](https://trash-guides.info/). Recyclarr runs on every reconcile if configured. It's idempotent, so running it multiple times is safe. The profiles it creates are published to Seerr automatically.
 
 !!! note
     Override default profiles using the `trash-profiles` config option. See [Manual Deploy](../setup/manual.md#media-managers).

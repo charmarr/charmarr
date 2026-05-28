@@ -168,7 +168,7 @@ juju deploy flaresolverr-k8s --trust --channel=latest/edge flaresolverr
 
 ```bash
 juju deploy plex-k8s --trust --channel=latest/edge plex
-juju deploy overseerr-k8s --trust --channel=latest/edge overseerr
+juju deploy seerr-k8s --trust --channel=latest/edge seerr
 ```
 
 Enable hardware transcoding for Plex (requires Intel QuickSync and Plex Pass):
@@ -177,13 +177,19 @@ Enable hardware transcoding for Plex (requires Intel QuickSync and Plex Pass):
 juju config plex hardware-transcoding=true
 ```
 
+!!! info
+    `overseerr-k8s` is deprecated; new deployments should use `seerr-k8s`. If
+    you already have an Overseerr deployment, see
+    [Overseerr → Seerr migration](../migration/overseerr-to-seerr.md) to
+    transfer your requests, users, and settings.
+
 ---
 
 ## 3. Connecting Apps
 
 Apps are deployed but isolated. Relations snap them together. This is where the Lego blocks click.
 
-When you integrate two apps, they exchange information like URLs, API keys, and configuration details. This is how Radarr knows where to find qBittorrent, how Prowlarr registers itself with Sonarr, and how Overseerr discovers your media managers. No manual copying of URLs or API keys in web UIs.
+When you integrate two apps, they exchange information like URLs, API keys, and configuration details. This is how Radarr knows where to find qBittorrent, how Prowlarr registers itself with Sonarr, and how Seerr discovers your media managers. No manual copying of URLs or API keys in web UIs.
 
 Sensitive information (API keys, credentials) is shared via Juju secrets and encrypted at rest.
 
@@ -273,12 +279,12 @@ juju integrate plex:media-manager sonarr:media-manager
 
 ### Requester to Managers & Server
 
-Connect Overseerr to Radarr/Sonarr and Plex. Enables user requests and library visibility.
+Connect Seerr to Radarr/Sonarr and Plex. Enables user requests and library visibility.
 
 ```bash
-juju integrate overseerr:media-manager radarr:media-manager
-juju integrate overseerr:media-manager sonarr:media-manager
-juju integrate overseerr:media-server plex:media-server
+juju integrate seerr:media-manager radarr:media-manager
+juju integrate seerr:media-manager sonarr:media-manager
+juju integrate seerr:media-server plex:media-server
 ```
 
 ---
@@ -330,7 +336,7 @@ juju deploy istio-k8s --trust --channel=dev/edge istio
 ```bash
 juju deploy istio-ingress-k8s --trust --channel=dev/edge arr-ingress
 juju deploy istio-ingress-k8s --trust --channel=dev/edge plex-ingress
-juju deploy istio-ingress-k8s --trust --channel=dev/edge overseerr-ingress
+juju deploy istio-ingress-k8s --trust --channel=dev/edge seerr-ingress
 ```
 
 **Beacon (for service mesh):**
@@ -356,8 +362,8 @@ juju integrate sabnzbd:istio-ingress-route arr-ingress:istio-ingress-route
 # Plex
 juju integrate plex:istio-ingress-route plex-ingress:istio-ingress-route
 
-# Overseerr
-juju integrate overseerr:istio-ingress-route overseerr-ingress:istio-ingress-route
+# Seerr
+juju integrate seerr:istio-ingress-route seerr-ingress:istio-ingress-route
 ```
 
 ### Connect Service Mesh
@@ -369,7 +375,7 @@ juju integrate radarr:service-mesh beacon:service-mesh
 juju integrate sonarr:service-mesh beacon:service-mesh
 juju integrate prowlarr:service-mesh beacon:service-mesh
 juju integrate plex:service-mesh beacon:service-mesh
-juju integrate overseerr:service-mesh beacon:service-mesh
+juju integrate seerr:service-mesh beacon:service-mesh
 juju integrate qbittorrent:service-mesh beacon:service-mesh
 juju integrate sabnzbd:service-mesh beacon:service-mesh
 juju integrate flaresolverr:service-mesh beacon:service-mesh
@@ -408,7 +414,8 @@ For the full list of commands, see the [Juju CLI reference](https://documentatio
 | prowlarr-k8s | [configurations](https://charmhub.io/prowlarr-k8s/configurations) |
 | flaresolverr-k8s | [configurations](https://charmhub.io/flaresolverr-k8s/configurations) |
 | plex-k8s | [configurations](https://charmhub.io/plex-k8s/configurations) |
-| overseerr-k8s | [configurations](https://charmhub.io/overseerr-k8s/configurations) |
+| seerr-k8s | [configurations](https://charmhub.io/seerr-k8s/configurations) |
+| overseerr-k8s (deprecated) | [configurations](https://charmhub.io/overseerr-k8s/configurations) |
 
 ---
 

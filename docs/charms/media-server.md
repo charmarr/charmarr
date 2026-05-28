@@ -12,7 +12,7 @@ The charm talks to other charms to figure out how to set up Plex. The order in w
 |-------------|-----------|----------------|
 | **Storage** | `media-storage` | Where the media root is (`/data`), UID/GID for file permissions |
 | **Radarr/Sonarr** | `media-manager` | Where each app hardlinks its media and what content type (movies, tv, anime, 4k, etc.) |
-| **Overseerr** | `media-server` | Allows Overseerr to talk to Plex |
+| **Seerr** | `media-server` | Allows Seerr to talk to Plex |
 | **Ingress** | `istio_ingress_route` | Enables external access to Plex |
 
 From this information, the charm automatically creates Plex libraries that match your Radarr/Sonarr setup:

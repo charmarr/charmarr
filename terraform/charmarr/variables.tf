@@ -259,9 +259,10 @@ variable "plex" {
 
 variable "enable_overseerr" {
   description = <<-EOT
-    Deploy Overseerr. Default true to keep track 1 in-place upgrades a no-op.
-    Overseerr is deprecated; migrate to Seerr and set this to false.
-    Track 3 will remove this flag and the overseerr module entirely.
+    Deploy Overseerr. Default true to keep in-place upgrades a no-op for
+    existing deployments. Overseerr is deprecated; migrate to Seerr and
+    set this to false. A future release will remove this flag and the
+    overseerr module entirely.
   EOT
   type        = bool
   default     = true

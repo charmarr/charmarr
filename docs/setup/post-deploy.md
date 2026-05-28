@@ -1,6 +1,6 @@
 # Post-Deploy
 
-Charmarr handles the backend wiring for all the cross-application configurations, but Plex and Overseerr need one-time web UI user setup.
+Charmarr handles the backend wiring for all the cross-application configurations, but Plex and Seerr need one-time web UI user setup.
 
 !!! important
     This page assumes you deployed with Istio ingress. If you used a different ingress setup, find the ingress URLs based on your configuration.
@@ -20,7 +20,7 @@ Watch Charmarr deploy and wire the applications together. Once settled, you shou
 
 ![Juju Status Pre-Websetup](../assets/screenshots/juju-status-pre-websetup.svg)
 
-Plex and Overseerr are in `waiting` status, waiting for user action. Everything else should be `active`.
+Plex and Seerr are in `waiting` status, waiting for user action. Everything else should be `active`.
 
 ---
 
@@ -84,14 +84,26 @@ http://192.168.0.134
 
 ---
 
-## 2. Overseerr Setup
+## 2. Seerr Setup
 
-### Open Overseerr UI
+!!! note
+    Seerr supports Plex, Jellyfin, and Emby. Charmarr currently only
+    automates Plex integration — this guide documents the Plex flow.
+    Jellyfin / Emby work but you'll need to configure them manually.
 
-Get the Overseerr ingress IP from the `overseerr-ingress` message in `juju status`:
+!!! info
+    The `overseerr-k8s` charm is deprecated. If you deployed with
+    `enable_overseerr = true` and need the Overseerr setup steps, see the
+    [track 1 docs](https://charmarr.tv/en/track-1/setup/post-deploy/). To
+    move an existing Overseerr deployment to Seerr, follow the
+    [migration runbook](../migration/overseerr-to-seerr.md).
+
+### Open Seerr UI
+
+Get the Seerr ingress IP from the `seerr-ingress` message in `juju status`:
 
 ```
-overseerr-ingress/0*    active    idle    10.1.239.116    Serving at 192.168.0.132
+seerr-ingress/0*    active    idle    10.1.239.116    Serving at 192.168.0.132
 ```
 
 Open in browser:
@@ -100,31 +112,32 @@ Open in browser:
 http://192.168.0.132
 ```
 
-### Complete Overseerr Setup
+### Complete Seerr Setup
 
-**Step 1:** Click **Sign In**. Overseerr uses Plex SSO.
+**Step 1:** Click **Configure Plex** to start the setup wizard.
 
-![Overseerr Step 1](../assets/screenshots/overseerr1.png)
+![Seerr Step 1](../assets/screenshots/seerr1.png)
 
-**Step 2:** After signing in:
+**Step 2:** Click **Login with Plex** and complete the OAuth flow.
 
-1. Click the **Retrieve** icon (1) to load your Plex servers
-2. Select the server name you set during Plex setup
-3. Click **Save Changes**
+![Seerr Step 2](../assets/screenshots/seerr2.png)
 
-![Overseerr Step 2](../assets/screenshots/overseerr2.png)
+**Step 3:** Configure your Plex server:
 
-!!! tip
-    If **Save Changes** is greyed out, toggle the **Use SSL** checkbox on and off again to enable it.
+1. Use the server dropdown to pick the Plex server you set up earlier (auto-populated via plex.tv).
+2. Click **Save Changes**.
+3. Enable sync for **Movies** and **TV Shows** under **Plex Libraries**.
+4. Click **Continue**.
+
+![Seerr Step 3](../assets/screenshots/overseerr2-seer3.png)
 
 !!! warning
-    Leave **Hostname or IP Address**, **Port**, and **Use SSL** options at their default values.
+    Leave **Hostname or IP Address**, **Port**, and **Use SSL** at their
+    default values — they're populated by Plex auto-discovery.
 
-Once saved, Overseerr loads your Plex libraries (3). Enable sync for all libraries by clicking the toggles. Click **Continue**.
+**Step 4:** Radarr and Sonarr settings may or may not be pre-filled, but it doesn't matter at this point. Do not add anything manually. Click **Finish Setup**.
 
-**Step 3:** Radarr and Sonarr settings may or may not be pre-filled, but it doesn't matter at this point. Do not add anything manually. Click **Finish Setup**.
-
-![Overseerr Step 3](../assets/screenshots/overseerr3.png)
+![Seerr Step 4](../assets/screenshots/seerr4.png)
 
 ---
 
@@ -134,7 +147,7 @@ Wait 5 minutes, then check `juju status`. All apps should be `active`:
 
 ![Juju Status Post-Websetup](../assets/screenshots/juju-status-post-websetup.svg)
 
-In Overseerr UI, go to:
+In Seerr UI, go to:
 
 <div class="nav-flow" markdown>
 **Settings** :material-arrow-right: **Services**
@@ -142,7 +155,7 @@ In Overseerr UI, go to:
 
 Radarr(s) and Sonarr(s) should automatically appear. Charmarr added them for you.
 
-<small>Curious how? See [Overseerr Charm Lifecycle](../charms/media-requester.md#lifecycle).</small>
+<small>Curious how? See [Seerr Charm Lifecycle](../charms/media-requester.md#lifecycle).</small>
 
 ---
 
@@ -198,7 +211,7 @@ juju show-secret --reveal d5lvqs7mp25c7ffo3tv0
 
 Charmarr will continue to monitor, reconcile, and heal your stack.
 
-Request a movie in Overseerr, go prepare popcorn and grab a beer, come back and open Plex. Your movie should be ready. Mileage may vary based on internet speeds - you might even have time to prepare dinner.
+Request a movie in Seerr, go prepare popcorn and grab a beer, come back and open Plex. Your movie should be ready. Mileage may vary based on internet speeds - you might even have time to prepare dinner.
 
 !!! note
     This page covers Charmarr-specific configurations only. For general app configurations, which are not necessary for Charmarr as it does all the configurations for you, refer to each app's own documentation.
