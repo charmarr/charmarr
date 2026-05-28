@@ -3,15 +3,15 @@ Feature: Charmarr Stack Deployment
 
   Scenario: Baseline deployment
     Given the charmarr module is deployed
-    Then all apps except plex and overseerr should be active
-    And plex and overseerr should be waiting
+    Then all apps except plex and seerr should be active
+    And plex and seerr should be waiting
 
   Scenario: Deployment with VPN
     Given the charmarr module is deployed with VPN
-    Then all apps except plex and overseerr should be active
-    And plex and overseerr should be waiting
+    Then all apps except plex and seerr should be active
+    And plex and seerr should be waiting
 
   Scenario: Deployment with VPN and Istio
     Given the charmarr module is deployed with VPN and Istio
-    Then all apps except plex and overseerr should be active
-    And plex and overseerr should be waiting
+    Then all apps except plex and seerr should be active
+    And plex and seerr should be waiting

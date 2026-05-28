@@ -83,7 +83,7 @@ Really. The deployment looks like this:
 2. And just run a one-liner:
 
     ```bash
-    tofu init && TF_VAR_wireguard_private_key="key" tofu apply -auto-approve
+    terraform init && TF_VAR_wireguard_private_key="key" terraform apply -auto-approve
     ```
 
 And you're done. Charmarr begins autonomously wiring up the apps for you.
@@ -159,6 +159,6 @@ And you're done. Charmarr begins autonomously wiring up the apps for you.
   <a href="https://kubernetes.io"><img src="assets/logos/kubernetes.png" alt="Kubernetes"></a>
   <a href="https://juju.is"><img src="assets/logos/juju.png" alt="Juju"></a>
   <a href="https://istio.io"><img src="assets/logos/istio.png" alt="Istio"></a>
-  <a href="https://opentofu.org"><img src="assets/logos/opentofu.png" alt="OpenTofu"></a>
+  <a href="https://www.terraform.io"><img src="assets/logos/terraform.png" alt="Terraform"></a>
 </div>
 </div>

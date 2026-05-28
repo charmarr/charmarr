@@ -41,7 +41,7 @@ _retry_transient = retry(
     ),
 )
 
-WAITING_APPS = {"plex", "overseerr"}
+WAITING_APPS = {"plex", "seerr"}
 
 
 @given("the charmarr module is deployed")
@@ -82,9 +82,9 @@ def _get_status(juju: jubilant.Juju) -> jubilant.Status:
     return juju.status()
 
 
-@then("all apps except plex and overseerr should be active")
+@then("all apps except plex and seerr should be active")
 def all_apps_active(juju: jubilant.Juju) -> None:
-    """Verify all apps except plex and overseerr are active."""
+    """Verify all apps except plex and seerr are active."""
     status = _get_status(juju)
     for name, app in status.apps.items():
         if name in WAITING_APPS:
@@ -94,9 +94,9 @@ def all_apps_active(juju: jubilant.Juju) -> None:
         )
 
 
-@then("plex and overseerr should be waiting")
-def plex_overseerr_waiting(juju: jubilant.Juju) -> None:
-    """Verify plex and overseerr are in waiting status."""
+@then("plex and seerr should be waiting")
+def plex_seerr_waiting(juju: jubilant.Juju) -> None:
+    """Verify plex and seerr are in waiting status."""
     status = _get_status(juju)
     for name in WAITING_APPS:
         app = status.apps.get(name)

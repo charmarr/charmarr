@@ -6,7 +6,7 @@ The Seerr charm (`seerr-k8s`) manages [Seerr](https://seerr.dev/) in your Charma
 
 ### Relations
 
-The charm talks to other charms to figure out how to set up Seerr. The order in which these connections happen doesn't matter — the charm sorts it out.
+The charm talks to other charms to figure out how to set up Seerr. The order in which these connections happen doesn't matter - the charm sorts it out.
 
 | Connects To | Interface | What It Learns |
 |-------------|-----------|----------------|

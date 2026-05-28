@@ -29,4 +29,4 @@
 | **plex-k8s** | Plex Media Server with hardware transcoding support | [![CharmHub](https://charmhub.io/plex-k8s/badge.svg)](https://charmhub.io/plex-k8s) |
 | | **Media Requesters** | |
 | **seerr-k8s** | Media request management for Plex/Jellyfin/Emby with Radarr/Sonarr integration | [![CharmHub](https://charmhub.io/seerr-k8s/badge.svg)](https://charmhub.io/seerr-k8s) |
-| **overseerr-k8s** _(deprecated)_ | Predecessor to seerr-k8s — Plex-only. See [migration runbook](https://charmarr.tv/migration/overseerr-to-seerr/) | [![CharmHub](https://charmhub.io/overseerr-k8s/badge.svg)](https://charmhub.io/overseerr-k8s) |
+| **overseerr-k8s** _(deprecated)_ | Predecessor to seerr-k8s - Plex-only. See [migration runbook](https://charmarr.tv/migration/overseerr-to-seerr/) | [![CharmHub](https://charmhub.io/overseerr-k8s/badge.svg)](https://charmhub.io/overseerr-k8s) |

@@ -1,6 +1,6 @@
 # Quick Deploy
 
-Charmarr provides pre-configured media stack bundles as [HCL](https://developer.hashicorp.com/terraform/language) modules, deployable with OpenTofu.
+Charmarr provides pre-configured media stack bundles as [HCL](https://developer.hashicorp.com/terraform/language) modules, deployable with Terraform.
 
 !!! note
     Cluster already has Istiod? Use [Manual Deploy](manual.md) instead. If you don't know, your cluster doesn't have one.
@@ -44,7 +44,7 @@ Single Radarr and Sonarr with HD TRaSH profiles pre-configured.
 
 ### 1. Create a `main.tf` file
 
-See the [OpenTofu docs](https://opentofu.org/docs/) if you're curious about how it works.
+See the [Terraform docs](https://developer.hashicorp.com/terraform/docs) if you're curious about how it works.
 
 ```hcl
 variable "wireguard_private_key" {
@@ -296,7 +296,7 @@ module "charmarr" {
 ```
 
 **Existing Overseerr deployments**: leave both at default on first
-upgrade — your deployment will not change. When you're ready to migrate
+upgrade - your deployment will not change. When you're ready to migrate
 to Seerr, set `enable_seerr = true` to run both side-by-side, follow the
 [migration runbook](../migration/overseerr-to-seerr.md), then set
 `enable_overseerr = false` to decommission Overseerr.
@@ -402,13 +402,13 @@ module "charmarr" {
 ### 3. Deploy
 
 ```bash
-tofu init && TF_VAR_wireguard_private_key="your-key" tofu apply -auto-approve
+terraform init && TF_VAR_wireguard_private_key="your-key" terraform apply -auto-approve
 ```
 
 Or without VPN (when `enable_vpn = false`):
 
 ```bash
-tofu init && tofu apply -auto-approve
+terraform init && terraform apply -auto-approve
 ```
 
 See the [charmarr module](https://github.com/charmarr/charmarr/tree/main/terraform/charmarr) for all available variables.
@@ -452,13 +452,13 @@ Same as charmarr. See [Storage](#storage), [VPN](#vpn), and [Istio](#istio) abov
 ### 3. Deploy
 
 ```bash
-tofu init && TF_VAR_wireguard_private_key="your-key" tofu apply -auto-approve
+terraform init && TF_VAR_wireguard_private_key="your-key" terraform apply -auto-approve
 ```
 
 Or without VPN (when `enable_vpn = false`):
 
 ```bash
-tofu init && tofu apply -auto-approve
+terraform init && terraform apply -auto-approve
 ```
 
 See the [charmarr-plus module](https://github.com/charmarr/charmarr/tree/main/terraform/charmarr-plus) for all available variables.
@@ -473,7 +473,7 @@ See the [charmarr-plus module](https://github.com/charmarr/charmarr/tree/main/te
 
 ## Making Changes
 
-Edit your `main.tf` and reapply. OpenTofu calculates the diff and applies only what changed.
+Edit your `main.tf` and reapply. Terraform calculates the diff and applies only what changed.
 
 For example, to enable Istio ingress later:
 
@@ -487,13 +487,13 @@ module "charmarr" {
 ```
 
 ```bash
-TF_VAR_wireguard_private_key="your-key" tofu apply
+TF_VAR_wireguard_private_key="your-key" terraform apply
 ```
 
 !!! warning "VPN key required on every apply"
-    When VPN is enabled (`enable_vpn = true`), you must provide `TF_VAR_wireguard_private_key` on **every** `tofu apply`, not just the initial deployment. Running without it resets the secret to an empty value, causing gluetun to block.
+    When VPN is enabled (`enable_vpn = true`), you must provide `TF_VAR_wireguard_private_key` on **every** `terraform apply`, not just the initial deployment. Running without it resets the secret to an empty value, causing gluetun to block.
 
-See the [OpenTofu CLI docs](https://opentofu.org/docs/cli/commands/apply/) for more.
+See the [Terraform CLI docs](https://developer.hashicorp.com/terraform/cli/commands/apply) for more.
 
 ---
 
@@ -502,7 +502,7 @@ See the [OpenTofu CLI docs](https://opentofu.org/docs/cli/commands/apply/) for m
 To tear down the deployment:
 
 ```bash
-tofu destroy
+terraform destroy
 ```
 
 ---

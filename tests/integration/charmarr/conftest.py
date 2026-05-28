@@ -27,7 +27,7 @@ def tf_manager() -> Generator[TFManager, None, None]:
     """TFManager for the charmarr terraform module."""
     logger.info("Initializing TFManager...")
     manager = TFManager(TERRAFORM_DIR)
-    logger.info("Running tofu init...")
+    logger.info("Running terraform init...")
     manager.init()
     logger.info("TFManager ready")
     yield manager
