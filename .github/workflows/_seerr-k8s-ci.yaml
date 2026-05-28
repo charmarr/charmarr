@@ -3,6 +3,9 @@ name: "Seerr K8s: CI"
 on:
   workflow_call:
 
+permissions:
+  contents: read
+
 jobs:
   quality:
     uses: charmarr/.github/.github/workflows/charm-ci.yaml@v2
