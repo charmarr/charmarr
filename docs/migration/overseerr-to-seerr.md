@@ -113,12 +113,17 @@ sha256sum ./export.tgz
 === "Manual Deploy"
 
     ```bash
-    juju deploy seerr-k8s seerr --channel=latest/edge --trust
+    juju deploy seerr-k8s --trust --channel=latest/edge seerr
+
     juju integrate seerr:media-manager radarr:media-manager
     juju integrate seerr:media-manager sonarr:media-manager
     juju integrate seerr:media-server  plex:media-server
-    # optional: ingress + service mesh
+
+    # optional: dedicated ingress (mirrors your existing overseerr-ingress)
+    juju deploy istio-ingress-k8s --trust --channel=dev/edge seerr-ingress
     juju integrate seerr:istio-ingress-route seerr-ingress:istio-ingress-route
+
+    # optional: service mesh
     juju integrate seerr:service-mesh beacon:service-mesh
     ```
 

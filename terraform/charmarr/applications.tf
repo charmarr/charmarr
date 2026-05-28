@@ -214,11 +214,8 @@ module "overseerr" {
 }
 
 module "seerr" {
-  count = var.enable_seerr ? 1 : 0
-  # TEMPORARY: local path until seerr-k8s lands on main. Revert to
-  # "git::https://github.com/charmarr/charmarr//charms/seerr-k8s/terraform?ref=main"
-  # before the feat/seerr-k8s branch is merged.
-  source = "../../charms/seerr-k8s/terraform"
+  count  = var.enable_seerr ? 1 : 0
+  source = "git::https://github.com/charmarr/charmarr//charms/seerr-k8s/terraform?ref=main"
 
   model            = var.model
   owner            = var.owner
