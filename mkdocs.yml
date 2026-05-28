@@ -86,6 +86,9 @@ nav:
       - Media Server: charms/media-server.md
       - Storage: charms/storage.md
       - VPN Gateway: charms/vpn-gateway.md
+  - Migration:
+      - migration/index.md
+      - Overseerr → Seerr: migration/overseerr-to-seerr.md
   - Security:
       - security/index.md
       - Networking: security/network.md

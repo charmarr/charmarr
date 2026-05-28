@@ -70,7 +70,7 @@ def test_status_scaling_blocked(ctx):
 
 
 def test_status_active_when_ready(ctx):
-    """Report active when workload is running and API key exists."""
+    """Report active with deprecation message when workload is running and API key exists."""
     container = Container(
         name="overseerr",
         can_connect=True,
@@ -89,4 +89,6 @@ def test_status_active_when_ready(ctx):
             State(leader=True, containers=[container]),
         )
 
-    assert state.unit_status == ops.ActiveStatus()
+    assert isinstance(state.unit_status, ops.ActiveStatus)
+    assert "Deprecated" in state.unit_status.message
+    assert "seerr-k8s" in state.unit_status.message

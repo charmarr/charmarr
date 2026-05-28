@@ -6,6 +6,9 @@ on:
       - main
       - 'track/*'
 
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.event.pull_request.number }}
   cancel-in-progress: true
@@ -26,6 +29,7 @@ jobs:
       sonarr: ${{ steps.check.outputs.sonarr }}
       plex: ${{ steps.check.outputs.plex }}
       overseerr: ${{ steps.check.outputs.overseerr }}
+      seerr: ${{ steps.check.outputs.seerr }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -78,6 +82,10 @@ jobs:
 
           if echo "$changed" | grep -q "^charms/overseerr-k8s/"; then
             echo "overseerr=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          if echo "$changed" | grep -q "^charms/seerr-k8s/"; then
+            echo "seerr=true" >> "$GITHUB_OUTPUT"
           fi
 
   multimeter:
@@ -155,4 +163,11 @@ jobs:
     needs: detect
     if: needs.detect.outputs.overseerr == 'true'
     uses: ./.github/workflows/_overseerr-k8s-ci.yaml
+    secrets: inherit
+
+  seerr:
+    name: Seerr
+    needs: detect
+    if: needs.detect.outputs.seerr == 'true'
+    uses: ./.github/workflows/_seerr-k8s-ci.yaml
     secrets: inherit

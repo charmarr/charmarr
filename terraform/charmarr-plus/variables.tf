@@ -321,8 +321,41 @@ variable "plex" {
   default = {}
 }
 
+variable "enable_overseerr" {
+  description = <<-EOT
+    Deploy Overseerr. Default true to keep in-place upgrades a no-op for
+    existing deployments. Overseerr is deprecated; migrate to Seerr and
+    set this to false. A future release will remove this flag and the
+    overseerr module entirely.
+  EOT
+  type        = bool
+  default     = true
+}
+
+variable "enable_seerr" {
+  description = <<-EOT
+    Deploy Seerr (successor to Overseerr). Default false for backward
+    compatibility — new deployments should set this to true.
+
+    Can run alongside Overseerr during migration. See
+    docs/migration/overseerr-to-seerr.md.
+  EOT
+  type        = bool
+  default     = false
+}
+
 variable "overseerr" {
-  description = "Override configuration for overseerr charm"
+  description = "Override configuration for overseerr charm (used when enable_overseerr = true)"
+  type = object({
+    constraints = optional(string, "arch=amd64")
+    revision    = optional(number, null)
+    config      = optional(map(string), {})
+  })
+  default = {}
+}
+
+variable "seerr" {
+  description = "Override configuration for seerr charm (used when enable_seerr = true)"
   type = object({
     constraints = optional(string, "arch=amd64")
     revision    = optional(number, null)
@@ -376,7 +409,17 @@ variable "plex_ingress" {
 }
 
 variable "overseerr_ingress" {
-  description = "Override configuration for overseerr-ingress charm"
+  description = "Override configuration for overseerr-ingress charm (used when enable_overseerr = true and enable_istio = true)"
+  type = object({
+    constraints = optional(string, "arch=amd64")
+    revision    = optional(number, null)
+    config      = optional(map(string), {})
+  })
+  default = {}
+}
+
+variable "seerr_ingress" {
+  description = "Override configuration for seerr-ingress charm (used when enable_seerr = true and enable_istio = true)"
   type = object({
     constraints = optional(string, "arch=amd64")
     revision    = optional(number, null)

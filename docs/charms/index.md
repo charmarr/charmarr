@@ -19,7 +19,7 @@ Charmarr is composed of multiple charms that thinly wrap the operational layer o
 
     ---
 
-    Overseerr charm internals.
+    Seerr (and legacy Overseerr) charm internals.
 
     [:octicons-arrow-right-24: Read more](media-requester.md)
 

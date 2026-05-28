@@ -24,7 +24,8 @@ output "applications" {
     sonarr_uhd   = module.sonarr_uhd.app_name
     sonarr_anime = module.sonarr_anime.app_name
     plex         = module.plex.app_name
-    overseerr    = module.overseerr.app_name
+    overseerr    = var.enable_overseerr ? module.overseerr[0].app_name : null
+    seerr        = var.enable_seerr ? module.seerr[0].app_name : null
   }
 }
 
@@ -41,6 +42,7 @@ output "ingress" {
   value = var.enable_istio ? {
     arr       = module.arr_ingress[0].app_name
     plex      = module.plex_ingress[0].app_name
-    overseerr = module.overseerr_ingress[0].app_name
+    overseerr = var.enable_overseerr ? module.overseerr_ingress[0].app_name : null
+    seerr     = var.enable_seerr ? module.seerr_ingress[0].app_name : null
   } : null
 }

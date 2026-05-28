@@ -79,23 +79,23 @@ module "gluetun" {
   count  = var.enable_vpn ? 1 : 0
   source = "git::https://github.com/charmarr/charmarr//charms/gluetun-k8s/terraform?ref=main"
 
-  model                        = var.model
-  owner                        = var.owner
-  app_name                     = "gluetun"
-  channel                      = var.channel
-  constraints                  = var.gluetun.constraints
-  revision                     = var.gluetun.revision
-  config                       = var.gluetun.config
+  model               = var.model
+  owner               = var.owner
+  app_name            = "gluetun"
+  channel             = var.channel
+  constraints         = var.gluetun.constraints
+  revision            = var.gluetun.revision
+  config              = var.gluetun.config
   cluster_cidrs       = var.cluster_cidrs
   vpn_provider        = var.vpn_provider
   wireguard_addresses = var.wireguard_addresses
   # FIXME: Uncomment once https://github.com/juju/juju/issues/20143 is fixed
   # wireguard_private_key_secret = ""
-  server_countries             = var.server_countries
-  server_cities                = var.server_cities
-  vpn_endpoint_ip              = var.vpn_endpoint_ip
-  vpn_endpoint_port            = var.vpn_endpoint_port
-  wireguard_public_key         = var.wireguard_public_key
+  server_countries     = var.server_countries
+  server_cities        = var.server_cities
+  vpn_endpoint_ip      = var.vpn_endpoint_ip
+  vpn_endpoint_port    = var.vpn_endpoint_port
+  wireguard_public_key = var.wireguard_public_key
 }
 
 module "qbittorrent" {
@@ -200,6 +200,7 @@ module "plex" {
 }
 
 module "overseerr" {
+  count  = var.enable_overseerr ? 1 : 0
   source = "git::https://github.com/charmarr/charmarr//charms/overseerr-k8s/terraform?ref=main"
 
   model            = var.model
@@ -209,6 +210,23 @@ module "overseerr" {
   constraints      = var.overseerr.constraints
   revision         = var.overseerr.revision
   config           = var.overseerr.config
+  api_key_rotation = "monthly"
+}
+
+module "seerr" {
+  count = var.enable_seerr ? 1 : 0
+  # TEMPORARY: local path until seerr-k8s lands on main. Revert to
+  # "git::https://github.com/charmarr/charmarr//charms/seerr-k8s/terraform?ref=main"
+  # before the feat/seerr-k8s branch is merged.
+  source = "../../charms/seerr-k8s/terraform"
+
+  model            = var.model
+  owner            = var.owner
+  app_name         = "seerr"
+  channel          = var.channel
+  constraints      = var.seerr.constraints
+  revision         = var.seerr.revision
+  config           = var.seerr.config
   api_key_rotation = "monthly"
 }
 
@@ -265,7 +283,7 @@ module "plex_ingress" {
 }
 
 module "overseerr_ingress" {
-  count  = var.enable_istio ? 1 : 0
+  count  = var.enable_istio && var.enable_overseerr ? 1 : 0
   source = "git::https://github.com/canonical/istio-ingress-k8s-operator//terraform?ref=main"
 
   model_uuid  = data.juju_model.model.uuid
@@ -274,4 +292,16 @@ module "overseerr_ingress" {
   constraints = var.overseerr_ingress.constraints
   revision    = var.overseerr_ingress.revision
   config      = var.overseerr_ingress.config
+}
+
+module "seerr_ingress" {
+  count  = var.enable_istio && var.enable_seerr ? 1 : 0
+  source = "git::https://github.com/canonical/istio-ingress-k8s-operator//terraform?ref=main"
+
+  model_uuid  = data.juju_model.model.uuid
+  app_name    = "seerr-ingress"
+  channel     = var.istio_channel
+  constraints = var.seerr_ingress.constraints
+  revision    = var.seerr_ingress.revision
+  config      = var.seerr_ingress.config
 }

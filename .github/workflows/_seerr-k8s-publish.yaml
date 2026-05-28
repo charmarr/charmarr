@@ -1,0 +1,25 @@
+name: "Seerr K8s: Publish"
+
+on:
+  workflow_call:
+    inputs:
+      dry-run:
+        type: boolean
+        default: false
+
+jobs:
+  quality:
+    uses: charmarr/.github/.github/workflows/charm-ci.yaml@v2
+    with:
+      charm-path: charms/seerr-k8s
+
+  publish:
+    needs: quality
+    uses: charmarr/.github/.github/workflows/charm-publish.yaml@v2
+    with:
+      charm-path: charms/seerr-k8s
+      channel: latest/edge
+      dry-run: ${{ inputs.dry-run || false }}
+    secrets:
+      CHARMHUB_TOKEN: ${{ secrets.CHARMHUB_TOKEN }}
+      WIREGUARD_PRIVATE_KEY: ${{ secrets.WIREGUARD_PRIVATE_KEY }}

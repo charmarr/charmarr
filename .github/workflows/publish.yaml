@@ -23,6 +23,7 @@ on:
           - sonarr
           - plex
           - overseerr
+          - seerr
           - all
         default: auto
       dry-run:
@@ -49,6 +50,7 @@ jobs:
       sonarr: ${{ steps.check.outputs.sonarr }}
       plex: ${{ steps.check.outputs.plex }}
       overseerr: ${{ steps.check.outputs.overseerr }}
+      seerr: ${{ steps.check.outputs.seerr }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -92,6 +94,9 @@ jobs:
           if [[ "$CHARM_INPUT" == "overseerr" || "$CHARM_INPUT" == "all" ]]; then
             echo "overseerr=true" >> "$GITHUB_OUTPUT"
           fi
+          if [[ "$CHARM_INPUT" == "seerr" || "$CHARM_INPUT" == "all" ]]; then
+            echo "seerr=true" >> "$GITHUB_OUTPUT"
+          fi
 
           # Auto-detect from changes (push or workflow_dispatch with auto)
           if [[ -z "$CHARM_INPUT" || "$CHARM_INPUT" == "auto" ]]; then
@@ -129,6 +134,9 @@ jobs:
             fi
             if echo "$changed" | grep -q "^charms/overseerr-k8s/"; then
               echo "overseerr=true" >> "$GITHUB_OUTPUT"
+            fi
+            if echo "$changed" | grep -q "^charms/seerr-k8s/"; then
+              echo "seerr=true" >> "$GITHUB_OUTPUT"
             fi
           fi
 
@@ -227,6 +235,15 @@ jobs:
     needs: detect
     if: needs.detect.outputs.overseerr == 'true'
     uses: ./.github/workflows/_overseerr-k8s-publish.yaml
+    with:
+      dry-run: ${{ inputs.dry-run || false }}
+    secrets: inherit
+
+  seerr:
+    name: Seerr
+    needs: detect
+    if: needs.detect.outputs.seerr == 'true'
+    uses: ./.github/workflows/_seerr-k8s-publish.yaml
     with:
       dry-run: ${{ inputs.dry-run || false }}
     secrets: inherit
