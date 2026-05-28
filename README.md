@@ -30,3 +30,8 @@
 | | **Media Requesters** | |
 | **seerr-k8s** | Media request management for Plex/Jellyfin/Emby with Radarr/Sonarr integration | [![CharmHub](https://charmhub.io/seerr-k8s/badge.svg)](https://charmhub.io/seerr-k8s) |
 | **overseerr-k8s** _(deprecated)_ | Predecessor to seerr-k8s - Plex-only. See [migration runbook](https://charmarr.tv/migration/overseerr-to-seerr/) | [![CharmHub](https://charmhub.io/overseerr-k8s/badge.svg)](https://charmhub.io/overseerr-k8s) |
+
+## Documentation
+
+- **User docs**: [charmarr.tv](https://charmarr.tv) (rendered from [`docs/`](docs/))
+- **Architecture Decision Records**: [`adr/`](adr/) - design choices, context, alternatives, and consequences for every major decision
