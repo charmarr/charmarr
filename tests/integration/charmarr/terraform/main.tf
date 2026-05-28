@@ -39,6 +39,9 @@ module "charmarr" {
   enable_istio = var.enable_istio
   enable_mesh  = var.enable_mesh
 
+  enable_overseerr = false
+  enable_seerr     = true
+
   qbittorrent = {
     config = var.enable_vpn ? {} : { "unsafe-mode" = "true" }
   }

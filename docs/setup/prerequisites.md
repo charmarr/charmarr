@@ -109,14 +109,14 @@ Not all checked? Disable Istio and handle ingress yourself. See [Istio platform 
 
 ---
 
-## OpenTofu
+## Terraform
 
 Required for Quick Deploy. Skip if using Manual Deploy.
 
-Install from [opentofu.org](https://opentofu.org/docs/intro/install/), or via snap:
+Install from [HashiCorp's site](https://developer.hashicorp.com/terraform/install), or via snap:
 
 ```bash
-sudo snap install opentofu --classic
+sudo snap install terraform --classic
 ```
 
 ---

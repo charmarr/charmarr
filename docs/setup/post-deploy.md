@@ -88,7 +88,7 @@ http://192.168.0.134
 
 !!! note
     Seerr supports Plex, Jellyfin, and Emby. Charmarr currently only
-    automates Plex integration — this guide documents the Plex flow.
+    automates Plex integration - this guide documents the Plex flow.
     Jellyfin / Emby work but you'll need to configure them manually.
 
 !!! info
@@ -133,7 +133,7 @@ http://192.168.0.132
 
 !!! warning
     Leave **Hostname or IP Address**, **Port**, and **Use SSL** at their
-    default values — they're populated by Plex auto-discovery.
+    default values - they're populated by Plex auto-discovery.
 
 **Step 4:** Radarr and Sonarr settings may or may not be pre-filled, but it doesn't matter at this point. Do not add anything manually. Click **Finish Setup**.
 

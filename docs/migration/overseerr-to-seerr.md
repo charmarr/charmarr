@@ -8,12 +8,12 @@ deployment to Seerr without losing requests, users, or settings.
 What you get:
 
 - Plex, Jellyfin, and Emby support (Overseerr is Plex-only)
-- Active upstream — bug fixes, security patches, new features
+- Active upstream - bug fixes, security patches, new features
 - Identical Radarr/Sonarr integration via Juju relations
 - All existing requests, users, and settings preserved
 
 The migration is explicit and user-driven. Nothing changes until you run
-the steps below. Seerr can run alongside Overseerr during cutover —
+the steps below. Seerr can run alongside Overseerr during cutover -
 disable Overseerr only when you're satisfied Seerr is healthy.
 
 ---
@@ -45,7 +45,7 @@ disable Overseerr only when you're satisfied Seerr is healthy.
     ```
 
 !!! warning
-    `juju scp` is broken for K8s sidecar containers on Juju 3.6.x — the
+    `juju scp` is broken for K8s sidecar containers on Juju 3.6.x - the
     tar stream silently drops mid-transfer and the destination file ends
     up empty even though the command exits 0. This guide uses
     `kubectl cp` for all file copies.
@@ -70,7 +70,7 @@ sha256: 5d1b46df5cc7a7ecd8b8922d35c0891ddc8646edf3f9852f1ecb5c77657d57f2
 size: "8333"
 ```
 
-Save the `sha256` — you'll use it to verify the transfer.
+Save the `sha256` - you'll use it to verify the transfer.
 
 ## 2. Pull the tarball
 
@@ -98,16 +98,16 @@ sha256sum ./export.tgz
     Apply:
 
     ```bash
-    tofu apply
+    terraform apply
     ```
 
     The bundle deploys `seerr-k8s` and creates all relations
     (Radarr/Sonarr, Plex, ingress, service-mesh). Wait for the Seerr
-    unit to reach `waiting: Complete setup in web UI` — that's the
+    unit to reach `waiting: Complete setup in web UI` - that's the
     post-first-start state.
 
     !!! warning
-        Do not complete the web UI setup yet — the next step will
+        Do not complete the web UI setup yet - the next step will
         overwrite the config.
 
 === "Manual Deploy"
@@ -157,7 +157,7 @@ juju status seerr
 ```
 
 Once Seerr finishes its first start with the imported config, the unit
-will sit at `waiting: Complete setup in web UI` again. This is normal —
+will sit at `waiting: Complete setup in web UI` again. This is normal -
 Seerr regenerates session secrets on the schema upgrade, so you need to
 re-validate the Plex OAuth in the web UI.
 
@@ -165,9 +165,9 @@ Sanity-check the data:
 
 - Open the Seerr UI via your ingress (or port-forward).
 - Sign in with your Plex account.
-- **Settings → Services** — Radarr and Sonarr should be pre-configured.
-- **Users** — existing accounts should be listed.
-- **Requests** — history should be intact.
+- **Settings → Services** - Radarr and Sonarr should be pre-configured.
+- **Users** - existing accounts should be listed.
+- **Requests** - history should be intact.
 
 ## 7. Decommission Overseerr
 
@@ -187,7 +187,7 @@ Only do this once you've verified Seerr is healthy and serving requests.
     ```
 
     ```bash
-    tofu apply
+    terraform apply
     ```
 
     The bundle removes the `overseerr` app, the `overseerr-ingress`
@@ -214,14 +214,14 @@ few days as insurance.
     kubectl -n <model> exec <seerr-pod> -c seerr -- ls -la /app/config/import.tgz
     ```
 
-    If missing, re-run the `kubectl cp`. Make sure you pass `-c seerr` —
+    If missing, re-run the `kubectl cp`. Make sure you pass `-c seerr` -
     without it, `kubectl cp` copies into the charm container, not the
     workload.
 
 ??? question "`import-config` fails with `sha256 mismatch`"
     The tarball was corrupted in transit, or you passed the wrong
     checksum. Re-run `export-config`, re-copy, and pass the new checksum.
-    The `sha256` parameter is optional — you can omit it to skip
+    The `sha256` parameter is optional - you can omit it to skip
     verification, but it's strongly recommended.
 
 ??? question "Seerr won't start after import"
@@ -236,8 +236,8 @@ few days as insurance.
     `chown -R 1000:1000 /app/config`, but if your storage backend has
     restrictive permissions you may need to fix them manually.
 
-??? question "I lost data — how do I roll back?"
-    Stop Seerr (`enable_seerr = false` + `tofu apply`, or
+??? question "I lost data - how do I roll back?"
+    Stop Seerr (`enable_seerr = false` + `terraform apply`, or
     `juju remove-application seerr`), restore the Overseerr PVC from
     your backup if it was destroyed, and you're back where you started.
     Because the migration is action-driven and Overseerr is only read
@@ -264,6 +264,6 @@ few days as insurance.
 | Relations on the charm | `media-manager`, `media-server`, `istio-ingress-route`, … | same |
 | Juju app name | `overseerr` (convention) | `seerr` (convention) |
 
-The `/api/v1/` API is backwards-compatible — any external integrations
+The `/api/v1/` API is backwards-compatible - any external integrations
 (mobile apps, browser extensions, third-party tools) keep working with
 the new endpoint URL.

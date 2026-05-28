@@ -21,9 +21,9 @@ jobs:
           juju: "true"
           charmcraft: "false"
 
-      - name: Install OpenTofu
+      - name: Install Terraform
         run: |
-          sudo snap install opentofu --classic
+          sudo snap install terraform --classic
 
       - name: Install test dependencies
         run: |

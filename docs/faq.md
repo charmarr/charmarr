@@ -13,6 +13,9 @@
 ??? question "Can I run Charmarr on a Raspberry Pi?"
     Untested. Theoretically possible on a Pi 5 with sufficient RAM, but expect performance constraints. The initial deployment is resource-intensive. If you try it, let me know how it goes.
 
+??? question "Can I use OpenTofu instead of Terraform?"
+    The HCL modules are valid OpenTofu so `tofu init`/`apply`/`destroy` will usually work. That said, the Juju Terraform provider is third-party and has known intermittent issues under OpenTofu. Charmarr's docs, CI, and support are scoped to Terraform. If OpenTofu misbehaves, switch to Terraform.
+
 ## Storage
 
 ??? question "Why do I need shared storage?"
@@ -141,15 +144,15 @@
 
     Manual Deploy should have lower CPU usage since it's a step-by-step process.
 
-??? question "My initial `tofu apply` misbehaved. What do I do?"
+??? question "My initial `terraform apply` misbehaved. What do I do?"
     The easiest solution is to destroy and reapply:
 
     ```bash
-    tofu destroy
-    tofu apply -auto-approve
+    terraform destroy
+    terraform apply -auto-approve
     ```
 
-    Charmarr follows a [reconciliation pattern](https://www.chainguard.dev/unchained/the-principle-of-reconciliation), so the order of connections shouldn't matter. However, `tofu apply` throws all connections at the Juju controller at once, which can occasionally cause unexpected states. A fresh apply usually resolves this.
+    Charmarr follows a [reconciliation pattern](https://www.chainguard.dev/unchained/the-principle-of-reconciliation), so the order of connections shouldn't matter. However, `terraform apply` throws all connections at the Juju controller at once, which can occasionally cause unexpected states. A fresh apply usually resolves this.
 
 ??? question "An app is stuck in an error state. What do I do?"
     First, check the logs:
