@@ -6,6 +6,9 @@ on:
       - main
       - 'track/*'
 
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.event.pull_request.number }}
   cancel-in-progress: true
