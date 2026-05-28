@@ -296,8 +296,11 @@ module "charmarr" {
 ```
 
 **Existing Overseerr deployments**: leave both at default on first
-upgrade - your deployment will not change. When you're ready to migrate
-to Seerr, set `enable_seerr = true` to run both side-by-side, follow the
+upgrade - your stack composition stays the same. The `overseerr-k8s`
+charm itself will refresh to the new bundle's default channel
+(`latest/edge`), which is what gives you the `export-config` action
+needed for migration. When you're ready to migrate to Seerr, set
+`enable_seerr = true` to run both side-by-side, follow the
 [migration runbook](../migration/overseerr-to-seerr.md), then set
 `enable_overseerr = false` to decommission Overseerr.
 

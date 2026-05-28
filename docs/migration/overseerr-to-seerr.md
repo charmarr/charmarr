@@ -24,16 +24,22 @@ disable Overseerr only when you're satisfied Seerr is healthy.
   destructive step; a snapshot or manual `kubectl cp` of `/config` to
   your laptop gives you a rollback path.
 - **Confirm your `overseerr-k8s` revision includes the `export-config`
-  action.** Run `juju run overseerr/0 export-config --help`. If the
-  action is missing, refresh first:
+  action.** Run `juju run overseerr/0 export-config --help`. The action
+  is only available on `latest/edge` — track 1 stable doesn't have it.
+  If your overseerr is on `1/stable` (or any other channel), refresh
+  first:
 
     ```bash
-    # latest (edge)
     juju refresh overseerr --channel=latest/edge
-
-    # track 1 (stable)
-    juju refresh overseerr --channel=1/stable
     ```
+
+    `juju refresh` is non-destructive for channel switches: the app stays
+    alive and keeps its data, you just get a newer charm revision.
+
+    Quick Deploy users following this flow will hit this automatically:
+    bumping your bundle `?ref=track/1` → `?ref=main` (and running
+    `terraform apply`) refreshes overseerr to the main bundle's default
+    `latest/edge` channel.
 
 - **Identify pod and model names.** This guide uses `<model>` and
   `<overseerr-pod>` / `<seerr-pod>` placeholders. Substitute your
