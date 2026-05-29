@@ -21,13 +21,14 @@ Gluetun does expose an HTTP control API on port 8000 with endpoints like `/v1/vp
 
 ### Where the Shim Lives
 * **Option 1:** Standalone repo (e.g., `charmarr/gluetun-exporter`) with its own release flow.
-* **Option 2:** Inside the `gluetun-k8s` charm source tree (e.g., `charms/gluetun-k8s/exporter/`), baked into the charm's OCI image.
+* **Option 2:** Inside the `gluetun-k8s` charm source tree (e.g., `charms/gluetun-k8s/exporter/`), travelling with the charm revision.
 * **Option 3:** Inside `charmarr-lib` as a reusable component.
 
 ### Distribution
-* **Option 1:** Ship as part of the gluetun-k8s OCI image (built in our own image layer).
-* **Option 2:** Run as a sidecar container.
-* **Option 3:** Run on the host of the charm container, scrape via mTLS.
+* **Option 1:** Custom OCI image — bake the script into a charm-local OCI variant of the upstream Gluetun image.
+* **Option 2:** Charm source + Pebble push — embed the script in the charm source tree; push it into the workload container on reconcile via `container.push()`. Same pattern as [adr-002](adr-002-exporter-strategy.md).
+* **Option 3:** Run as a sidecar container.
+* **Option 4:** Run on the host of the charm container, scrape via mTLS.
 
 ## Decision Outcome
 
@@ -35,7 +36,7 @@ Gluetun does expose an HTTP control API on port 8000 with endpoints like `/v1/vp
 
 **Location: Option 2** — Inside `gluetun-k8s` charm source. Same pattern as Recyclarr in the arr charms. The shim is tightly coupled to Gluetun specifically; sharing via charmarr-lib would only matter if a second consumer existed.
 
-**Distribution: Option 1** — Baked into the gluetun-k8s OCI image. Pebble service starts it. Same pattern as every other charmarr exporter.
+**Distribution: Option 2** — Charm source + Pebble push. Mirrors [adr-002](adr-002-exporter-strategy.md)'s decision for the fleet. The script lives in `exporter/gluetun_exporter.py` in the charm source; the charm pushes it into the workload container on reconcile. No custom OCI image — Gluetun's upstream image stays pristine.
 
 ## Implementation Details
 
@@ -48,9 +49,6 @@ charms/gluetun-k8s/
 │   ├── gluetun_exporter.py            (the shim itself)
 │   └── tests/
 │       └── test_exporter.py
-├── oci/
-│   ├── Dockerfile                     (adds exporter to gluetun image)
-│   └── ...
 ├── src/
 │   ├── charm.py
 │   ├── _gluetun/
@@ -151,16 +149,24 @@ def _build_pebble_layer(self) -> ops.pebble.LayerDict:
     }
 ```
 
-### Image Layering
+### Binary Distribution
 
-```dockerfile
-# charms/gluetun-k8s/oci/Dockerfile
-FROM qmcgaw/gluetun:v3.x  # renovate: tag follows upstream
-COPY exporter/gluetun_exporter.py /opt/charmarr/gluetun_exporter.py
-# python3 is already in the base image; no additional install needed
+The shim script is embedded in the charm source at `exporter/gluetun_exporter.py`. The charm pushes it into the workload container on reconcile:
+
+```python
+def _ensure_exporter_script(self) -> None:
+    src = self.charm_dir / "exporter" / "gluetun_exporter.py"
+    self._container.push(
+        "/opt/charmarr/gluetun_exporter.py",
+        src.read_bytes(),
+        permissions=0o755,
+        make_dirs=True,
+    )
 ```
 
-Renovate tracks both the upstream Gluetun tag and our shim version. Two-PR pattern same as other charms.
+The Pebble layer then runs `python3 /opt/charmarr/gluetun_exporter.py`. Python is already in Gluetun's upstream image, so no extra dependency installation is needed.
+
+Gluetun's upstream OCI image stays pristine (`qmcgaw/gluetun:<tag>`) — no charm-local image fork. Renovate tracks only the upstream Gluetun tag; the shim version is part of the charm source and travels with the charm revision.
 
 ### Alert Rules
 
@@ -228,7 +234,7 @@ A single Gluetun panel in `src/grafana_dashboards/gluetun.json`:
 
 ### Neutral
 
-- **Python dependency in the OCI image.** Gluetun's image is already large; one more script doesn't move the needle.
+- **Shim version is coupled to charm revision.** Updating the shim requires a charm revision. Acceptable — the shim is tiny and rarely changes.
 
 ## Related ADRs
 

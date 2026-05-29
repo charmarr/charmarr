@@ -10,7 +10,7 @@ from ops.testing import Container, Relation, Secret, State
 
 from charmarr_lib.core.interfaces import MediaStorageProviderData
 
-from .conftest import RADARR_CONTAINER
+from .conftest import RADARR_CONTAINER, SCRAPARR_CONTAINER
 
 
 def _make_storage_relation() -> Relation:
@@ -30,7 +30,11 @@ def test_status_waiting_for_pebble(ctx, mock_k8s):
     with patch("charm.reconcile_gateway_client"):
         state = ctx.run(
             ctx.on.collect_unit_status(),
-            State(leader=True, containers=[container], relations=[_make_storage_relation()]),
+            State(
+                leader=True,
+                containers=[container, SCRAPARR_CONTAINER],
+                relations=[_make_storage_relation()],
+            ),
         )
 
     assert state.unit_status == ops.WaitingStatus("Waiting for Pebble")
@@ -40,7 +44,7 @@ def test_status_blocked_without_media_storage(ctx, mock_k8s):
     """Charm is blocked without media-storage relation."""
     state = ctx.run(
         ctx.on.config_changed(),
-        State(leader=True, containers=[RADARR_CONTAINER]),
+        State(leader=True, containers=[RADARR_CONTAINER, SCRAPARR_CONTAINER]),
     )
     assert state.unit_status == ops.BlockedStatus("Waiting for media-storage relation")
 
@@ -52,7 +56,7 @@ def test_status_waiting_for_api_key(ctx, mock_k8s):
             ctx.on.collect_unit_status(),
             State(
                 leader=True,
-                containers=[RADARR_CONTAINER],
+                containers=[RADARR_CONTAINER, SCRAPARR_CONTAINER],
                 relations=[_make_storage_relation()],
             ),
         )
@@ -76,7 +80,7 @@ def test_status_waiting_for_workload(ctx, mock_k8s):
             ctx.on.collect_unit_status(),
             State(
                 leader=True,
-                containers=[RADARR_CONTAINER],
+                containers=[RADARR_CONTAINER, SCRAPARR_CONTAINER],
                 secrets=[api_key_secret],
                 relations=[_make_storage_relation()],
             ),
@@ -101,7 +105,7 @@ def test_status_active_when_ready(ctx, mock_k8s):
             ctx.on.collect_unit_status(),
             State(
                 leader=True,
-                containers=[RADARR_CONTAINER],
+                containers=[RADARR_CONTAINER, SCRAPARR_CONTAINER],
                 secrets=[api_key_secret],
                 relations=[_make_storage_relation()],
             ),
@@ -117,7 +121,7 @@ def test_status_non_leader_standby(ctx, mock_k8s):
             ctx.on.collect_unit_status(),
             State(
                 leader=False,
-                containers=[RADARR_CONTAINER],
+                containers=[RADARR_CONTAINER, SCRAPARR_CONTAINER],
                 relations=[_make_storage_relation()],
             ),
         )

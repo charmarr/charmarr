@@ -1,0 +1,104 @@
+groups:
+  - name: radarr.health
+    rules:
+      - alert: RadarrScrapeAPIFailing
+        expr: up{service="radarr"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          component: radarr
+        annotations:
+          summary: scraparr cannot reach Radarr API on {{ $labels.juju_unit }}
+          description: |
+            scraparr's `up{service="radarr"}` is 0, meaning the exporter inside
+            the pod can no longer hit Radarr's API. Typical causes: Radarr
+            workload crashed, API key drift between Juju secret and config.xml,
+            or the workload container is unhealthy. Check `juju status` and
+            `kubectl logs -c radarr <pod>`.
+
+      - alert: RadarrExporterDown
+        expr: up{job=~".*radarr.*"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: radarr
+        annotations:
+          summary: scraparr sidecar unreachable on {{ $labels.juju_unit }}
+          description: |
+            Prometheus cannot scrape the scraparr `/metrics` endpoint. The
+            sidecar container is likely dead, or the pod's metrics port (7100)
+            is not exposed. Check `kubectl logs -c scraparr <pod>` and verify
+            the scraparr Pebble service is running.
+
+      - alert: RadarrStaleScrape
+        expr: time() - radarr_last_scrape > 300
+        for: 10m
+        labels:
+          severity: warning
+          component: radarr
+        annotations:
+          summary: scraparr has not completed a Radarr scrape in >5min on {{ $labels.juju_unit }}
+          description: |
+            scraparr is reachable but its internal scrape loop has not produced
+            a fresh sample in over 5 minutes. Likely Radarr API is slow or
+            timing out. Cross-check with `RadarrScrapeDurationHigh`.
+
+  - name: radarr.performance
+    rules:
+      - alert: RadarrScrapeDurationHigh
+        expr: radarr_scrape_duration > 30
+        for: 15m
+        labels:
+          severity: warning
+          component: radarr
+        annotations:
+          summary: scraparr scrape duration exceeding 30s on {{ $labels.juju_unit }}
+          description: |
+            scraparr is taking longer than 30 seconds to gather Radarr metrics
+            for 15 minutes straight. The Radarr workload is likely overloaded
+            or the library is large enough that per-movie file lookups are
+            slow. Investigate Radarr resource usage.
+
+  - name: radarr.queue
+    rules:
+      - alert: RadarrQueueErrors
+        expr: radarr_queue_error > 5
+        for: 30m
+        labels:
+          severity: warning
+          component: radarr
+        annotations:
+          summary: Radarr queue accumulating errors on {{ $labels.juju_unit }}
+          description: |
+            More than 5 items in Radarr's queue have been in error state for
+            30 minutes. Common causes: download client unreachable, quality
+            cutoff filters too restrictive, or import path permissions broken.
+            Open the Radarr UI Activity > Queue tab to inspect.
+
+  - name: radarr.storage
+    rules:
+      - alert: RadarrDiskSpaceLow
+        expr: radarr_free_disk_size / (radarr_free_disk_size + radarr_disk_size) < 0.10
+        for: 30m
+        labels:
+          severity: warning
+          component: radarr
+        annotations:
+          summary: Radarr root folder {{ $labels.path }} under 10% free on {{ $labels.juju_unit }}
+          description: |
+            Free space on root folder `{{ $labels.path }}` has dropped below
+            10% of total. Either delete unwanted content, raise the quality
+            cutoff to prefer smaller files, or expand the backing PVC.
+
+      - alert: RadarrDiskSpaceCritical
+        expr: radarr_free_disk_size / (radarr_free_disk_size + radarr_disk_size) < 0.05
+        for: 10m
+        labels:
+          severity: critical
+          component: radarr
+        annotations:
+          summary: Radarr root folder {{ $labels.path }} under 5% free on {{ $labels.juju_unit }}
+          description: |
+            Free space on root folder `{{ $labels.path }}` has dropped below
+            5% of total. Downloads will start failing imminently. Immediate
+            cleanup or storage expansion required.
