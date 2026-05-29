@@ -1,0 +1,74 @@
+groups:
+  - name: sonarr.queue.extended
+    rules:
+      - alert: SonarrQueueDepthSustained
+        expr: sonarr_queue_count > 100
+        for: 2h
+        labels:
+          severity: warning
+          component: sonarr
+        annotations:
+          summary: Sonarr queue depth above 100 for 2h on {{ $labels.juju_unit }}
+          description: |
+            Sustained queue backlog. Either the download client cannot keep up,
+            or there is a flood of monitored content with no matching releases.
+            Investigate the download client and indexer cache hit rates.
+
+      - alert: SonarrQueueWarningsHigh
+        expr: sonarr_queue_warning > 10
+        for: 1h
+        labels:
+          severity: warning
+          component: sonarr
+        annotations:
+          summary: Sonarr queue warnings above 10 on {{ $labels.juju_unit }}
+          description: |
+            Sonarr is reporting more than 10 queue items in warning state.
+            These usually correspond to imports waiting for matching files or
+            quality conflicts. Run Sonarr's "interactive import" workflow to
+            resolve.
+
+  - name: sonarr.library.extended
+    rules:
+      - alert: SonarrMissingEpisodesGrowing
+        expr: increase(sonarr_missing_episodes_total[7d]) > 50
+        labels:
+          severity: warning
+          component: sonarr
+        annotations:
+          summary: Sonarr missing-episodes count grew by >50 in 7d on {{ $labels.juju_unit }}
+          description: |
+            More than 50 newly-monitored episodes could not be downloaded over
+            the last 7 days. Possible causes: indexer outage, RSS feed not
+            updating, or restrictive quality profiles blocking all matches.
+            Check Prowlarr health and the Sonarr Activity > Wanted tab.
+
+  - name: sonarr.storage.extended
+    rules:
+      - alert: SonarrDiskFillForecast7d
+        expr: predict_linear(sonarr_free_disk_size[7d], 7 * 86400) < 0
+        for: 1h
+        labels:
+          severity: warning
+          component: sonarr
+        annotations:
+          summary: Sonarr root folder {{ $labels.path }} projected full within 7d on {{ $labels.juju_unit }}
+          description: |
+            Based on the last 7 days of free-space samples, root folder
+            `{{ $labels.path }}` is on track to run out of space within the
+            next 7 days. Plan capacity now.
+
+  - name: sonarr.reliability.extended
+    rules:
+      - alert: SonarrSidecarFlapping
+        expr: changes(up{service="sonarr"}[1h]) > 6
+        labels:
+          severity: warning
+          component: sonarr
+        annotations:
+          summary: Sonarr scrape state has flapped >6 times in 1h on {{ $labels.juju_unit }}
+          description: |
+            scraparr's view of Sonarr's health has toggled more than 6 times
+            in the last hour. Indicates an unstable Sonarr workload, or a
+            networking issue between the two containers. Check Pebble service
+            restart history.
