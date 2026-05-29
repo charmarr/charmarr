@@ -21,6 +21,15 @@ from _prowlarr._constants import (
     SERVICE_NAME,
     WEBUI_PORT,
 )
+from _prowlarr._o11y import (
+    METRICS_CONTAINER_NAME,
+    METRICS_PATH,
+    METRICS_PORT,
+    METRICS_SERVICE_NAME,
+    SCRAPARR_COMMAND,
+    SCRAPARR_ENV_API_KEY,
+    SCRAPARR_ENV_URL,
+)
 
 __all__ = [
     "API_KEY_SECRET_LABEL",
@@ -28,6 +37,13 @@ __all__ = [
     "CONTAINER_NAME",
     "DEFAULT_PGID",
     "DEFAULT_PUID",
+    "METRICS_CONTAINER_NAME",
+    "METRICS_PATH",
+    "METRICS_PORT",
+    "METRICS_SERVICE_NAME",
+    "SCRAPARR_COMMAND",
+    "SCRAPARR_ENV_API_KEY",
+    "SCRAPARR_ENV_URL",
     "SERVICE_NAME",
     "WEBUI_PORT",
     "FlareSolverrProxyConfig",

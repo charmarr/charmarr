@@ -1,0 +1,102 @@
+groups:
+  - name: prowlarr.health
+    rules:
+      - alert: ProwlarrScrapeAPIFailing
+        expr: up{service="prowlarr"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          component: prowlarr
+        annotations:
+          summary: scraparr cannot reach Prowlarr API on {{ $labels.juju_unit }}
+          description: |
+            scraparr's `up{service="prowlarr"}` is 0, meaning the exporter
+            inside the pod can no longer hit Prowlarr's API. Typical causes:
+            Prowlarr workload crashed, API key drift between Juju secret and
+            config.xml, or the workload container is unhealthy. Check
+            `juju status` and `kubectl logs -c prowlarr <pod>`.
+
+      - alert: ProwlarrExporterDown
+        expr: up{job=~".*prowlarr.*"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: prowlarr
+        annotations:
+          summary: scraparr sidecar unreachable on {{ $labels.juju_unit }}
+          description: |
+            Prometheus cannot scrape the scraparr `/metrics` endpoint. The
+            sidecar container is likely dead, or the pod's metrics port (7100)
+            is not exposed. Check `kubectl logs -c scraparr <pod>` and verify
+            the scraparr Pebble service is running.
+
+      - alert: ProwlarrStaleScrape
+        expr: time() - prowlarr_last_scrape > 300
+        for: 10m
+        labels:
+          severity: warning
+          component: prowlarr
+        annotations:
+          summary: scraparr has not completed a Prowlarr scrape in >5min on {{ $labels.juju_unit }}
+          description: |
+            scraparr is reachable but its internal scrape loop has not produced
+            a fresh sample in over 5 minutes. Likely Prowlarr API is slow or
+            timing out. Cross-check with `ProwlarrScrapeDurationHigh`.
+
+  - name: prowlarr.performance
+    rules:
+      - alert: ProwlarrScrapeDurationHigh
+        expr: prowlarr_scrape_duration > 30
+        for: 15m
+        labels:
+          severity: warning
+          component: prowlarr
+        annotations:
+          summary: scraparr scrape duration exceeding 30s on {{ $labels.juju_unit }}
+          description: |
+            scraparr is taking longer than 30 seconds to gather Prowlarr
+            metrics for 15 minutes straight. The Prowlarr workload is likely
+            overloaded or per-indexer status checks are slow. Investigate
+            Prowlarr resource usage and indexer endpoint latencies.
+
+  - name: prowlarr.indexers
+    rules:
+      - alert: ProwlarrAllIndexersUnhealthy
+        expr: sum by (juju_model, juju_application, juju_unit) (prowlarr_indexer_healthy) == 0 and on(juju_model, juju_application, juju_unit) prowlarr_indexer_count_total > 0
+        for: 10m
+        labels:
+          severity: critical
+          component: prowlarr
+        annotations:
+          summary: Every Prowlarr indexer is unhealthy on {{ $labels.juju_unit }}
+          description: |
+            All configured indexers report unhealthy for 10 minutes. No search
+            requests from related arr apps will succeed. Likely network egress
+            broken (VPN drop) or all indexers down simultaneously. Check
+            `prowlarr_indexer_status` per indexer and VPN gateway state.
+
+      - alert: ProwlarrIndexerUnhealthy
+        expr: prowlarr_indexer_healthy == 0
+        for: 30m
+        labels:
+          severity: warning
+          component: prowlarr
+        annotations:
+          summary: Prowlarr indexer {{ $labels.indexer }} unhealthy for >30min on {{ $labels.juju_unit }}
+          description: |
+            Indexer `{{ $labels.indexer }}` has been failing health checks for
+            30 minutes. Could be a transient tracker outage or auth/cookie
+            expiration. Open Prowlarr UI > Indexers and test the connection.
+
+      - alert: ProwlarrNoIndexers
+        expr: prowlarr_indexer_count_total == 0
+        for: 1h
+        labels:
+          severity: warning
+          component: prowlarr
+        annotations:
+          summary: Prowlarr has zero indexers configured on {{ $labels.juju_unit }}
+          description: |
+            No indexers have been configured for over an hour. This means
+            related arr apps cannot find any releases. If this is not a
+            freshly-deployed instance, indexer config may have been wiped.

@@ -12,7 +12,7 @@ from charmarr_lib.core import ArrApiResponseError
 from charmarr_lib.core.interfaces import FlareSolverrProviderData
 from charmarr_lib.vpn.interfaces import VPNGatewayProviderData
 
-from .conftest import PROWLARR_CONTAINER
+from .conftest import PROWLARR_CONTAINER, SCRAPARR_CONTAINER
 
 CHOWN_EXEC = Exec(["chown", "-R", "1000:1000", "/config"])
 TEST_API_KEY = "testkey123456789012345678901234"
@@ -38,7 +38,7 @@ def test_reconcile_creates_api_key_secret(ctx, mock_k8s, tmp_path):
     ):
         state = ctx.run(
             ctx.on.config_changed(),
-            State(leader=True, containers=[container]),
+            State(leader=True, containers=[container, SCRAPARR_CONTAINER]),
         )
 
     assert len(state.secrets) == 1
@@ -69,7 +69,7 @@ def test_reconcile_builds_pebble_layer(ctx, mock_k8s, tmp_path):
     ):
         state = ctx.run(
             ctx.on.config_changed(),
-            State(leader=True, containers=[container]),
+            State(leader=True, containers=[container, SCRAPARR_CONTAINER]),
         )
 
     container_out = state.get_container("prowlarr")
@@ -115,7 +115,9 @@ def test_reconcile_calls_vpn_gateway_client(ctx, mock_k8s, tmp_path):
     ):
         ctx.run(
             ctx.on.config_changed(),
-            State(leader=True, containers=[container], relations=[vpn_relation]),
+            State(
+                leader=True, containers=[container, SCRAPARR_CONTAINER], relations=[vpn_relation]
+            ),
         )
         mock_gw_client.assert_called_once()
         call_kwargs = mock_gw_client.call_args.kwargs
@@ -128,7 +130,7 @@ def test_non_leader_only_registers_check(ctx, mock_k8s):
     with patch("charm.reconcile_gateway_client"):
         state = ctx.run(
             ctx.on.config_changed(),
-            State(leader=False, containers=[PROWLARR_CONTAINER]),
+            State(leader=False, containers=[PROWLARR_CONTAINER, SCRAPARR_CONTAINER]),
         )
 
     container_out = state.get_container("prowlarr")
@@ -168,7 +170,9 @@ def test_reconcile_skips_write_when_config_matches(ctx, mock_k8s, tmp_path):
     ):
         ctx.run(
             ctx.on.config_changed(),
-            State(leader=True, containers=[container], secrets=[api_key_secret]),
+            State(
+                leader=True, containers=[container, SCRAPARR_CONTAINER], secrets=[api_key_secret]
+            ),
         )
 
     assert config_file.read_text() == initial_config
@@ -203,7 +207,9 @@ def test_secret_rotate_updates_config(ctx, mock_k8s, tmp_path):
     ):
         state = ctx.run(
             ctx.on.secret_rotate(api_key_secret),
-            State(leader=True, containers=[container], secrets=[api_key_secret]),
+            State(
+                leader=True, containers=[container, SCRAPARR_CONTAINER], secrets=[api_key_secret]
+            ),
         )
 
     assert new_key in config_file.read_text()
@@ -231,7 +237,12 @@ def _flaresolverr_test_state(tmp_path):
             ).model_dump_json()
         },
     )
-    return State(leader=True, containers=[container], secrets=[secret], relations=[relation])
+    return State(
+        leader=True,
+        containers=[container, SCRAPARR_CONTAINER],
+        secrets=[secret],
+        relations=[relation],
+    )
 
 
 def _mock_api_with_proxy():

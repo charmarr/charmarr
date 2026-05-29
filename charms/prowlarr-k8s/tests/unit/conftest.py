@@ -16,6 +16,8 @@ PROWLARR_CONTAINER = Container(
     execs={Exec(["chown", "-R", "1000:1000", "/config"])},
 )
 
+SCRAPARR_CONTAINER = Container(name="scraparr", can_connect=True)
+
 
 @pytest.fixture
 def ctx() -> Context[ProwlarrCharm]:
