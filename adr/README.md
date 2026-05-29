@@ -22,7 +22,7 @@ ADRs are organized by concern area:
 | **[networking/](networking/)** | Network architecture | Ingress, VPN egress, service mesh, topology |
 | **[storage/](storage/)** | Storage design | Shared PVC, config storage, backup |
 | **[ops/](ops/)** | CI/CD operations | CI auto-healing, developer automation |
-| **[o11y/](o11y/)** | Observability | Monitoring and logging (planned) |
+| **[o11y/](o11y/)** | Observability | COS integration, per-app exporters, dashboards, alerts, SLI/SLO catalog |
 | **[oauth/](oauth/)** | Authentication | OAuth integration (planned) |
 
 Each subdirectory contains its own README with detailed architecture overview and ADR index.
