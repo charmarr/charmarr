@@ -8,7 +8,7 @@ from unittest.mock import patch
 import ops
 from ops.testing import Container, Secret, State
 
-from .conftest import PROWLARR_CONTAINER
+from .conftest import PROWLARR_CONTAINER, SCRAPARR_CONTAINER
 
 
 def test_status_waiting_for_pebble(ctx, mock_k8s):
@@ -18,7 +18,7 @@ def test_status_waiting_for_pebble(ctx, mock_k8s):
     with patch("charm.reconcile_gateway_client"):
         state = ctx.run(
             ctx.on.collect_unit_status(),
-            State(leader=True, containers=[container]),
+            State(leader=True, containers=[container, SCRAPARR_CONTAINER]),
         )
 
     assert state.unit_status == ops.WaitingStatus("Waiting for Pebble")
@@ -29,7 +29,7 @@ def test_status_waiting_for_api_key(ctx, mock_k8s):
     with patch("charm.reconcile_gateway_client"):
         state = ctx.run(
             ctx.on.collect_unit_status(),
-            State(leader=True, containers=[PROWLARR_CONTAINER]),
+            State(leader=True, containers=[PROWLARR_CONTAINER, SCRAPARR_CONTAINER]),
         )
 
     assert state.unit_status == ops.WaitingStatus("Waiting for API key")
@@ -49,7 +49,11 @@ def test_status_waiting_for_workload(ctx, mock_k8s):
     ):
         state = ctx.run(
             ctx.on.collect_unit_status(),
-            State(leader=True, containers=[PROWLARR_CONTAINER], secrets=[api_key_secret]),
+            State(
+                leader=True,
+                containers=[PROWLARR_CONTAINER, SCRAPARR_CONTAINER],
+                secrets=[api_key_secret],
+            ),
         )
 
     assert state.unit_status == ops.WaitingStatus("Waiting for workload")
@@ -69,7 +73,11 @@ def test_status_active_when_ready(ctx, mock_k8s):
     ):
         state = ctx.run(
             ctx.on.collect_unit_status(),
-            State(leader=True, containers=[PROWLARR_CONTAINER], secrets=[api_key_secret]),
+            State(
+                leader=True,
+                containers=[PROWLARR_CONTAINER, SCRAPARR_CONTAINER],
+                secrets=[api_key_secret],
+            ),
         )
 
     assert state.unit_status == ops.ActiveStatus()
@@ -80,7 +88,7 @@ def test_status_non_leader_standby(ctx, mock_k8s):
     with patch("charm.reconcile_gateway_client"):
         state = ctx.run(
             ctx.on.collect_unit_status(),
-            State(leader=False, containers=[PROWLARR_CONTAINER]),
+            State(leader=False, containers=[PROWLARR_CONTAINER, SCRAPARR_CONTAINER]),
         )
 
     assert state.unit_status == ops.WaitingStatus("Standby (non-leader)")
@@ -91,7 +99,9 @@ def test_status_scaling_blocked(ctx, mock_k8s):
     with patch("charm.reconcile_gateway_client"):
         state = ctx.run(
             ctx.on.collect_unit_status(),
-            State(leader=False, containers=[PROWLARR_CONTAINER], planned_units=2),
+            State(
+                leader=False, containers=[PROWLARR_CONTAINER, SCRAPARR_CONTAINER], planned_units=2
+            ),
         )
 
     assert state.unit_status == ops.BlockedStatus(
@@ -132,7 +142,7 @@ def test_status_vpn_waiting(ctx, mock_k8s):
             ctx.on.collect_unit_status(),
             State(
                 leader=True,
-                containers=[PROWLARR_CONTAINER],
+                containers=[PROWLARR_CONTAINER, SCRAPARR_CONTAINER],
                 secrets=[api_key_secret],
                 relations=[vpn_relation],
             ),

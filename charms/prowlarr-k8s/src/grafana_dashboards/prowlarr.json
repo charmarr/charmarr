@@ -1,0 +1,216 @@
+{
+  "title": "Prowlarr",
+  "uid": "charmarr-prowlarr",
+  "tags": ["charmarr", "prowlarr"],
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "graphTooltip": 1,
+  "refresh": "30s",
+  "time": {"from": "now-6h", "to": "now"},
+  "timezone": "",
+  "templating": {
+    "list": [
+      {
+        "name": "juju_model",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+        "query": "label_values(up{juju_charm=\"prowlarr-k8s\"}, juju_model)",
+        "refresh": 1, "includeAll": false, "multi": false
+      },
+      {
+        "name": "juju_application",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+        "query": "label_values(up{juju_charm=\"prowlarr-k8s\", juju_model=\"$juju_model\"}, juju_application)",
+        "refresh": 1, "includeAll": false, "multi": false
+      },
+      {
+        "name": "juju_unit",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+        "query": "label_values(up{juju_charm=\"prowlarr-k8s\", juju_model=\"$juju_model\", juju_application=\"$juju_application\"}, juju_unit)",
+        "refresh": 1, "includeAll": true, "multi": true
+      }
+    ]
+  },
+  "panels": [
+    {"id": 1, "type": "row", "title": "Service health", "collapsed": false, "gridPos": {"x": 0, "y": 0, "w": 24, "h": 1}},
+
+    {
+      "id": 2, "type": "stat", "title": "Workload reachable",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 0, "y": 1, "w": 4, "h": 4},
+      "targets": [{"expr": "min(up{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "refId": "A"}],
+      "fieldConfig": {"defaults": {"mappings": [{"type": "value", "options": {"0": {"text": "DOWN", "color": "red"}}}, {"type": "value", "options": {"1": {"text": "UP", "color": "green"}}}], "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}}},
+      "options": {"colorMode": "background", "graphMode": "none", "textMode": "value"}
+    },
+    {
+      "id": 3, "type": "stat", "title": "Items in queue",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 4, "y": 1, "w": 4, "h": 4},
+      "targets": [{"expr": "sum(prowlarr_queue_count{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "refId": "A"}],
+      "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 20}, {"color": "red", "value": 100}]}}},
+      "options": {"colorMode": "value", "graphMode": "area", "textMode": "value"}
+    },
+    {
+      "id": 4, "type": "stat", "title": "Last scrape age",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 8, "y": 1, "w": 4, "h": 4},
+      "targets": [{"expr": "time() - max(prowlarr_last_scrape{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "s", "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 120}, {"color": "red", "value": 300}]}}},
+      "options": {"colorMode": "value", "graphMode": "area", "textMode": "value"}
+    },
+    {
+      "id": 5, "type": "stat", "title": "Scrape p95 (1h)",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 12, "y": 1, "w": 4, "h": 4},
+      "targets": [{"expr": "quantile_over_time(0.95, prowlarr_scrape_duration{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"}[1h])", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "s", "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 10}, {"color": "red", "value": 30}]}}},
+      "options": {"colorMode": "value", "graphMode": "area", "textMode": "value"}
+    },
+    {
+      "id": 6, "type": "stat", "title": "Log volume (5m)",
+      "datasource": {"type": "loki", "uid": "${lokids}"},
+      "gridPos": {"x": 16, "y": 1, "w": 4, "h": 4},
+      "targets": [{"expr": "sum(count_over_time({juju_model=\"$juju_model\", juju_application=\"$juju_application\"}[5m]))", "refId": "A"}],
+      "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}}},
+      "options": {"colorMode": "value", "graphMode": "area", "textMode": "value"}
+    },
+    {
+      "id": 7, "type": "stat", "title": "Errors in logs (1h)",
+      "datasource": {"type": "loki", "uid": "${lokids}"},
+      "gridPos": {"x": 20, "y": 1, "w": 4, "h": 4},
+      "targets": [{"expr": "sum(count_over_time({juju_model=\"$juju_model\", juju_application=\"$juju_application\"} |~ \"(?i)error|fatal\" [1h]))", "refId": "A"}],
+      "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 10}, {"color": "red", "value": 100}]}}},
+      "options": {"colorMode": "value", "graphMode": "area", "textMode": "value"}
+    },
+
+    {"id": 10, "type": "row", "title": "Indexers", "collapsed": false, "gridPos": {"x": 0, "y": 5, "w": 24, "h": 1}},
+
+    {
+      "id": 11, "type": "stat", "title": "Total indexers",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 0, "y": 6, "w": 4, "h": 4},
+      "targets": [{"expr": "sum(prowlarr_indexer_count_total{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "refId": "A"}],
+      "options": {"colorMode": "value", "graphMode": "area", "textMode": "value"}
+    },
+    {
+      "id": 12, "type": "stat", "title": "Enabled",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 0, "y": 10, "w": 4, "h": 4},
+      "targets": [{"expr": "sum(prowlarr_indexer_enabled_total{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "refId": "A"}],
+      "options": {"colorMode": "value", "graphMode": "area", "textMode": "value"}
+    },
+    {
+      "id": 13, "type": "stat", "title": "Healthy",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 4, "y": 6, "w": 4, "h": 4},
+      "targets": [{"expr": "sum(prowlarr_indexer_healthy{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "refId": "A"}],
+      "options": {"colorMode": "value", "graphMode": "area", "textMode": "value"}
+    },
+    {
+      "id": 14, "type": "stat", "title": "Unhealthy",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 4, "y": 10, "w": 4, "h": 4},
+      "targets": [{"expr": "sum(prowlarr_indexer_count_total{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"}) - sum(prowlarr_indexer_healthy{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "refId": "A"}],
+      "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}, {"color": "red", "value": 5}]}}},
+      "options": {"colorMode": "background", "graphMode": "none", "textMode": "value"}
+    },
+    {
+      "id": 15, "type": "timeseries", "title": "Indexer counts over time",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 8, "y": 6, "w": 16, "h": 8},
+      "targets": [
+        {"expr": "sum(prowlarr_indexer_count_total{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "legendFormat": "total", "refId": "A"},
+        {"expr": "sum(prowlarr_indexer_enabled_total{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "legendFormat": "enabled", "refId": "B"},
+        {"expr": "sum(prowlarr_indexer_healthy{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "legendFormat": "healthy", "refId": "C"}
+      ],
+      "options": {"legend": {"showLegend": true, "displayMode": "table", "placement": "right", "calcs": ["last"]}}
+    },
+
+    {"id": 20, "type": "row", "title": "Indexer breakdown", "collapsed": false, "gridPos": {"x": 0, "y": 14, "w": 24, "h": 1}},
+
+    {
+      "id": 21, "type": "piechart", "title": "Indexers by type",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 0, "y": 15, "w": 8, "h": 8},
+      "targets": [{"expr": "sum by (type) (prowlarr_indexer_count{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "legendFormat": "{{type}}", "refId": "A"}],
+      "options": {"legend": {"showLegend": true, "placement": "right"}, "pieType": "donut"}
+    },
+    {
+      "id": 22, "type": "piechart", "title": "Indexers by privacy",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 8, "y": 15, "w": 8, "h": 8},
+      "targets": [{"expr": "sum by (privacy) (prowlarr_indexer_privacy_total{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "legendFormat": "{{privacy}}", "refId": "A"}],
+      "options": {"legend": {"showLegend": true, "placement": "right"}, "pieType": "donut"}
+    },
+    {
+      "id": 23, "type": "table", "title": "Per-indexer status",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 16, "y": 15, "w": 8, "h": 8},
+      "targets": [{"expr": "prowlarr_indexer_healthy{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"}", "format": "table", "instant": true, "refId": "A"}],
+      "transformations": [
+        {"id": "organize", "options": {"excludeByName": {"Time": true, "__name__": true, "alias": true, "instance": true, "job": true, "juju_charm": true, "juju_model_uuid": true, "juju_model": true, "juju_application": true, "juju_unit": true}, "renameByName": {"indexer": "Indexer", "Value": "Healthy"}}}
+      ],
+      "fieldConfig": {"defaults": {}, "overrides": [{"matcher": {"id": "byName", "options": "Healthy"}, "properties": [{"id": "mappings", "value": [{"type": "value", "options": {"0": {"text": "DOWN", "color": "red"}}}, {"type": "value", "options": {"1": {"text": "UP", "color": "green"}}}]}, {"id": "custom.cellOptions", "value": {"type": "color-background", "mode": "basic"}}]}]}
+    },
+
+    {"id": 30, "type": "row", "title": "Applications (sync targets)", "collapsed": false, "gridPos": {"x": 0, "y": 23, "w": 24, "h": 1}},
+
+    {
+      "id": 31, "type": "stat", "title": "Total apps",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 0, "y": 24, "w": 4, "h": 4},
+      "targets": [{"expr": "sum(prowlarr_applications_total{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "refId": "A"}],
+      "options": {"colorMode": "value", "graphMode": "area", "textMode": "value"}
+    },
+    {
+      "id": 32, "type": "stat", "title": "Enabled apps",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 4, "y": 24, "w": 4, "h": 4},
+      "targets": [{"expr": "sum(prowlarr_application_enabled_total{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "refId": "A"}],
+      "options": {"colorMode": "value", "graphMode": "area", "textMode": "value"}
+    },
+    {
+      "id": 33, "type": "piechart", "title": "Apps by sync level",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 8, "y": 24, "w": 8, "h": 8},
+      "targets": [{"expr": "sum by (sync_level) (prowlarr_application_sync_level_total{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "legendFormat": "{{sync_level}}", "refId": "A"}],
+      "options": {"legend": {"showLegend": true, "placement": "right"}, "pieType": "donut"}
+    },
+    {
+      "id": 34, "type": "timeseries", "title": "Apps over time",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 16, "y": 24, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "sum(prowlarr_applications_total{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "legendFormat": "total", "refId": "A"},
+        {"expr": "sum(prowlarr_application_enabled_total{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "legendFormat": "enabled", "refId": "B"}
+      ],
+      "options": {"legend": {"showLegend": true, "displayMode": "list", "placement": "bottom"}}
+    },
+
+    {"id": 40, "type": "row", "title": "VIP expirations", "collapsed": false, "gridPos": {"x": 0, "y": 32, "w": 24, "h": 1}},
+
+    {
+      "id": 41, "type": "table", "title": "Indexer VIPs (days until expiry)",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 0, "y": 33, "w": 24, "h": 6},
+      "targets": [{"expr": "(prowlarr_vip_expiration{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"} - time()) / 86400 > 0", "format": "table", "instant": true, "refId": "A"}],
+      "transformations": [
+        {"id": "organize", "options": {"excludeByName": {"Time": true, "__name__": true, "alias": true, "instance": true, "job": true, "juju_charm": true, "juju_model_uuid": true, "juju_model": true, "juju_application": true, "juju_unit": true}, "renameByName": {"indexer": "Indexer", "Value": "Days until expiry"}}}
+      ],
+      "fieldConfig": {"defaults": {"decimals": 1}, "overrides": [{"matcher": {"id": "byName", "options": "Days until expiry"}, "properties": [{"id": "thresholds", "value": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "yellow", "value": 14}, {"color": "green", "value": 30}]}}, {"id": "custom.cellOptions", "value": {"type": "color-background", "mode": "gradient"}}]}]}
+    },
+
+    {"id": 60, "type": "row", "title": "Logs", "collapsed": false, "gridPos": {"x": 0, "y": 39, "w": 24, "h": 1}},
+
+    {
+      "id": 61, "type": "logs", "title": "ERROR/WARN log lines (Prowlarr + scraparr)",
+      "datasource": {"type": "loki", "uid": "${lokids}"},
+      "gridPos": {"x": 0, "y": 40, "w": 24, "h": 10},
+      "targets": [{"expr": "{juju_model=\"$juju_model\", juju_application=\"$juju_application\"} |~ \"(?i)error|warn|fatal\"", "refId": "A"}],
+      "options": {"showTime": true, "showLabels": false, "wrapLogMessage": true, "sortOrder": "Descending"}
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+groups:
+  - name: prowlarr.indexers.extended
+    rules:
+      - alert: ProwlarrIndexerCountDropped
+        expr: (prowlarr_indexer_count_total - prowlarr_indexer_count_total offset 1h) < -3
+        labels:
+          severity: warning
+          component: prowlarr
+        annotations:
+          summary: Prowlarr indexer count dropped by >3 in the last hour on {{ $labels.juju_unit }}
+          description: |
+            More than 3 indexers vanished from Prowlarr in the last hour.
+            Could be config drift, a tracker shutting down, or someone
+            manually disabling indexers. Investigate Prowlarr's Indexers tab
+            and confirm intentional.
+
+  - name: prowlarr.applications.extended
+    rules:
+      - alert: ProwlarrApplicationsDisabled
+        expr: prowlarr_application_enabled_total < prowlarr_applications_total
+        for: 1h
+        labels:
+          severity: warning
+          component: prowlarr
+        annotations:
+          summary: Some Prowlarr sync target apps are disabled on {{ $labels.juju_unit }}
+          description: |
+            Prowlarr knows about {{ $value }} application(s) but not all are
+            enabled for sync. New indexer additions will not propagate to the
+            disabled apps. Open Prowlarr UI > Settings > Apps to review.
+
+  - name: prowlarr.vip.extended
+    rules:
+      - alert: ProwlarrVIPExpiringSoon
+        expr: prowlarr_vip_expiration > 0 and (prowlarr_vip_expiration - time()) < 14 * 86400
+        labels:
+          severity: warning
+          component: prowlarr
+        annotations:
+          summary: Prowlarr indexer {{ $labels.indexer }} VIP expires within 14 days on {{ $labels.juju_unit }}
+          description: |
+            VIP/Premium access for indexer `{{ $labels.indexer }}` expires in
+            under 14 days. Renew the subscription before access drops or
+            indexer features may degrade.
+
+  - name: prowlarr.reliability.extended
+    rules:
+      - alert: ProwlarrSidecarFlapping
+        expr: changes(up{service="prowlarr"}[1h]) > 6
+        labels:
+          severity: warning
+          component: prowlarr
+        annotations:
+          summary: Prowlarr scrape state has flapped >6 times in 1h on {{ $labels.juju_unit }}
+          description: |
+            scraparr's view of Prowlarr's health has toggled more than 6
+            times in the last hour. Indicates an unstable Prowlarr workload
+            or networking issue between the two containers. Check Pebble
+            service restart history.
