@@ -9,7 +9,7 @@ import ops
 import pytest
 from ops.testing import ActionFailed, Container, Mount, State
 
-from .conftest import RADARR_CONTAINER
+from .conftest import RADARR_CONTAINER, SCRAPARR_CONTAINER
 
 CONFIG_XML = """<?xml version="1.0" encoding="utf-8"?>
 <Config>
@@ -44,7 +44,7 @@ def test_rotate_api_key_action(ctx, mock_k8s, tmp_path):
     ):
         ctx.run(
             ctx.on.action("rotate-api-key"),
-            State(leader=True, containers=[container], secrets=[secret]),
+            State(leader=True, containers=[container, SCRAPARR_CONTAINER], secrets=[secret]),
         )
 
     updated_content = config_file.read_text()
@@ -59,7 +59,7 @@ def test_rotate_api_key_action_not_leader(ctx, mock_k8s):
     ):
         ctx.run(
             ctx.on.action("rotate-api-key"),
-            State(leader=False, containers=[RADARR_CONTAINER]),
+            State(leader=False, containers=[RADARR_CONTAINER, SCRAPARR_CONTAINER]),
         )
 
     assert "leader unit" in str(exc_info.value)
@@ -90,7 +90,7 @@ def test_sync_trash_profiles_action(ctx, mock_k8s, tmp_path):
             ctx.on.action("sync-trash-profiles"),
             State(
                 leader=True,
-                containers=[container],
+                containers=[container, SCRAPARR_CONTAINER],
                 config={"trash-profiles": "hd-bluray-web"},
             ),
         )
@@ -105,7 +105,7 @@ def test_sync_trash_profiles_action_not_leader(ctx, mock_k8s):
     ):
         ctx.run(
             ctx.on.action("sync-trash-profiles"),
-            State(leader=False, containers=[RADARR_CONTAINER]),
+            State(leader=False, containers=[RADARR_CONTAINER, SCRAPARR_CONTAINER]),
         )
 
     assert "leader unit" in str(exc_info.value)
@@ -130,7 +130,7 @@ def test_sync_trash_profiles_no_api_key(ctx, mock_k8s, tmp_path):
     ):
         ctx.run(
             ctx.on.action("sync-trash-profiles"),
-            State(leader=True, containers=[container]),
+            State(leader=True, containers=[container, SCRAPARR_CONTAINER]),
         )
 
     assert "No API key" in str(exc_info.value)
@@ -158,7 +158,11 @@ def test_sync_trash_profiles_no_config(ctx, mock_k8s, tmp_path):
     ):
         ctx.run(
             ctx.on.action("sync-trash-profiles"),
-            State(leader=True, containers=[container], config={"trash-profiles": ""}),
+            State(
+                leader=True,
+                containers=[container, SCRAPARR_CONTAINER],
+                config={"trash-profiles": ""},
+            ),
         )
 
     assert "No trash-profiles" in str(exc_info.value)
@@ -174,7 +178,7 @@ def test_rotate_api_key_pebble_not_connected(ctx, mock_k8s):
     ):
         ctx.run(
             ctx.on.action("rotate-api-key"),
-            State(leader=True, containers=[container]),
+            State(leader=True, containers=[container, SCRAPARR_CONTAINER]),
         )
 
     assert "Pebble" in str(exc_info.value)

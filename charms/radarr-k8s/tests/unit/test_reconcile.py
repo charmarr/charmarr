@@ -9,7 +9,7 @@ from ops.testing import Container, Exec, Mount, Relation, Secret, State
 
 from charmarr_lib.core.interfaces import MediaStorageProviderData
 
-from .conftest import RADARR_CONTAINER
+from .conftest import RADARR_CONTAINER, SCRAPARR_CONTAINER
 
 CHOWN_EXEC = Exec(["chown", "-R", "1000:1000", "/config"])
 TEST_API_KEY = "testkey123456789012345678901234"
@@ -45,7 +45,11 @@ def test_reconcile_creates_api_key_secret(ctx, mock_k8s, tmp_path):
     ):
         state = ctx.run(
             ctx.on.config_changed(),
-            State(leader=True, containers=[container], relations=[_make_storage_relation()]),
+            State(
+                leader=True,
+                containers=[container, SCRAPARR_CONTAINER],
+                relations=[_make_storage_relation()],
+            ),
         )
 
     assert len(state.secrets) == 1
@@ -76,7 +80,11 @@ def test_reconcile_builds_pebble_layer(ctx, mock_k8s, tmp_path):
     ):
         state = ctx.run(
             ctx.on.config_changed(),
-            State(leader=True, containers=[container], relations=[_make_storage_relation()]),
+            State(
+                leader=True,
+                containers=[container, SCRAPARR_CONTAINER],
+                relations=[_make_storage_relation()],
+            ),
         )
 
     container_out = state.get_container("radarr")
@@ -126,7 +134,7 @@ def test_reconcile_calls_vpn_gateway_client(ctx, mock_k8s, tmp_path):
             ctx.on.config_changed(),
             State(
                 leader=True,
-                containers=[container],
+                containers=[container, SCRAPARR_CONTAINER],
                 relations=[_make_storage_relation(), vpn_relation],
             ),
         )
@@ -141,7 +149,7 @@ def test_non_leader_only_registers_check(ctx, mock_k8s):
     with patch("charm.reconcile_gateway_client"):
         state = ctx.run(
             ctx.on.config_changed(),
-            State(leader=False, containers=[RADARR_CONTAINER]),
+            State(leader=False, containers=[RADARR_CONTAINER, SCRAPARR_CONTAINER]),
         )
 
     container_out = state.get_container("radarr")
@@ -183,7 +191,7 @@ def test_reconcile_skips_write_when_config_matches(ctx, mock_k8s, tmp_path):
             ctx.on.config_changed(),
             State(
                 leader=True,
-                containers=[container],
+                containers=[container, SCRAPARR_CONTAINER],
                 secrets=[api_key_secret],
                 relations=[_make_storage_relation()],
             ),
@@ -221,7 +229,9 @@ def test_secret_rotate_updates_config(ctx, mock_k8s, tmp_path):
     ):
         state = ctx.run(
             ctx.on.secret_rotate(api_key_secret),
-            State(leader=True, containers=[container], secrets=[api_key_secret]),
+            State(
+                leader=True, containers=[container, SCRAPARR_CONTAINER], secrets=[api_key_secret]
+            ),
         )
 
     assert new_key in config_file.read_text()
@@ -261,7 +271,7 @@ def test_reconcile_syncs_trash_profiles_when_workload_ready(ctx, mock_k8s, tmp_p
             ctx.on.config_changed(),
             State(
                 leader=True,
-                containers=[container],
+                containers=[container, SCRAPARR_CONTAINER],
                 secrets=[api_key_secret],
                 config={"trash-profiles": "hd-bluray-web"},
                 relations=[_make_storage_relation()],
@@ -302,7 +312,7 @@ def test_reconcile_calls_download_client_reconciler(ctx, mock_k8s, tmp_path):
             ctx.on.config_changed(),
             State(
                 leader=True,
-                containers=[container],
+                containers=[container, SCRAPARR_CONTAINER],
                 secrets=[api_key_secret],
                 relations=[_make_storage_relation()],
             ),
@@ -342,7 +352,7 @@ def test_reconcile_calls_root_folder_reconciler(ctx, mock_k8s, tmp_path):
             ctx.on.config_changed(),
             State(
                 leader=True,
-                containers=[container],
+                containers=[container, SCRAPARR_CONTAINER],
                 secrets=[api_key_secret],
                 relations=[_make_storage_relation()],
             ),
@@ -374,7 +384,7 @@ def test_reconcile_warns_when_scaled(ctx, mock_k8s, tmp_path, caplog):
             ctx.on.config_changed(),
             State(
                 leader=True,
-                containers=[container],
+                containers=[container, SCRAPARR_CONTAINER],
                 relations=[_make_storage_relation()],
                 planned_units=2,
             ),
@@ -414,7 +424,7 @@ def test_configure_ingress_submits_route(ctx, mock_k8s, tmp_path):
             ctx.on.config_changed(),
             State(
                 leader=True,
-                containers=[container],
+                containers=[container, SCRAPARR_CONTAINER],
                 secrets=[api_key_secret],
                 relations=[_make_storage_relation(), ingress_relation],
             ),
@@ -454,7 +464,7 @@ def test_reconcile_publishes_media_indexer_requirer(ctx, mock_k8s, tmp_path):
             ctx.on.config_changed(),
             State(
                 leader=True,
-                containers=[container],
+                containers=[container, SCRAPARR_CONTAINER],
                 secrets=[api_key_secret],
                 relations=[_make_storage_relation(), media_indexer_relation],
             ),
@@ -496,7 +506,7 @@ def test_reconcile_publishes_download_client_requirer(ctx, mock_k8s, tmp_path):
             ctx.on.config_changed(),
             State(
                 leader=True,
-                containers=[container],
+                containers=[container, SCRAPARR_CONTAINER],
                 secrets=[api_key_secret],
                 relations=[_make_storage_relation(), download_client_relation],
             ),

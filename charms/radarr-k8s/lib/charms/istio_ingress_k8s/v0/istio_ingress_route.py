@@ -139,18 +139,13 @@ class IstioIngressCharm(CharmBase):
 import logging
 from abc import ABC
 from enum import Enum
-from typing import Union
+from typing import List, Optional, Union
 
 from ops.charm import CharmBase, CharmEvents, RelationEvent
 from ops.framework import EventSource, Object, StoredState
 from ops.model import Relation
-from pydantic import (
-    BaseModel,
-    Field,
-    computed_field,
-    model_serializer,
-    model_validator,
-)
+from pydantic import BaseModel, Field, computed_field, field_validator, model_serializer, model_validator
+
 
 # The unique Charmhub library identifier, never change it
 LIBID = "3ae88161e5c34ba4b8392c93ef7d12ce"
@@ -287,7 +282,7 @@ class BackendRef(BaseModel):
 
     service: str = Field(description="Service name (in same namespace)")
     port: int = Field(ge=1, le=65535, description="Service port")
-    weight: int | None = Field(default=None, ge=1, le=100, description="Traffic weight")
+    weight: Optional[int] = Field(default=None, ge=1, le=100, description="Traffic weight")
 
 
 # -------------------------------------------------------------------
@@ -345,26 +340,26 @@ class GRPCMethodMatch(BaseModel):
     """
 
     service: str = Field(description="gRPC service name (e.g., 'package.Service')")
-    method: str | None = Field(default=None, description="gRPC method name (e.g., 'GetUser'). If omitted, matches all methods on the service")
+    method: Optional[str] = Field(default=None, description="gRPC method name (e.g., 'GetUser'). If omitted, matches all methods on the service")
 
 
 class _RouteMatch(BaseModel, ABC):
     """Base class for route match conditions."""
 
-    headers: dict | None = Field(default=None, description="Header matches")
+    headers: Optional[dict] = Field(default=None, description="Header matches")
 
 
 class HTTPRouteMatch(_RouteMatch):
     """Match conditions for HTTP routes."""
 
-    path: HTTPPathMatch | None = Field(default=None, description="Path match configuration")
-    method: HTTPMethod | None = Field(default=None, description="HTTP method")
+    path: Optional[HTTPPathMatch] = Field(default=None, description="Path match configuration")
+    method: Optional[HTTPMethod] = Field(default=None, description="HTTP method")
 
 
 class GRPCRouteMatch(_RouteMatch):
     """Match conditions for gRPC routes."""
 
-    method: GRPCMethodMatch | None = Field(default=None, description="gRPC method match configuration")
+    method: Optional[GRPCMethodMatch] = Field(default=None, description="gRPC method match configuration")
 
 
 # Filter helpers
@@ -404,7 +399,7 @@ class PathModifier(BaseModel):
         return data
 
     @model_serializer
-    def serialize_model(self) -> dict | None:
+    def serialize_model(self) -> Optional[dict]:
         """Serialize with correct field name for K8s Gateway API."""
         if self.type == PathModifierType.ReplaceFullPath:
             return {
@@ -439,11 +434,11 @@ class URLRewriteSpec(BaseModel):
     At least one of hostname or path must be specified.
     """
 
-    hostname: str | None = Field(
+    hostname: Optional[str] = Field(
         default=None,
         description="Hostname to rewrite the request to"
     )
-    path: PathModifier | None = Field(
+    path: Optional[PathModifier] = Field(
         default=None,
         description="Path modification configuration"
     )
@@ -466,19 +461,19 @@ class URLRewriteFilter(BaseModel):
 class RequestRedirectSpec(BaseModel):
     """Specification for request redirect configuration."""
 
-    scheme: str | None = Field(
+    scheme: Optional[str] = Field(
         default=None,
         description="Scheme to redirect to (http or https)"
     )
-    hostname: str | None = Field(
+    hostname: Optional[str] = Field(
         default=None,
         description="Hostname to redirect to"
     )
-    path: PathModifier | None = Field(
+    path: Optional[PathModifier] = Field(
         default=None,
         description="Path modification for redirect"
     )
-    port: int | None = Field(
+    port: Optional[int] = Field(
         default=None,
         ge=1,
         le=65535,
@@ -516,7 +511,7 @@ class _Route(BaseModel, ABC):
 
     name: str = Field(description="Route name")
     listener: Listener = Field(description="Listener this route binds to")
-    backends: list[BackendRef] = Field(description="Backend services")
+    backends: List[BackendRef] = Field(description="Backend services")
 
     @property
     def protocol(self) -> ProtocolType:
@@ -527,7 +522,7 @@ class _Route(BaseModel, ABC):
 class _L7Route(_Route, ABC):
     """Base class for Layer 7 routes."""
 
-    hostnames: list[str] | None = Field(default=None, description="Hostnames to match")
+    hostnames: Optional[List[str]] = Field(default=None, description="Hostnames to match")
 
 
 # -------------------------------------------------------------------
@@ -536,8 +531,8 @@ class _L7Route(_Route, ABC):
 class HTTPRoute(_L7Route):
     """HTTP route configuration."""
 
-    matches: list[HTTPRouteMatch] | None = Field(default=None, description="HTTP match rules")
-    filters: list[HTTPRouteFilter] | None = Field(
+    matches: Optional[List[HTTPRouteMatch]] = Field(default=None, description="HTTP match rules")
+    filters: Optional[List[HTTPRouteFilter]] = Field(
         default=None,
         description="Filters to apply to requests matching this route"
     )
@@ -551,8 +546,8 @@ class HTTPRoute(_L7Route):
 class GRPCRoute(_L7Route):
     """gRPC route configuration."""
 
-    matches: list[GRPCRouteMatch] | None = Field(default=None, description="gRPC match rules")
-    filters: list[GRPCRouteFilter] | None = Field(
+    matches: Optional[List[GRPCRouteMatch]] = Field(default=None, description="gRPC match rules")
+    filters: Optional[List[GRPCRouteFilter]] = Field(
         default=None,
         description="Filters to apply to requests matching this route"
     )
@@ -570,9 +565,9 @@ class IstioIngressRouteConfig(BaseModel):
     """Complete configuration for istio-ingress-route."""
 
     model: str = Field(description="The model (namespace) where backend services live")
-    listeners: list[Listener] = Field(default_factory=list)
-    http_routes: list[HTTPRoute] = Field(default_factory=list)
-    grpc_routes: list[GRPCRoute] = Field(default_factory=list)
+    listeners: List[Listener] = Field(default_factory=list)
+    http_routes: List[HTTPRoute] = Field(default_factory=list)
+    grpc_routes: List[GRPCRoute] = Field(default_factory=list)
 
 
 # -------------------------------------------------------------------
@@ -699,7 +694,7 @@ class IstioIngressRouteProvider(Object):
         self.on.data_removed.emit(relation=event.relation, app=event.relation.app)
 
     def update_ingress_address(
-        self, *, external_host: str | None = None, tls_enabled: bool | None = None
+        self, *, external_host: Optional[str] = None, tls_enabled: Optional[bool] = None
     ):
         """Ensure that requirers know the external host for istio-ingress."""
         if not self._charm.unit.is_leader():
@@ -747,7 +742,7 @@ class IstioIngressRouteProvider(Object):
             return False
         return "config" in relation.data[relation.app]
 
-    def get_config(self, relation: Relation) -> IstioIngressRouteConfig | None:
+    def get_config(self, relation: Relation) -> Optional[IstioIngressRouteConfig]:
         """Retrieve the config published by the remote application."""
         if not self.is_ready(relation):
             return None
