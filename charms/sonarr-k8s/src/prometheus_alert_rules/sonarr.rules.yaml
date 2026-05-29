@@ -1,0 +1,104 @@
+groups:
+  - name: sonarr.health
+    rules:
+      - alert: SonarrScrapeAPIFailing
+        expr: up{service="sonarr"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          component: sonarr
+        annotations:
+          summary: scraparr cannot reach Sonarr API on {{ $labels.juju_unit }}
+          description: |
+            scraparr's `up{service="sonarr"}` is 0, meaning the exporter inside
+            the pod can no longer hit Sonarr's API. Typical causes: Sonarr
+            workload crashed, API key drift between Juju secret and config.xml,
+            or the workload container is unhealthy. Check `juju status` and
+            `kubectl logs -c sonarr <pod>`.
+
+      - alert: SonarrExporterDown
+        expr: up{job=~".*sonarr.*"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: sonarr
+        annotations:
+          summary: scraparr sidecar unreachable on {{ $labels.juju_unit }}
+          description: |
+            Prometheus cannot scrape the scraparr `/metrics` endpoint. The
+            sidecar container is likely dead, or the pod's metrics port (7100)
+            is not exposed. Check `kubectl logs -c scraparr <pod>` and verify
+            the scraparr Pebble service is running.
+
+      - alert: SonarrStaleScrape
+        expr: time() - sonarr_last_scrape > 300
+        for: 10m
+        labels:
+          severity: warning
+          component: sonarr
+        annotations:
+          summary: scraparr has not completed a Sonarr scrape in >5min on {{ $labels.juju_unit }}
+          description: |
+            scraparr is reachable but its internal scrape loop has not produced
+            a fresh sample in over 5 minutes. Likely Sonarr API is slow or
+            timing out. Cross-check with `SonarrScrapeDurationHigh`.
+
+  - name: sonarr.performance
+    rules:
+      - alert: SonarrScrapeDurationHigh
+        expr: sonarr_scrape_duration > 30
+        for: 15m
+        labels:
+          severity: warning
+          component: sonarr
+        annotations:
+          summary: scraparr scrape duration exceeding 30s on {{ $labels.juju_unit }}
+          description: |
+            scraparr is taking longer than 30 seconds to gather Sonarr metrics
+            for 15 minutes straight. The Sonarr workload is likely overloaded
+            or the library is large enough that per-series episode lookups are
+            slow. Investigate Sonarr resource usage.
+
+  - name: sonarr.queue
+    rules:
+      - alert: SonarrQueueErrors
+        expr: sonarr_queue_error > 5
+        for: 30m
+        labels:
+          severity: warning
+          component: sonarr
+        annotations:
+          summary: Sonarr queue accumulating errors on {{ $labels.juju_unit }}
+          description: |
+            More than 5 items in Sonarr's queue have been in error state for
+            30 minutes. Common causes: download client unreachable, quality
+            cutoff filters too restrictive, or import path permissions broken.
+            Open the Sonarr UI Activity > Queue tab to inspect.
+
+  - name: sonarr.storage
+    rules:
+      - alert: SonarrDiskSpaceLow
+        expr: sonarr_free_disk_size / (sonarr_free_disk_size + sonarr_disk_size) < 0.10
+        for: 30m
+        labels:
+          severity: warning
+          component: sonarr
+        annotations:
+          summary: Sonarr root folder {{ $labels.path }} under 10% free on {{ $labels.juju_unit }}
+          description: |
+            Free space on root folder `{{ $labels.path }}` has dropped below
+            10% of total. Either delete unwanted content, raise the quality
+            cutoff to prefer smaller files, or expand the backing PVC.
+
+      - alert: SonarrDiskSpaceCritical
+        expr: sonarr_free_disk_size / (sonarr_free_disk_size + sonarr_disk_size) < 0.05
+        for: 10m
+        labels:
+          severity: critical
+          component: sonarr
+        annotations:
+          summary: Sonarr root folder {{ $labels.path }} under 5% free on {{ $labels.juju_unit }}
+          description: |
+            Free space on root folder `{{ $labels.path }}` has dropped below
+            5% of total. Downloads will start failing imminently. Immediate
+            cleanup or storage expansion required.

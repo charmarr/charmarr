@@ -41,6 +41,14 @@ charm-libs:
     version: "0"
   - lib: istio_ingress_k8s.istio_ingress_route
     version: "0"
+  - lib: prometheus_k8s.prometheus_scrape
+    version: "0"
+  - lib: loki_k8s.loki_push_api
+    version: "1"
+  - lib: grafana_k8s.grafana_dashboard
+    version: "0"
+  - lib: tempo_coordinator_k8s.tracing
+    version: "0"
   # FIXME: velero_libs.velero_backup_config not yet on Charmhub.
   # Check with Kubeflow team when it's published, then fetch via charmcraft fetch-libs.
   # Currently vendored from https://github.com/canonical/velero-operator
@@ -55,6 +63,8 @@ containers:
         location: /config
   recyclarr:
     resource: recyclarr-image
+  scraparr:
+    resource: scraparr-image
 
 resources:
   sonarr-image:
@@ -65,6 +75,10 @@ resources:
     type: oci-image
     description: OCI image for Recyclarr
     upstream-source: ghcr.io/recyclarr/recyclarr:7.5.2
+  scraparr-image:
+    type: oci-image
+    description: OCI image for scraparr (Prometheus exporter for *arr apps)
+    upstream-source: ghcr.io/thecfu/scraparr:3.0.3
 
 storage:
   config:
@@ -84,6 +98,14 @@ provides:
     limit: 1
     optional: true
     description: Configure Velero backups for config storage
+  metrics-endpoint:
+    interface: prometheus_scrape
+    optional: true
+    description: Prometheus scrape target for the scraparr exporter
+  grafana-dashboard:
+    interface: grafana_dashboard
+    optional: true
+    description: Ships charm-bundled Grafana dashboards to a related Grafana
 
 requires:
   require-cmr-mesh:
@@ -114,6 +136,16 @@ requires:
     limit: 1
     optional: true
     description: Ingress routing via Istio gateway
+  logging:
+    interface: loki_push_api
+    limit: 1
+    optional: true
+    description: Forwards Pebble service logs (workload + scraparr) to Loki
+  charm-tracing:
+    interface: tracing
+    limit: 1
+    optional: true
+    description: Charm hook execution traces to Tempo via ops[tracing]
 
 config:
   options:
@@ -173,6 +205,20 @@ config:
       description: |
         Auto-rotate API key and sync to related apps.
         Options: disabled, daily, monthly, yearly
+    extended-alert-rules:
+      type: boolean
+      default: false
+      description: |
+        Ship the extended Prometheus alert rule set on the metrics-endpoint
+        relation in addition to the always-on baseline.
+
+        Extended rules add forecast-based, queue-depth-sustained, and library-
+        growth alerts that are noisier than the baseline. Operators who want
+        more proactive paging should enable this; operators who want a quiet
+        alert feed should leave it off.
+
+        See src/prometheus_alert_rules_extended/sonarr-extended.rules.yaml for
+        the full set.
 
 actions:
   sync-trash-profiles:

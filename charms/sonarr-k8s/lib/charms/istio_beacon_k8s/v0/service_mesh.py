@@ -147,7 +147,7 @@ import hashlib
 import json
 import logging
 import warnings
-from typing import Literal
+from typing import Dict, List, Literal, Optional, Set, Type, Union
 
 import httpx
 import pydantic
@@ -180,7 +180,7 @@ POLICY_RESOURCE_TYPES = {
 
 LIBID = "3f40cb7e3569454a92ac2541c5ca0a0c"  # Never change this
 LIBAPI = 0
-LIBPATCH = 16
+LIBPATCH = 19
 
 PYDEPS = [
     "lightkube",
@@ -219,10 +219,10 @@ class Method(str, enum.Enum):
 class Endpoint(pydantic.BaseModel):
     """Data type for a policy endpoint."""
 
-    hosts: list[str] | None = None
-    ports: list[int] | None = None
-    methods: list[Method] | None = None
-    paths: list[str] | None = None
+    hosts: Optional[List[str]] = None
+    ports: Optional[List[int]] = None
+    methods: Optional[List[Method]] = None
+    paths: Optional[List[str]] = None
 
 
 class PolicyTargetType(str, enum.Enum):
@@ -236,8 +236,8 @@ class Policy(pydantic.BaseModel):
     """Data type for defining a policy for your charm."""
 
     relation: str
-    endpoints: list[Endpoint]
-    service: str | None = None
+    endpoints: List[Endpoint]
+    service: Optional[str] = None
 
     def __init__(self, **data):
         warnings.warn(
@@ -254,8 +254,8 @@ class AppPolicy(pydantic.BaseModel):
     """Data type for defining a policy for your charm application."""
 
     relation: str
-    endpoints: list[Endpoint]
-    service: str | None = None
+    endpoints: List[Endpoint]
+    service: Optional[str] = None
 
 
 class UnitPolicy(pydantic.BaseModel):
@@ -265,7 +265,7 @@ class UnitPolicy(pydantic.BaseModel):
     # UnitPolicy at the moment only supports access control over ports.
     # This limitation stems from the currently supported upstream service meshes (Istio).
     # Since other attributes of Endpoints class are not supported, the easiest implementation was to use just the ports attribute in this class.
-    ports: list[int] | None = None
+    ports: Optional[List[int]] = None
 
 
 class MeshPolicy(pydantic.BaseModel):
@@ -278,11 +278,11 @@ class MeshPolicy(pydantic.BaseModel):
     source_namespace: str
     source_app_name: str
     target_namespace: str
-    target_app_name: str | None = None
-    target_selector_labels: dict[str, str] | None = None
-    target_service: str | None = None
+    target_app_name: Optional[str] = None
+    target_selector_labels: Optional[Dict[str, str]] = None
+    target_service: Optional[str] = None
     target_type: Literal[PolicyTargetType.app, PolicyTargetType.unit] = PolicyTargetType.app
-    endpoints: list[Endpoint] = Field(default_factory=list)
+    endpoints: List[Endpoint] = Field(default_factory=list)
 
     @pydantic.model_validator(mode="after")
     def _validate(self):
@@ -323,7 +323,7 @@ class MeshPolicy(pydantic.BaseModel):
 class ServiceMeshProviderAppData(pydantic.BaseModel):
     """Data type for the application data provided by the provider side of the service-mesh interface."""
 
-    labels: dict[str, str]
+    labels: Dict[str, str]
     mesh_type: MeshType
 
 
@@ -343,7 +343,7 @@ class ServiceMeshConsumer(Object):
         mesh_relation_name: str = "service-mesh",
         cross_model_mesh_requires_name: str = "require-cmr-mesh",
         cross_model_mesh_provides_name: str = "provide-cmr-mesh",
-        policies: list[Policy | AppPolicy | UnitPolicy] | None = None,
+        policies: Optional[List[Union[Policy, AppPolicy, UnitPolicy]]] = None,
         auto_join: bool = True,
     ):
         """Class used for joining a service mesh.
@@ -419,10 +419,7 @@ class ServiceMeshConsumer(Object):
 
         # Collect the remote data from any fully established cross_model_relation integrations
         # {remote application name: cmr relation data}
-        cmr_application_data = {
-            cmr.app.name: CMRData.model_validate(json.loads(cmr.data[cmr.app]["cmr_data"]))
-            for cmr in self._cmr_relations if "cmr_data" in cmr.data[cmr.app]
-        }
+        cmr_application_data = get_data_from_cmr_relation(self._cmr_relations)
 
         mesh_policies = build_mesh_policies(
             relation_mapping=self._charm.model.relations,
@@ -431,7 +428,7 @@ class ServiceMeshConsumer(Object):
             policies=self._policies,
             cmr_application_data=cmr_application_data,
         )
-        self._relation.data[self._charm.app]["policies"] = json.dumps(mesh_policies)
+        self._relation.data[self._charm.app]["policies"] = json.dumps([p.model_dump() for p in mesh_policies])
 
     def _my_namespace(self):
         """Return the namespace of the running charm."""
@@ -439,7 +436,7 @@ class ServiceMeshConsumer(Object):
         # should consider if there is a better way to do this.
         return self._charm.model.name
 
-    def _get_app_data(self) -> ServiceMeshProviderAppData | None:
+    def _get_app_data(self) -> Optional[ServiceMeshProviderAppData]:
         """Return the relation data for the remote application."""
         if self._relation is None or not self._relation.app:
             return None
@@ -459,7 +456,7 @@ class ServiceMeshConsumer(Object):
             return {}
         return app_data.labels
 
-    def mesh_type(self) -> MeshType | None:
+    def mesh_type(self) -> Optional[MeshType]:
         """Return the type of the service mesh."""
         app_data = self._get_app_data()
         if app_data is None:
@@ -513,7 +510,7 @@ class ServiceMeshProvider(Object):
     def __init__(
         self,
         charm: CharmBase,
-        labels: dict[str, str],
+        labels: Dict[str, str],
         mesh_type: MeshType,
         mesh_relation_name: str = "service-mesh",
     ):
@@ -534,8 +531,14 @@ class ServiceMeshProvider(Object):
         self.framework.observe(
             self._charm.on[mesh_relation_name].relation_created, self._relation_created
         )
+        self.framework.observe(
+            self._charm.on.config_changed, self._on_config_changed
+        )
 
     def _relation_created(self, _event):
+        self.update_relations()
+
+    def _on_config_changed(self, _event):
         self.update_relations()
 
     def update_relations(self):
@@ -551,7 +554,7 @@ class ServiceMeshProvider(Object):
             for relation in self._charm.model.relations[self._relation_name]:
                 relation.data[self._charm.app].update(data)
 
-    def mesh_info(self) -> list[MeshPolicy]:
+    def mesh_info(self) -> List[MeshPolicy]:
         """Return the relation data that defines Policies requested by the related applications."""
         mesh_info = []
         for relation in self._charm.model.relations[self._relation_name]:
@@ -565,9 +568,9 @@ def build_mesh_policies(
         relation_mapping: RelationMapping,
         target_app_name: str,
         target_namespace: str,
-        policies: list[Policy | AppPolicy | UnitPolicy],
-        cmr_application_data: dict[str, CMRData],
-) -> list[MeshPolicy]:
+        policies: List[Union[Policy, AppPolicy, UnitPolicy]],
+        cmr_application_data: Optional[Dict[str, CMRData]] = None,
+) -> List[MeshPolicy]:
     """Generate MeshPolicy that implement the given policies for the currently related applications.
 
     Args:
@@ -577,9 +580,14 @@ def build_mesh_policies(
         policies: List of AppPolicy, or UnitPolicy objects defining the access rules.
         cmr_application_data: Data for cross-model relations, mapping app names to CMRData.
     """
+    if not cmr_application_data:
+        cmr_application_data = {}
+
     mesh_policies = []
     for policy in policies:
+        logger.debug(f"Processing policy for relation endpoint '{policy.relation}'.")
         for relation in relation_mapping[policy.relation]:
+            logger.debug(f"Processing policy for related application '{relation.app.name}'.")
             if relation.app.name in cmr_application_data:
                 logger.debug(f"Found cross model relation: {relation.name}. Creating policy.")
                 source_app_name = cmr_application_data[relation.app.name].app_name
@@ -605,7 +613,7 @@ def build_mesh_policies(
                         ]
                         if policy.ports
                         else [],
-                    ).model_dump()
+                    )
                 )
             else:
                mesh_policies.append(
@@ -617,13 +625,13 @@ def build_mesh_policies(
                         target_service=policy.service,
                         target_type=PolicyTargetType.app,
                         endpoints=policy.endpoints,
-                    ).model_dump()
+                    )
                 )
 
     return mesh_policies
 
 
-def reconcile_charm_labels(client: Client, app_name: str, namespace: str,  label_configmap_name: str, labels: dict[str, str]) -> None:
+def reconcile_charm_labels(client: Client, app_name: str, namespace: str,  label_configmap_name: str, labels: Dict[str, str]) -> None:
     """Reconciles zero or more user-defined additional Kubernetes labels that are put on a Charm's Kubernetes objects.
 
     This function manages a group of user-defined labels that are added to a Charm's Kubernetes objects (the charm Pods
@@ -645,10 +653,7 @@ def reconcile_charm_labels(client: Client, app_name: str, namespace: str,  label
         labels: A dictionary of labels to set on the Charm's Kubernetes objects. Any labels that were previously created
                 by this method but omitted in `labels` now will be removed from the Kubernetes objects.
     """
-    patch_labels = {}
-    patch_labels.update(labels)
-    stateful_set = client.get(res=StatefulSet, name=app_name)
-    service = client.get(res=Service, name=app_name)
+    patch_labels: Dict[str, Optional[str]] = dict(labels)
     try:
         config_map = client.get(ConfigMap, label_configmap_name)
     except httpx.HTTPStatusError as e:
@@ -662,19 +667,22 @@ def reconcile_charm_labels(client: Client, app_name: str, namespace: str,  label
             if label not in patch_labels:
                 # The label was previously set. Setting it to None will delete it.
                 patch_labels[label] = None
-    if stateful_set.spec:
-        stateful_set.spec.template.metadata.labels.update(patch_labels)  # type: ignore
-    if service.metadata:
-        service.metadata.labels = service.metadata.labels or {}
-        service.metadata.labels.update(patch_labels)
+
+    # Patch just the labels instead of the entire resource defintion.
+    # This minimal approach reduces the chance of 409 conflicts when other actors are modifying the resources.
+    # Retrying here is a bad idea as we WANT to get a 409 when someone else patches OUR labels. We shouldn't mask that.
+    client.patch(res=StatefulSet, name=app_name, obj={
+        "spec": {"template": {"metadata": {"labels": patch_labels}}}
+    })
+    client.patch(res=Service, name=app_name, obj={
+        "metadata": {"labels": patch_labels}
+    })
 
     # Store our actively managed labels in a ConfigMap so next call we know which we might need to delete.
     # This should not include any labels that are nulled out as they're now out of scope.
     config_map_labels = {k: v for k, v in patch_labels.items() if v is not None}
     config_map.data = {"labels": json.dumps(config_map_labels)}
     client.patch(res=ConfigMap, name=label_configmap_name, obj=config_map)
-    client.patch(res=StatefulSet, name=app_name, obj=stateful_set)
-    client.patch(res=Service, name=app_name, obj=service)
 
 
 def _init_label_configmap(client, name, namespace) -> ConfigMap:
@@ -773,7 +781,7 @@ def _generate_network_policy_name(app_name: str, model_name: str, mesh_policy: M
         return name
 
 
-def _build_policy_resources_istio(app_name: str, model_name: str, policies: list[MeshPolicy]) -> LightkubeResourcesList | list[None]:
+def _build_policy_resources_istio(app_name: str, model_name: str, policies: List[MeshPolicy]) -> Union[LightkubeResourcesList, List[None]]:
         """Build the required authorization policy resources for istio service mesh."""
         authorization_policies = [None] * len(policies)
         for i, policy in enumerate(policies):
@@ -908,7 +916,7 @@ def _build_policy_resources_istio(app_name: str, model_name: str, policies: list
         return authorization_policies
 
 
-class PolicyResourceManager:
+class PolicyResourceManager():
     """A Mesh agnostic policy resource manager that manages manifests of different policy manifests in Kubernetes.
 
     This can be used by the charms to create and manage their own policy resources under circumstances like but not limited to
@@ -1039,8 +1047,8 @@ class PolicyResourceManager:
         self,
         charm: CharmBase,
         lightkube_client: Client,
-        labels: dict | None = None,
-        logger: logging.Logger | None = None,
+        labels: Optional[Dict] = None,
+        logger: Optional[logging.Logger] = None,
     ):
         self._app_name = charm.app.name
         self._model_name = charm.model.name
@@ -1060,7 +1068,7 @@ class PolicyResourceManager:
     @staticmethod
     def _get_all_supported_policy_resource_types() -> LightkubeResourceTypesSet:
         """Return all the resource types supported by the PRM class."""
-        all_types: set[type] = set()
+        all_types: Set[Type] = set()
         for resource_types in POLICY_RESOURCE_TYPES.values():
             all_types.update(resource_types)
         return all_types
@@ -1071,12 +1079,12 @@ class PolicyResourceManager:
             return _build_policy_resources_istio
         raise ValueError(f"PolicyResourceManager instantiated with an unknown mesh type: {mesh_type}. Check Canonical Service Mesh documentation for currently supported mesh types.")
 
-    def _build_policy_resources(self, policies: list[MeshPolicy], mesh_type: MeshType) -> LightkubeResourcesList:
+    def _build_policy_resources(self, policies: List[MeshPolicy], mesh_type: MeshType) -> LightkubeResourcesList:
         """Build the Lightkube resources for the managed policies."""
         policy_resource_builder = self._get_policy_resource_builder(mesh_type)
         return policy_resource_builder(self._app_name, self._model_name, policies)  # type: ignore
 
-    def _validate_raw_policies(self, raw_policies: list[AuthorizationPolicy]) -> None:  # type: ignore[type-arg]
+    def _validate_raw_policies(self, raw_policies: List[AuthorizationPolicy]) -> None:  # type: ignore[type-arg]
         """Validate that raw_policies contain only supported resource types.
 
         Raises:
@@ -1097,9 +1105,9 @@ class PolicyResourceManager:
 
     def reconcile(
         self,
-        policies: list[MeshPolicy],
+        policies: List[MeshPolicy],
         mesh_type: MeshType,
-        raw_policies: list[AuthorizationPolicy] | None = None,  # type: ignore[type-arg]
+        raw_policies: Optional[List[AuthorizationPolicy]] = None,  # type: ignore[type-arg]
         force: bool = True,
         ignore_missing: bool = True,
     ) -> None:
@@ -1132,7 +1140,7 @@ class PolicyResourceManager:
         if raw_policies:
             self._validate_raw_policies(raw_policies)
 
-        all_resources: list = list(self._build_policy_resources(policies, mesh_type)) if policies else []
+        all_resources: List = list(self._build_policy_resources(policies, mesh_type)) if policies else []
         if raw_policies:
             all_resources.extend(raw_policies)
 
@@ -1159,3 +1167,16 @@ class PolicyResourceManager:
                 self.log.info("CRD not found, skipping deletion")
                 return
             raise
+
+
+def get_data_from_cmr_relation(cmr_relations) -> Dict[str, CMRData]:
+    """Return a dictionary of CMRData from the established cross-model relations."""
+    cmr_data = {}
+    for cmr in cmr_relations:
+        if "cmr_data" in cmr.data[cmr.app]:
+            try:
+                cmr_data[cmr.app.name] = CMRData.model_validate(json.loads(cmr.data[cmr.app]["cmr_data"]))
+            except pydantic.ValidationError as e:
+                logger.error(f"Invalid CMR data for {cmr.app.name}: {e}")
+                continue
+    return cmr_data

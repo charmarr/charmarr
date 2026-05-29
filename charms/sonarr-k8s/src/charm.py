@@ -7,10 +7,12 @@
 import logging
 
 import ops
+from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.istio_beacon_k8s.v0.service_mesh import (
     AppPolicy,
     Endpoint,
     ServiceMeshConsumer,
+    UnitPolicy,
 )
 from charms.istio_ingress_k8s.v0.istio_ingress_route import (
     BackendRef,
@@ -23,12 +25,21 @@ from charms.istio_ingress_k8s.v0.istio_ingress_route import (
     Listener,
     ProtocolType,
 )
+from charms.loki_k8s.v1.loki_push_api import LogForwarder
+from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from charms.velero_libs.v0.velero_backup_config import VeleroBackupProvider, VeleroBackupSpec
 
 from _sonarr import (
     API_KEY_SECRET_LABEL,
     CONFIG_FILE,
     CONTAINER_NAME,
+    METRICS_CONTAINER_NAME,
+    METRICS_PATH,
+    METRICS_PORT,
+    METRICS_SERVICE_NAME,
+    SCRAPARR_COMMAND,
+    SCRAPARR_ENV_API_KEY,
+    SCRAPARR_ENV_URL,
     SERVICE_NAME,
     WEBUI_PORT,
 )
@@ -75,7 +86,22 @@ class SonarrCharm(ops.CharmBase):
     def __init__(self, framework: ops.Framework) -> None:
         super().__init__(framework)
         self._container = self.unit.get_container(CONTAINER_NAME)
+        self._scraparr_container = self.unit.get_container(METRICS_CONTAINER_NAME)
         self._k8s: K8sResourceManager | None = None
+
+        self._metrics_endpoint = MetricsEndpointProvider(
+            self,
+            jobs=[{"static_configs": [{"targets": [f"*:{METRICS_PORT}"]}]}],
+            alert_rules_path=(
+                "src/prometheus_alert_rules_extended"
+                if bool(self.config.get("extended-alert-rules", False))
+                else "src/prometheus_alert_rules"
+            ),
+            refresh_event=[self.on.scraparr_pebble_ready],
+        )
+        self._grafana_dashboards = GrafanaDashboardProvider(self)
+        self._log_forwarder = LogForwarder(self, relation_name="logging")
+        self._charm_tracing = ops.tracing.Tracing(self, tracing_relation_name="charm-tracing")
 
         self._media_manager = MediaManagerProvider(self, "media-manager")
         self._media_indexer = MediaIndexerRequirer(self, "media-indexer")
@@ -92,6 +118,10 @@ class SonarrCharm(ops.CharmBase):
                 AppPolicy(
                     relation="media-indexer",
                     endpoints=[Endpoint(ports=[WEBUI_PORT])],
+                ),
+                UnitPolicy(
+                    relation="metrics-endpoint",
+                    ports=[METRICS_PORT],
                 ),
             ],
         )
@@ -223,6 +253,40 @@ class SonarrCharm(ops.CharmBase):
             },
             "checks": self._build_readiness_check(),
         }
+
+    def _build_scraparr_layer(self, api_key: str) -> ops.pebble.LayerDict:
+        return {
+            "summary": "scraparr Prometheus exporter",
+            "services": {
+                METRICS_SERVICE_NAME: {
+                    "override": "replace",
+                    "summary": "scraparr exporter for Sonarr",
+                    "command": SCRAPARR_COMMAND,
+                    "startup": "enabled",
+                    "environment": {
+                        SCRAPARR_ENV_URL: f"http://localhost:{WEBUI_PORT}",
+                        SCRAPARR_ENV_API_KEY: api_key,
+                    },
+                },
+            },
+            "checks": {
+                f"{METRICS_CONTAINER_NAME}-ready": {
+                    "override": "replace",
+                    "level": "ready",
+                    "http": {"url": f"http://localhost:{METRICS_PORT}{METRICS_PATH}"},
+                    "period": "10s",
+                    "timeout": "3s",
+                    "threshold": 3,
+                }
+            },
+        }
+
+    def _reconcile_scraparr(self, api_key: str) -> None:
+        if not self._scraparr_container.can_connect():
+            return
+        layer = self._build_scraparr_layer(api_key)
+        self._scraparr_container.add_layer(METRICS_SERVICE_NAME, layer, combine=True)
+        self._scraparr_container.replan()
 
     def _reconcile_vpn(self) -> None:
         """Reconcile VPN client-side patching based on gateway state."""
@@ -444,6 +508,7 @@ class SonarrCharm(ops.CharmBase):
 
         self._reconcile_config(new_api_key)
         self._container.replan()
+        self._reconcile_scraparr(new_api_key)
 
     def _reconcile(self, _: ops.EventBase) -> None:
         """Reconcile charm state with desired configuration.
@@ -532,6 +597,9 @@ class SonarrCharm(ops.CharmBase):
         layer = self._build_pebble_layer(storage.puid, storage.pgid)
         self._container.add_layer(SERVICE_NAME, layer, combine=True)
         self._container.replan()
+
+        # Reconcile scraparr sidecar (Prometheus exporter)
+        self._reconcile_scraparr(api_key)
 
         self.unit.set_ports(WEBUI_PORT)
 
@@ -632,6 +700,8 @@ class SonarrCharm(ops.CharmBase):
             self._container.stop(SERVICE_NAME)
             self._container.start(SERVICE_NAME)
             logger.info("Restarted Sonarr after API key rotation")
+
+        self._reconcile_scraparr(new_api_key)
 
         event.set_results({"result": "API key rotated successfully"})
 
