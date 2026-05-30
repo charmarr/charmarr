@@ -1,0 +1,33 @@
+version: prometheus/v1
+service: charmarr-downloads
+labels:
+  stack: charmarr
+  domain: downloads
+slos:
+  - name: download-completion-rate
+    objective: 95.0
+    description: |
+      Of downloads that the download clients (qBittorrent, SABnzbd) work
+      on, the fraction that complete successfully. 95% reflects the
+      homelab reality that some downloads will fail - rare files, dead
+      torrent seeds, NZB obsolescence, transient indexer issues. SLO
+      drives operator attention only when failure rate is sustained.
+    sli:
+      events:
+        error_query: |
+          sum(rate(qbittorrent_torrents_failed_total[{{.window}}]))
+          + sum(rate(sabnzbd_failed_jobs_total[{{.window}}]))
+        total_query: |
+          sum(rate(qbittorrent_torrents_completed_total[{{.window}}]))
+          + sum(rate(sabnzbd_completed_jobs_total[{{.window}}]))
+    alerting:
+      name: CharmarrDownloadCompletionBudgetBurn
+      labels:
+        category: data-path
+      annotations:
+        summary: Download completion error budget burn ({{$value}} fraction)
+      page_alert:
+        disable: true
+      ticket_alert:
+        labels:
+          severity: ticket
