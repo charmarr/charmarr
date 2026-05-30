@@ -43,9 +43,66 @@ parts:
 #      craftctl default
 #      git describe --always > $CRAFT_PART_INSTALL/version
 
+charm-libs:
+  - lib: istio_beacon_k8s.service_mesh
+    version: "0"
+  - lib: prometheus_k8s.prometheus_scrape
+    version: "0"
+  - lib: grafana_k8s.grafana_dashboard
+    version: "0"
+  - lib: loki_k8s.loki_push_api
+    version: "1"
+  - lib: tempo_coordinator_k8s.tracing
+    version: "0"
+
 provides:
   media-storage:
     interface: media-storage
+  provide-cmr-mesh:
+    interface: cross_model_mesh
+    optional: true
+    description: Access cross-model applications via service mesh.
+  crowsnest:
+    interface: crowsnest
+    optional: true
+    description: |
+      Opt this charm into the charmarr-crowsnest-k8s fleet view. The
+      provider publishes its topology endpoint URL; crowsnest aggregates
+      across all related peers for the fleet graph and SLO catalog.
+  metrics-endpoint:
+    interface: prometheus_scrape
+    optional: true
+    description: |
+      Prometheus scrape target. Carries the charmarr topology metrics
+      (`charmarr_relation_bound`, `charmarr_relation_edge`) plus storage-
+      broker gauges (consumers bound, PVC bind state, permission check
+      state) emitted from the charm container via CharmarrChargedTopology.
+      No workload exporter - this charm is workloadless; see adr-002.
+  grafana-dashboard:
+    interface: grafana_dashboard
+    optional: true
+    description: Ships the bundled storage-broker Grafana dashboard.
+
+requires:
+  require-cmr-mesh:
+    interface: cross_model_mesh
+    optional: true
+    description: Allow cross-model access via service mesh.
+  service-mesh:
+    interface: service_mesh
+    limit: 1
+    optional: true
+    description: Subscribe this charm into a service mesh for policy-driven traffic management.
+  logging:
+    interface: loki_push_api
+    limit: 1
+    optional: true
+    description: Forwards charm hook logs to Loki (no workload logs - charm is workloadless).
+  charm-tracing:
+    interface: tracing
+    limit: 1
+    optional: true
+    description: Charm hook execution traces to Tempo via ops[tracing].
 
 config:
   options:
