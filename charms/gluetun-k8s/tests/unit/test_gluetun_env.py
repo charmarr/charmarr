@@ -152,7 +152,6 @@ def test_override_without_private_key(ctx, mock_k8s_privileged):
 
     container = Container(name="gluetun", can_connect=True)
 
-
     exporter_container = Container(name="gluetun-exporter", can_connect=True)
     state = ctx.run(
         ctx.on.config_changed(),

@@ -234,10 +234,9 @@ def test_reconcile_sets_port(ctx, mock_k8s):
             ),
         )
 
-    assert len(state.opened_ports) == 1
-    port = next(iter(state.opened_ports))
-    assert port.port == 32400
-    assert port.protocol == "tcp"
+    opened = {p.port for p in state.opened_ports}
+    assert opened == {32400, 9099}
+    assert all(p.protocol == "tcp" for p in state.opened_ports)
 
 
 def test_configure_ingress_submits_route_on_config_changed(ctx, mock_k8s):

@@ -51,6 +51,8 @@ from _prowlarr import (
 )
 from charmarr_lib.core import (
     ArrApiResponseError,
+    CharmarrTopology,
+    CharmarrTopologyRelation,
     K8sResourceManager,
     MediaIndexer,
     ensure_pebble_user,
@@ -63,6 +65,8 @@ from charmarr_lib.core import (
     sync_secret_rotation_policy,
 )
 from charmarr_lib.core.interfaces import (
+    CrowsnestProvider,
+    CrowsnestProviderData,
     FlareSolverrRequirer,
     MediaIndexerProvider,
     MediaIndexerProviderData,
@@ -82,9 +86,20 @@ class ProwlarrCharm(ops.CharmBase):
         self._scraparr_container = self.unit.get_container(METRICS_CONTAINER_NAME)
         self._k8s: K8sResourceManager | None = None
 
+        self._topology = CharmarrTopology(
+            self,
+            relations=[
+                CharmarrTopologyRelation("flaresolverr", role="requires", required=False),
+                CharmarrTopologyRelation("vpn-gateway", role="requires", required=False),
+                CharmarrTopologyRelation("media-indexer", role="provides", required=False),
+            ],
+        )
         self._metrics_endpoint = MetricsEndpointProvider(
             self,
-            jobs=[{"static_configs": [{"targets": [f"*:{METRICS_PORT}"]}]}],
+            jobs=[
+                {"static_configs": [{"targets": [f"*:{METRICS_PORT}"]}]},
+                self._topology.scrape_job,
+            ],
             alert_rules_path=(
                 "src/prometheus_alert_rules_extended"
                 if bool(self.config.get("extended-alert-rules", False))
@@ -99,6 +114,7 @@ class ProwlarrCharm(ops.CharmBase):
         self._media_indexer = MediaIndexerProvider(self, "media-indexer")
         self._flaresolverr = FlareSolverrRequirer(self, "flaresolverr")
         self._vpn_gateway = VPNGatewayRequirer(self, "vpn-gateway")
+        self._crowsnest = CrowsnestProvider(self, "crowsnest")
         self._service_mesh = ServiceMeshConsumer(
             self,
             policies=[
@@ -106,9 +122,13 @@ class ProwlarrCharm(ops.CharmBase):
                     relation="media-indexer",
                     endpoints=[Endpoint(ports=[WEBUI_PORT])],
                 ),
+                AppPolicy(
+                    relation="crowsnest",
+                    endpoints=[Endpoint(ports=[self._topology.port])],
+                ),
                 UnitPolicy(
                     relation="metrics-endpoint",
-                    ports=[METRICS_PORT],
+                    ports=[METRICS_PORT, self._topology.port],
                 ),
             ],
         )
@@ -505,16 +525,30 @@ class ProwlarrCharm(ops.CharmBase):
         self._container.add_layer(SERVICE_NAME, layer, combine=True)
         self._container.replan()
 
-        self.unit.set_ports(WEBUI_PORT)
+        self.unit.set_ports(WEBUI_PORT, self._topology.port)
 
     def _reconcile(self, _: ops.EventBase) -> None:
         """Reconcile charm state with desired configuration.
 
         Orchestrates the reconciliation process by delegating to focused sub-methods:
-        1. Non-leader units: register readiness check and exit early
-        2. Submit ingress route config (if ingress relation exists)
-        3. Leader unit: full reconciliation of workload and integrations
+        1. Refresh topology metrics + ensure topology daemon is running
+        2. Non-leader units: register readiness check and exit early
+        3. Submit ingress route config (if ingress relation exists)
+        4. Leader unit: full reconciliation of workload and integrations
         """
+        self._topology.reconcile()
+        # The topology endpoint is a cluster-internal concern - crowsnest polls
+        # it from inside the same K8s cluster. Hardcode the in-cluster Service
+        # FQDN; never expose this URL externally.
+        self._crowsnest.publish_data(
+            CrowsnestProviderData(
+                topology_url=(
+                    f"http://{self.app.name}.{self.model.name}"
+                    f".svc.cluster.local:{self._topology.port}/metrics"
+                )
+            )
+        )
+
         if not self.unit.is_leader():
             self._reconcile_non_leader()
             return
