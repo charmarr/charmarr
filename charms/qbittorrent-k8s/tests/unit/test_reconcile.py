@@ -12,7 +12,7 @@ from ops.testing import Container, Exec, Mount, Relation, State
 from charmarr_lib.core.interfaces import MediaStorageProviderData
 from charmarr_lib.vpn.interfaces import VPNGatewayProviderData
 
-from .conftest import QBITTORRENT_CONTAINER
+from .conftest import QBITTORRENT_CONTAINER, QBITTORRENT_EXPORTER_CONTAINER
 
 
 def test_reconcile_creates_credentials_secret(ctx, mock_k8s):
@@ -32,7 +32,7 @@ def test_reconcile_creates_credentials_secret(ctx, mock_k8s):
             ctx.on.config_changed(),
             State(
                 leader=True,
-                containers=[QBITTORRENT_CONTAINER],
+                containers=[QBITTORRENT_CONTAINER, QBITTORRENT_EXPORTER_CONTAINER],
                 relations=[storage_relation],
                 config={"unsafe-mode": True},
             ),
@@ -61,7 +61,7 @@ def test_reconcile_builds_pebble_layer(ctx, mock_k8s):
             ctx.on.config_changed(),
             State(
                 leader=True,
-                containers=[QBITTORRENT_CONTAINER],
+                containers=[QBITTORRENT_CONTAINER, QBITTORRENT_EXPORTER_CONTAINER],
                 relations=[storage_relation],
                 config={"unsafe-mode": True},
             ),
@@ -96,7 +96,7 @@ def test_reconcile_calls_storage_volume(ctx, mock_k8s):
             ctx.on.config_changed(),
             State(
                 leader=True,
-                containers=[QBITTORRENT_CONTAINER],
+                containers=[QBITTORRENT_CONTAINER, QBITTORRENT_EXPORTER_CONTAINER],
                 relations=[storage_relation],
                 config={"unsafe-mode": True},
             ),
@@ -138,7 +138,7 @@ def test_reconcile_calls_vpn_gateway_client(ctx, mock_k8s):
             ctx.on.config_changed(),
             State(
                 leader=True,
-                containers=[QBITTORRENT_CONTAINER],
+                containers=[QBITTORRENT_CONTAINER, QBITTORRENT_EXPORTER_CONTAINER],
                 relations=[storage_relation, vpn_relation],
             ),
         )
@@ -180,7 +180,7 @@ def test_ensure_user_exists_adds_user_and_group(ctx, mock_k8s):
                 ctx.on.config_changed(),
                 State(
                     leader=True,
-                    containers=[container],
+                    containers=[container, QBITTORRENT_EXPORTER_CONTAINER],
                     relations=[storage_relation],
                     config={"unsafe-mode": True},
                 ),
@@ -215,7 +215,7 @@ def test_secret_rotate_generates_new_credentials(ctx, mock_k8s):
             ctx.on.secret_rotate(secret),
             State(
                 leader=True,
-                containers=[QBITTORRENT_CONTAINER],
+                containers=[QBITTORRENT_CONTAINER, QBITTORRENT_EXPORTER_CONTAINER],
                 relations=[storage_relation],
                 secrets=[secret],
             ),

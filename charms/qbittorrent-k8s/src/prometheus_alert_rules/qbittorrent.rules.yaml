@@ -1,0 +1,86 @@
+groups:
+  - name: qbittorrent.health
+    rules:
+      - alert: QbittorrentScrapeAPIFailing
+        expr: up{service="qbittorrent"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          component: qbittorrent
+        annotations:
+          summary: qbittorrent-exporter cannot reach qBittorrent API on {{ $labels.juju_unit }}
+          description: |
+            The exporter inside the pod can no longer authenticate against
+            qBittorrent's API. Typical causes: qBittorrent workload crashed,
+            credential drift between the Juju secret and qBittorrent's stored
+            password hash, or the workload container is unhealthy. Check
+            `juju status` and `kubectl logs -c qbittorrent <pod>`.
+
+      - alert: QbittorrentExporterDown
+        expr: up{job=~".*qbittorrent.*"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: qbittorrent
+        annotations:
+          summary: qbittorrent-exporter sidecar unreachable on {{ $labels.juju_unit }}
+          description: |
+            Prometheus cannot scrape the exporter's `/metrics` endpoint. The
+            sidecar container is likely dead, or the pod's metrics port (8090)
+            is not exposed. Check `kubectl logs -c qbittorrent-exporter <pod>`.
+
+  - name: qbittorrent.torrents
+    rules:
+      - alert: QbittorrentStalledTorrents
+        expr: sum by (juju_model, juju_application, juju_unit) (qbittorrent_torrents_count{state=~"stalled.*"}) > 10
+        for: 1h
+        labels:
+          severity: warning
+          component: qbittorrent
+        annotations:
+          summary: Over 10 stalled torrents on {{ $labels.juju_unit }}
+          description: |
+            More than 10 torrents have been stalled (no peer activity) for at
+            least an hour. Likely tracker outage, blocked port, or VPN egress
+            issue. Check tracker health and the qBittorrent UI Trackers tab.
+
+      - alert: QbittorrentErroredTorrents
+        expr: sum by (juju_model, juju_application, juju_unit) (qbittorrent_torrents_count{state=~"error|missingFiles"}) > 0
+        for: 30m
+        labels:
+          severity: warning
+          component: qbittorrent
+        annotations:
+          summary: Torrents in error/missing-files state on {{ $labels.juju_unit }}
+          description: |
+            One or more torrents have been in error or missing-files state for
+            30 minutes. Common causes: disk full, file moved or deleted, or
+            permission issues on the save path. Open qBittorrent UI to review.
+
+      - alert: QbittorrentDownloadStuck
+        expr: sum by (juju_model, juju_application, juju_unit) (qbittorrent_torrents_count{state="downloading"}) > 0 and on(juju_model, juju_application, juju_unit) qbittorrent_global_dl_speed_bytes == 0
+        for: 30m
+        labels:
+          severity: warning
+          component: qbittorrent
+        annotations:
+          summary: Downloading torrents but zero download speed on {{ $labels.juju_unit }}
+          description: |
+            qBittorrent has torrents in the downloading state but the global
+            download speed has been 0 B/s for 30 minutes. Likely peer or
+            tracker connectivity broken (DNS, VPN, firewall).
+
+  - name: qbittorrent.ratio
+    rules:
+      - alert: QbittorrentRatioVeryLow
+        expr: qbittorrent_global_alltime_ul_bytes < qbittorrent_global_alltime_dl_bytes * 0.3
+        for: 24h
+        labels:
+          severity: warning
+          component: qbittorrent
+        annotations:
+          summary: Global ratio below 0.3 for 24h on {{ $labels.juju_unit }}
+          description: |
+            Sustained low share ratio. Private trackers will rate-limit or ban
+            accounts under their minimum ratio. Increase per-torrent ratio
+            limits or seed longer before removing.

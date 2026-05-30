@@ -20,6 +20,8 @@ QBITTORRENT_CONTAINER = Container(
     execs={Exec(["chown", "-R", "1000:1000", "/config/qBittorrent"])},
 )
 
+QBITTORRENT_EXPORTER_CONTAINER = Container(name="qbittorrent-exporter", can_connect=True)
+
 
 @pytest.fixture
 def ctx() -> Context[QBittorrentCharm]:
