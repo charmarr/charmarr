@@ -1,0 +1,148 @@
+{
+  "title": "Plex",
+  "uid": "charmarr-plex",
+  "tags": ["charmarr", "plex"],
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "graphTooltip": 1,
+  "refresh": "30s",
+  "time": {"from": "now-6h", "to": "now"},
+  "timezone": "",
+  "templating": {
+    "list": [
+      {
+        "name": "juju_model",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+        "query": "label_values(up{juju_charm=\"plex-k8s\"}, juju_model)",
+        "refresh": 1, "includeAll": false, "multi": false
+      },
+      {
+        "name": "juju_application",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+        "query": "label_values(up{juju_charm=\"plex-k8s\", juju_model=\"$juju_model\"}, juju_application)",
+        "refresh": 1, "includeAll": false, "multi": false
+      },
+      {
+        "name": "juju_unit",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+        "query": "label_values(up{juju_charm=\"plex-k8s\", juju_model=\"$juju_model\", juju_application=\"$juju_application\"}, juju_unit)",
+        "refresh": 1, "includeAll": true, "multi": true
+      }
+    ]
+  },
+  "panels": [
+    {"id": 1, "type": "row", "title": "Service health", "collapsed": false, "gridPos": {"x": 0, "y": 0, "w": 24, "h": 1}},
+
+    {
+      "id": 2, "type": "stat", "title": "Workload reachable",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 0, "y": 1, "w": 4, "h": 4},
+      "targets": [{"expr": "min(up{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "refId": "A"}],
+      "fieldConfig": {"defaults": {"mappings": [{"type": "value", "options": {"0": {"text": "DOWN", "color": "red"}}}, {"type": "value", "options": {"1": {"text": "UP", "color": "green"}}}], "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}}},
+      "options": {"colorMode": "background", "graphMode": "none", "textMode": "value"}
+    },
+    {
+      "id": 3, "type": "stat", "title": "Plex API up",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 4, "y": 1, "w": 4, "h": 4},
+      "targets": [{"expr": "min(plex_up{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "refId": "A"}],
+      "fieldConfig": {"defaults": {"mappings": [{"type": "value", "options": {"0": {"text": "DOWN", "color": "red"}}}, {"type": "value", "options": {"1": {"text": "UP", "color": "green"}}}], "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}}},
+      "options": {"colorMode": "background", "graphMode": "none", "textMode": "value"}
+    },
+    {
+      "id": 4, "type": "stat", "title": "Active sessions",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 8, "y": 1, "w": 4, "h": 4},
+      "targets": [{"expr": "sum(plex_sessions_count{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "refId": "A"}],
+      "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 5}, {"color": "red", "value": 15}]}}},
+      "options": {"colorMode": "value", "graphMode": "area", "textMode": "value"}
+    },
+    {
+      "id": 5, "type": "stat", "title": "Active transcodes",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 12, "y": 1, "w": 4, "h": 4},
+      "targets": [{"expr": "sum(plex_video_transcode_sessions_count{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"}) + sum(plex_audio_transcode_sessions_count{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "refId": "A"}],
+      "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 3}, {"color": "red", "value": 10}]}}},
+      "options": {"colorMode": "value", "graphMode": "area", "textMode": "value"}
+    },
+    {
+      "id": 6, "type": "stat", "title": "Log volume (5m)",
+      "datasource": {"type": "loki", "uid": "${lokids}"},
+      "gridPos": {"x": 16, "y": 1, "w": 4, "h": 4},
+      "targets": [{"expr": "sum(count_over_time({juju_model=\"$juju_model\", juju_application=\"$juju_application\"}[5m]))", "refId": "A"}],
+      "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}}},
+      "options": {"colorMode": "value", "graphMode": "area", "textMode": "value"}
+    },
+    {
+      "id": 7, "type": "stat", "title": "Errors in logs (1h)",
+      "datasource": {"type": "loki", "uid": "${lokids}"},
+      "gridPos": {"x": 20, "y": 1, "w": 4, "h": 4},
+      "targets": [{"expr": "sum(count_over_time({juju_model=\"$juju_model\", juju_application=\"$juju_application\"} |~ \"(?i)error|fatal\" [1h]))", "refId": "A"}],
+      "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 10}, {"color": "red", "value": 100}]}}},
+      "options": {"colorMode": "value", "graphMode": "area", "textMode": "value"}
+    },
+
+    {"id": 10, "type": "row", "title": "Sessions over time", "collapsed": false, "gridPos": {"x": 0, "y": 5, "w": 24, "h": 1}},
+
+    {
+      "id": 11, "type": "timeseries", "title": "Sessions by state",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 0, "y": 6, "w": 12, "h": 8},
+      "targets": [{"expr": "sum by (state) (plex_sessions_count{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "legendFormat": "{{state}}", "refId": "A"}],
+      "options": {"legend": {"showLegend": true, "displayMode": "list", "placement": "bottom"}}
+    },
+    {
+      "id": 12, "type": "timeseries", "title": "Transcode sessions",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 12, "y": 6, "w": 12, "h": 8},
+      "targets": [
+        {"expr": "sum(plex_video_transcode_sessions_count{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "legendFormat": "video", "refId": "A"},
+        {"expr": "sum(plex_audio_transcode_sessions_count{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "legendFormat": "audio", "refId": "B"}
+      ],
+      "options": {"legend": {"showLegend": true, "displayMode": "list", "placement": "bottom"}}
+    },
+
+    {"id": 20, "type": "row", "title": "Library", "collapsed": false, "gridPos": {"x": 0, "y": 14, "w": 24, "h": 1}},
+
+    {
+      "id": 21, "type": "bargauge", "title": "Media count by library",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 0, "y": 15, "w": 12, "h": 8},
+      "targets": [{"expr": "sum by (title) (plex_media_count{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "legendFormat": "{{title}}", "refId": "A"}],
+      "options": {"orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true}
+    },
+    {
+      "id": 22, "type": "piechart", "title": "Media count by type",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 12, "y": 15, "w": 12, "h": 8},
+      "targets": [{"expr": "sum by (type) (plex_media_count{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "legendFormat": "{{type}}", "refId": "A"}],
+      "options": {"legend": {"showLegend": true, "placement": "right"}, "pieType": "donut"}
+    },
+
+    {"id": 30, "type": "row", "title": "Top users", "collapsed": false, "gridPos": {"x": 0, "y": 23, "w": 24, "h": 1}},
+
+    {
+      "id": 31, "type": "table", "title": "Sessions by user",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 0, "y": 24, "w": 24, "h": 8},
+      "targets": [{"expr": "topk(20, sum by (username) (plex_sessions_count{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"}))", "format": "table", "instant": true, "refId": "A"}],
+      "transformations": [
+        {"id": "organize", "options": {"excludeByName": {"Time": true, "__name__": true, "instance": true, "job": true, "juju_charm": true, "juju_model_uuid": true, "juju_model": true, "juju_application": true, "juju_unit": true}, "renameByName": {"username": "User", "Value": "Active sessions"}}}
+      ]
+    },
+
+    {"id": 60, "type": "row", "title": "Logs", "collapsed": false, "gridPos": {"x": 0, "y": 32, "w": 24, "h": 1}},
+
+    {
+      "id": 61, "type": "logs", "title": "ERROR/WARN log lines (Plex + exporter)",
+      "datasource": {"type": "loki", "uid": "${lokids}"},
+      "gridPos": {"x": 0, "y": 33, "w": 24, "h": 10},
+      "targets": [{"expr": "{juju_model=\"$juju_model\", juju_application=\"$juju_application\"} |~ \"(?i)error|warn|fatal\"", "refId": "A"}],
+      "options": {"showTime": true, "showLabels": false, "wrapLogMessage": true, "sortOrder": "Descending"}
+    }
+  ]
+}

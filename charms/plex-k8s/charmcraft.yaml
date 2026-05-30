@@ -38,6 +38,14 @@ charm-libs:
     version: "0"
   - lib: istio_ingress_k8s.istio_ingress_route
     version: "0"
+  - lib: prometheus_k8s.prometheus_scrape
+    version: "0"
+  - lib: loki_k8s.loki_push_api
+    version: "1"
+  - lib: grafana_k8s.grafana_dashboard
+    version: "0"
+  - lib: tempo_coordinator_k8s.tracing
+    version: "0"
   # FIXME: velero_libs.velero_backup_config not yet on Charmhub.
   # Check with Kubeflow team when it's published, then fetch via charmcraft fetch-libs.
   # Currently vendored from https://github.com/canonical/velero-operator
@@ -50,12 +58,18 @@ containers:
     mounts:
       - storage: config
         location: /config
+  plex-exporter:
+    resource: plex-exporter-image
 
 resources:
   plex-image:
     type: oci-image
     description: OCI image for Plex Media Server (LinuxServer)
     upstream-source: lscr.io/linuxserver/plex:1.43.1.10611-1e34174b1-ls301
+  plex-exporter-image:
+    type: oci-image
+    description: OCI image for axsuul/plex-media-server-exporter (Prometheus exporter for Plex)
+    upstream-source: ghcr.io/axsuul/plex-media-server-exporter:2.1.0
 
 storage:
   config:
@@ -79,6 +93,14 @@ provides:
     limit: 1
     optional: true
     description: Configure Velero backups for config storage
+  metrics-endpoint:
+    interface: prometheus_scrape
+    optional: true
+    description: Prometheus scrape target for the plex-exporter sidecar
+  grafana-dashboard:
+    interface: grafana_dashboard
+    optional: true
+    description: Ships charm-bundled Grafana dashboards to a related Grafana
 
 requires:
   require-cmr-mesh:
@@ -104,6 +126,16 @@ requires:
     limit: 1
     optional: true
     description: Ingress routing via Istio gateway
+  logging:
+    interface: loki_push_api
+    limit: 1
+    optional: true
+    description: Forwards Pebble service logs (workload + exporter) to Loki
+  charm-tracing:
+    interface: tracing
+    limit: 1
+    optional: true
+    description: Charm hook execution traces to Tempo via ops[tracing]
 
 config:
   options:
@@ -140,6 +172,14 @@ config:
       type: string
       default: "Etc/UTC"
       description: IANA timezone (e.g., America/New_York, Europe/London)
+    extended-alert-rules:
+      type: boolean
+      default: false
+      description: |
+        Ship the extended Prometheus alert rule set on the metrics-endpoint
+        relation in addition to the always-on baseline.
+
+        See src/prometheus_alert_rules_extended/plex-extended.rules.yaml.
 
 actions:
   force-reclaim:

@@ -7,10 +7,12 @@
 import logging
 
 import ops
+from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.istio_beacon_k8s.v0.service_mesh import (
     AppPolicy,
     Endpoint,
     ServiceMeshConsumer,
+    UnitPolicy,
 )
 from charms.istio_ingress_k8s.v0.istio_ingress_route import (
     BackendRef,
@@ -23,10 +25,21 @@ from charms.istio_ingress_k8s.v0.istio_ingress_route import (
     Listener,
     ProtocolType,
 )
+from charms.loki_k8s.v1.loki_push_api import LogForwarder
+from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from charms.velero_libs.v0.velero_backup_config import VeleroBackupProvider, VeleroBackupSpec
 
 from _plex import (
     CONTAINER_NAME,
+    EXPORTER_COMMAND,
+    EXPORTER_ENV_ADDR,
+    EXPORTER_ENV_PORT,
+    EXPORTER_ENV_TOKEN,
+    EXPORTER_WORKING_DIR,
+    METRICS_CONTAINER_NAME,
+    METRICS_PATH,
+    METRICS_PORT,
+    METRICS_SERVICE_NAME,
     PLEX_BINARY,
     PLEX_DATA_DIR,
     PREFERENCES_FILE,
@@ -67,7 +80,22 @@ class PlexCharm(ops.CharmBase):
     def __init__(self, framework: ops.Framework) -> None:
         super().__init__(framework)
         self._container = self.unit.get_container(CONTAINER_NAME)
+        self._exporter_container = self.unit.get_container(METRICS_CONTAINER_NAME)
         self._k8s: K8sResourceManager | None = None
+
+        self._metrics_endpoint = MetricsEndpointProvider(
+            self,
+            jobs=[{"static_configs": [{"targets": [f"*:{METRICS_PORT}"]}]}],
+            alert_rules_path=(
+                "src/prometheus_alert_rules_extended"
+                if bool(self.config.get("extended-alert-rules", False))
+                else "src/prometheus_alert_rules"
+            ),
+            refresh_event=[self.on.plex_exporter_pebble_ready],
+        )
+        self._grafana_dashboards = GrafanaDashboardProvider(self)
+        self._log_forwarder = LogForwarder(self, relation_name="logging")
+        self._charm_tracing = ops.tracing.Tracing(self, tracing_relation_name="charm-tracing")
 
         self._media_storage = MediaStorageRequirer(self, "media-storage")
         self._media_manager = MediaManagerRequirer(self, "media-manager")
@@ -78,6 +106,10 @@ class PlexCharm(ops.CharmBase):
                 AppPolicy(
                     relation="media-server",
                     endpoints=[Endpoint(ports=[WEBUI_PORT])],
+                ),
+                UnitPolicy(
+                    relation="metrics-endpoint",
+                    ports=[METRICS_PORT],
                 ),
             ],
         )
@@ -347,6 +379,42 @@ class PlexCharm(ops.CharmBase):
         self._ingress.submit_config(config)
         logger.info("Submitted ingress route config for Plex")
 
+    def _build_exporter_layer(self, online_token: str) -> ops.pebble.LayerDict:
+        return {
+            "summary": "plex-exporter Prometheus exporter",
+            "services": {
+                METRICS_SERVICE_NAME: {
+                    "override": "replace",
+                    "summary": "axsuul/plex-media-server-exporter sidecar",
+                    "command": EXPORTER_COMMAND,
+                    "working-dir": EXPORTER_WORKING_DIR,
+                    "startup": "enabled",
+                    "environment": {
+                        EXPORTER_ENV_ADDR: f"http://localhost:{WEBUI_PORT}",
+                        EXPORTER_ENV_TOKEN: online_token,
+                        EXPORTER_ENV_PORT: str(METRICS_PORT),
+                    },
+                },
+            },
+            "checks": {
+                f"{METRICS_CONTAINER_NAME}-ready": {
+                    "override": "replace",
+                    "level": "ready",
+                    "http": {"url": f"http://localhost:{METRICS_PORT}{METRICS_PATH}"},
+                    "period": "10s",
+                    "timeout": "3s",
+                    "threshold": 3,
+                }
+            },
+        }
+
+    def _reconcile_exporter(self, online_token: str) -> None:
+        if not self._exporter_container.can_connect():
+            return
+        layer = self._build_exporter_layer(online_token)
+        self._exporter_container.add_layer(METRICS_SERVICE_NAME, layer, combine=True)
+        self._exporter_container.replan()
+
     def _reconcile(self, _: ops.EventBase) -> None:
         """Reconcile charm state with desired configuration.
 
@@ -422,12 +490,16 @@ class PlexCharm(ops.CharmBase):
         self._container.replan()
 
         # Claim server if token configured and server is unclaimed
-        claim_token = self._get_claim_token()
-        if claim_token:
+        if claim_token := self._get_claim_token():
             self._claim_server(claim_token)
 
         # Ensure internal URL is in custom connections for service discovery
         self._ensure_internal_url()
+
+        # Reconcile plex-exporter sidecar - only after server is claimed
+        # (exporter needs the online_token from Preferences.xml).
+        if online_token := self._get_online_token():
+            self._reconcile_exporter(online_token)
 
         self.unit.set_ports(WEBUI_PORT)
 

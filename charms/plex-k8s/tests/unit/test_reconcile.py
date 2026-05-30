@@ -10,7 +10,7 @@ from ops.testing import Container, Relation, State
 
 from charmarr_lib.core.interfaces import MediaStorageProviderData
 
-from .conftest import PLEX_CONTAINER
+from .conftest import PLEX_CONTAINER, PLEX_EXPORTER_CONTAINER
 
 
 def _make_storage_relation() -> Relation:
@@ -29,7 +29,7 @@ def test_reconcile_non_leader_adds_check_layer(ctx, mock_k8s):
         ctx.on.pebble_ready(PLEX_CONTAINER),
         State(
             leader=False,
-            containers=[PLEX_CONTAINER],
+            containers=[PLEX_CONTAINER, PLEX_EXPORTER_CONTAINER],
             relations=[_make_storage_relation()],
         ),
     )
@@ -46,7 +46,7 @@ def test_reconcile_waits_for_pebble(ctx, mock_k8s):
         ctx.on.config_changed(),
         State(
             leader=True,
-            containers=[container],
+            containers=[container, PLEX_EXPORTER_CONTAINER],
             relations=[_make_storage_relation()],
         ),
     )
@@ -58,7 +58,7 @@ def test_reconcile_waits_for_storage(ctx, mock_k8s):
     """Reconcile exits early when storage relation missing."""
     state = ctx.run(
         ctx.on.config_changed(),
-        State(leader=True, containers=[PLEX_CONTAINER]),
+        State(leader=True, containers=[PLEX_CONTAINER, PLEX_EXPORTER_CONTAINER]),
     )
 
     assert state.unit_status == ops.BlockedStatus("Waiting for media-storage relation")
@@ -74,7 +74,7 @@ def test_reconcile_mounts_storage(ctx, mock_k8s):
             ctx.on.config_changed(),
             State(
                 leader=True,
-                containers=[PLEX_CONTAINER],
+                containers=[PLEX_CONTAINER, PLEX_EXPORTER_CONTAINER],
                 relations=[_make_storage_relation()],
             ),
         )
@@ -96,7 +96,7 @@ def test_reconcile_hardware_transcoding_disabled(ctx, mock_k8s):
             ctx.on.config_changed(),
             State(
                 leader=True,
-                containers=[PLEX_CONTAINER],
+                containers=[PLEX_CONTAINER, PLEX_EXPORTER_CONTAINER],
                 relations=[_make_storage_relation()],
             ),
         )
@@ -116,7 +116,7 @@ def test_reconcile_hardware_transcoding_enabled(ctx, mock_k8s):
             ctx.on.config_changed(),
             State(
                 leader=True,
-                containers=[PLEX_CONTAINER],
+                containers=[PLEX_CONTAINER, PLEX_EXPORTER_CONTAINER],
                 relations=[_make_storage_relation()],
                 config={"hardware-transcoding": True},
             ),
@@ -136,7 +136,7 @@ def test_reconcile_adds_pebble_layer(ctx, mock_k8s):
             ctx.on.config_changed(),
             State(
                 leader=True,
-                containers=[PLEX_CONTAINER],
+                containers=[PLEX_CONTAINER, PLEX_EXPORTER_CONTAINER],
                 relations=[_make_storage_relation()],
             ),
         )
@@ -162,7 +162,7 @@ def test_reconcile_sets_claim_token_when_unclaimed(ctx, mock_k8s):
             ctx.on.config_changed(),
             State(
                 leader=True,
-                containers=[PLEX_CONTAINER],
+                containers=[PLEX_CONTAINER, PLEX_EXPORTER_CONTAINER],
                 relations=[_make_storage_relation()],
                 config={"claim-token": "claim-testtoken123"},
             ),
@@ -185,7 +185,7 @@ def test_reconcile_no_claim_token_when_claimed(ctx, mock_k8s):
             ctx.on.config_changed(),
             State(
                 leader=True,
-                containers=[PLEX_CONTAINER],
+                containers=[PLEX_CONTAINER, PLEX_EXPORTER_CONTAINER],
                 relations=[_make_storage_relation()],
                 config={"claim-token": "claim-testtoken123"},
             ),
@@ -207,7 +207,7 @@ def test_reconcile_sets_timezone(ctx, mock_k8s):
             ctx.on.config_changed(),
             State(
                 leader=True,
-                containers=[PLEX_CONTAINER],
+                containers=[PLEX_CONTAINER, PLEX_EXPORTER_CONTAINER],
                 relations=[_make_storage_relation()],
                 config={"timezone": "America/New_York"},
             ),
@@ -229,7 +229,7 @@ def test_reconcile_sets_port(ctx, mock_k8s):
             ctx.on.config_changed(),
             State(
                 leader=True,
-                containers=[PLEX_CONTAINER],
+                containers=[PLEX_CONTAINER, PLEX_EXPORTER_CONTAINER],
                 relations=[_make_storage_relation()],
             ),
         )
@@ -255,7 +255,7 @@ def test_configure_ingress_submits_route_on_config_changed(ctx, mock_k8s):
             ctx.on.config_changed(),
             State(
                 leader=True,
-                containers=[PLEX_CONTAINER],
+                containers=[PLEX_CONTAINER, PLEX_EXPORTER_CONTAINER],
                 relations=[_make_storage_relation(), ingress_relation],
             ),
         )
