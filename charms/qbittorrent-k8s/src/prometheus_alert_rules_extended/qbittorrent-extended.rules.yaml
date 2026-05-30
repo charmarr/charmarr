@@ -1,0 +1,45 @@
+groups:
+  - name: qbittorrent.torrents.extended
+    rules:
+      - alert: QbittorrentManyErroredTorrents
+        expr: sum by (juju_model, juju_application, juju_unit) (qbittorrent_torrents_count{state=~"error|missingFiles"}) > 5
+        for: 1h
+        labels:
+          severity: warning
+          component: qbittorrent
+        annotations:
+          summary: More than 5 torrents in error/missing state for 1h on {{ $labels.juju_unit }}
+          description: |
+            A larger-than-usual cluster of torrents is in a failed state.
+            Often indicates a save-path mount went away or disk filled. Open
+            qBittorrent UI to triage.
+
+  - name: qbittorrent.storage.extended
+    rules:
+      - alert: QbittorrentDiskFillForecast7d
+        expr: predict_linear(qbittorrent_global_free_space_on_disk_bytes[7d], 7 * 86400) < 0
+        for: 1h
+        labels:
+          severity: warning
+          component: qbittorrent
+        annotations:
+          summary: qBittorrent save-path disk projected full within 7d on {{ $labels.juju_unit }}
+          description: |
+            Based on the last 7 days of free-space samples, the save-path disk
+            is on track to fill within the next 7 days. Plan capacity or
+            tighten cross-seed/category retention now.
+
+  - name: qbittorrent.reliability.extended
+    rules:
+      - alert: QbittorrentSidecarFlapping
+        expr: changes(up{service="qbittorrent"}[1h]) > 6
+        labels:
+          severity: warning
+          component: qbittorrent
+        annotations:
+          summary: qBittorrent scrape state has flapped >6 times in 1h on {{ $labels.juju_unit }}
+          description: |
+            The exporter's view of qBittorrent's health has toggled more than
+            6 times in the last hour. Indicates an unstable qBittorrent
+            workload or networking issue between containers. Check Pebble
+            service restart history.
