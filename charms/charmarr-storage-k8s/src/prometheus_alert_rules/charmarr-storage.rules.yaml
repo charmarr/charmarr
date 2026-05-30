@@ -1,0 +1,68 @@
+groups:
+  - name: charmarr-storage.health
+    rules:
+      - alert: CharmarrStorageDown
+        expr: up{juju_charm="charmarr-storage-k8s"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: storage
+        annotations:
+          summary: charmarr-storage charm unreachable on {{ $labels.juju_unit }}
+          description: |
+            Prometheus cannot scrape the charm's topology endpoint, which
+            means the charm container is unhealthy or the topology daemon
+            inside it died. PVC reconciliation stops while this is true -
+            existing mounts keep working but resize, permission-check, and
+            relation publishing are paused. Check
+            `kubectl logs -c charm <pod>` and `juju status charmarr-storage`.
+
+      - alert: CharmarrStoragePvcUnbound
+        expr: charmarr_storage_pvc_bound{juju_charm="charmarr-storage-k8s"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: storage
+        annotations:
+          summary: charmarr-storage PVC not bound on {{ $labels.juju_unit }} ({{ $labels.backend }})
+          description: |
+            The shared media PVC is declared but not in the Bound phase.
+            Consumers (radarr, sonarr, qbittorrent, plex, ...) cannot mount
+            it. Common causes by backend:
+            - storage-class: CSI driver stuck, StorageClass missing, no
+              available PV matching access mode.
+            - native-nfs: NFS server unreachable, export path missing.
+            - hostpath: path does not exist on the scheduled node.
+            Investigate: `kubectl describe pvc -n <model> charmarr-shared-media`.
+
+      - alert: CharmarrStoragePermissionCheckFailed
+        expr: charmarr_storage_permission_check_ok{juju_charm="charmarr-storage-k8s"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: storage
+        annotations:
+          summary: Storage permission check failing on {{ $labels.juju_unit }} ({{ $labels.backend }})
+          description: |
+            The charm cannot write to the backing volume with the configured
+            puid/pgid. Consumers running as the same UID/GID will also fail.
+            Usually means UID/GID mismatch against the backing filesystem
+            (LinuxServer.io defaults to 1000:1000; NFS exports often need
+            `no_root_squash` or matching anonymous UID). Check `juju config
+            charmarr-storage puid pgid` and the backing volume's ownership.
+
+      - alert: CharmarrStoragePermissionCheckStuck
+        expr: charmarr_storage_permission_check_ok{juju_charm="charmarr-storage-k8s"} == -1
+        for: 15m
+        labels:
+          severity: warning
+          component: storage
+        annotations:
+          summary: Storage permission check stuck in pending on {{ $labels.juju_unit }}
+          description: |
+            The permission-check Job has been pending for 15+ minutes. Usually
+            this means the PVC is WaitForFirstConsumer and the Job pod cannot
+            be scheduled (no node has capacity, or the storage class's
+            provisioner has not honored the binding). Inspect:
+            `kubectl get jobs -n <model> | grep permission-check` and
+            `kubectl describe pod <permission-check-pod>`.

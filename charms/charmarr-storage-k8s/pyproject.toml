@@ -4,11 +4,15 @@ dynamic = ["version"]
 requires-python = ">=3.12"
 
 dependencies = [
-    "ops>=2.17",
-    "charmarr-lib-core>=0.10.0",
+    "ops[tracing]>=2.17",
+    "charmarr-lib-core>=0.16.0",
     "charmarr-lib-krm>=0.1.2",
     "pydantic>=2.0",
     "lightkube>=0.15",
+    "lightkube-extensions",
+    "charmed-service-mesh-helpers",
+    # Transitive dep for the prometheus_scrape / grafana_dashboard / loki_push_api libs.
+    "cosl",
 ]
 
 [project.optional-dependencies]
@@ -76,6 +80,7 @@ include = ["src"]
 minversion = "8.0"
 addopts = "-v --tb=short -x"
 log_cli_level = "WARNING"
+pythonpath = ["src", "lib"]
 
 [tool.coverage.run]
 source = ["src"]

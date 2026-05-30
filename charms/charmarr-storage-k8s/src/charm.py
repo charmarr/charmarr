@@ -8,6 +8,15 @@ import logging
 from enum import StrEnum
 
 import ops
+from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
+from charms.istio_beacon_k8s.v0.service_mesh import (
+    AppPolicy,
+    Endpoint,
+    ServiceMeshConsumer,
+    UnitPolicy,
+)
+from charms.loki_k8s.v1.loki_push_api import LogForwarder
+from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from lightkube import ApiError
 from lightkube.models.core_v1 import PersistentVolumeClaimSpec, VolumeResourceRequirements
 from lightkube.models.meta_v1 import ObjectMeta
@@ -20,18 +29,28 @@ from _storage import (
     get_pv,
     get_pvc,
     log_static_pv_size_mismatch,
+    parse_quantity_to_bytes,
     reconcile_existing_hostpath_pv,
     reconcile_existing_nfs_pv,
 )
 from charmarr_lib.core import (
+    CharmarrChargedTopology,
+    CharmarrTopologyRelation,
     K8sResourceManager,
+    MetricFamily,
+    MetricSample,
     PermissionCheckStatus,
     check_storage_permissions,
     delete_permission_check_job,
     observe_events,
     reconcilable_events_k8s_workloadless,
 )
-from charmarr_lib.core.interfaces import MediaStorageProvider, MediaStorageProviderData
+from charmarr_lib.core.interfaces import (
+    CrowsnestProvider,
+    CrowsnestProviderData,
+    MediaStorageProvider,
+    MediaStorageProviderData,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -61,11 +80,40 @@ class CharmarrStorageCharm(ops.CharmBase):
     def __init__(self, framework: ops.Framework) -> None:
         super().__init__(framework)
         self._storage_provider = MediaStorageProvider(self, "media-storage")
+        self._crowsnest = CrowsnestProvider(self, "crowsnest")
         self._k8s: K8sResourceManager | None = None
         self._cached_pvc_backend: BackendType | None = None
         self._resize_error: str | None = None
         self._permission_error: str | None = None
         self._permission_check_pending: bool = False
+
+        self._topology = CharmarrChargedTopology(
+            self,
+            relations=[
+                CharmarrTopologyRelation("media-storage", role="provides", required=False),
+            ],
+            extra_exposition=self._build_storage_gauges,
+        )
+        self._metrics_endpoint = MetricsEndpointProvider(
+            self,
+            jobs=[self._topology.scrape_job],
+        )
+        self._grafana_dashboards = GrafanaDashboardProvider(self)
+        self._log_forwarder = LogForwarder(self, relation_name="logging")
+        self._charm_tracing = ops.tracing.Tracing(self, tracing_relation_name="charm-tracing")
+        self._service_mesh = ServiceMeshConsumer(
+            self,
+            policies=[
+                AppPolicy(
+                    relation="crowsnest",
+                    endpoints=[Endpoint(ports=[self._topology.port])],
+                ),
+                UnitPolicy(
+                    relation="metrics-endpoint",
+                    ports=[self._topology.port],
+                ),
+            ],
+        )
 
         observe_events(self, reconcilable_events_k8s_workloadless, self._reconcile)
         framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
@@ -131,8 +179,92 @@ class CharmarrStorageCharm(ops.CharmBase):
 
         return False, ""
 
+    def _build_storage_gauges(self) -> list[MetricFamily]:
+        """Emit charm-state metrics for the storage broker.
+
+        Shipped on the same `metrics-endpoint` as the topology metrics via
+        CharmarrChargedTopology. The selection is deliberately small: PVC
+        bind state and permission-check state are not derivable from
+        kube-state-metrics in a way that ties back to this charm, so we
+        publish them here. PVC capacity/usage lives in cAdvisor + KSM.
+        """
+        backend = str(self.config.get("backend-type") or "unknown")
+
+        pvc_phase = self._get_pvc_phase()
+        pvc_bound = 1.0 if pvc_phase == "Bound" else 0.0
+
+        if self._permission_error is not None:
+            permission_status = 0.0  # failed
+        elif self._permission_check_pending:
+            permission_status = -1.0  # pending
+        else:
+            permission_status = 1.0  # passed (or not yet run on a healthy startup)
+
+        consumers = len(self.model.relations.get("media-storage", []))
+
+        capacity_samples: list[MetricSample] = []
+        pvc = get_pvc(self.k8s, self._pvc_name, self.model.name)
+        if pvc and pvc.spec and pvc.spec.resources and pvc.spec.resources.requests:
+            requested = pvc.spec.resources.requests.get("storage", "")
+            capacity_bytes = parse_quantity_to_bytes(requested)
+            if capacity_bytes is not None:
+                capacity_samples.append(
+                    MetricSample(labels={"backend": backend}, value=float(capacity_bytes))
+                )
+
+        families = [
+            MetricFamily(
+                name="charmarr_storage_consumers_total",
+                help="Number of consumers currently bound via media-storage",
+                samples=[MetricSample(value=consumers)],
+            ),
+            MetricFamily(
+                name="charmarr_storage_pvc_bound",
+                help="Is the shared media PVC currently bound (1) or not (0)",
+                samples=[
+                    MetricSample(labels={"backend": backend}, value=pvc_bound),
+                ],
+            ),
+            MetricFamily(
+                name="charmarr_storage_permission_check_ok",
+                help=(
+                    "Last permission check result: 1 passed, 0 failed, -1 pending. "
+                    "Failures usually indicate UID/GID mismatch against the backing volume."
+                ),
+                samples=[
+                    MetricSample(labels={"backend": backend}, value=permission_status),
+                ],
+            ),
+        ]
+        if capacity_samples:
+            families.append(
+                MetricFamily(
+                    name="charmarr_storage_pvc_capacity_bytes",
+                    help=(
+                        "Requested PVC capacity in bytes (spec.resources.requests.storage). "
+                        "Used bytes is a kubelet metric and not surfaced here."
+                    ),
+                    samples=capacity_samples,
+                )
+            )
+        return families
+
     def _reconcile(self, event: ops.EventBase) -> None:
         """Reconcile desired state with actual K8s state."""
+        self._topology.reconcile()
+        self.unit.set_ports(self._topology.port)
+        # The topology endpoint is a cluster-internal concern - crowsnest polls
+        # it from inside the same K8s cluster. Hardcode the in-cluster Service
+        # FQDN; never expose this URL externally.
+        self._crowsnest.publish_data(
+            CrowsnestProviderData(
+                topology_url=(
+                    f"http://{self.app.name}.{self.model.name}"
+                    f".svc.cluster.local:{self._topology.port}/metrics"
+                )
+            )
+        )
+
         if not self.unit.is_leader():
             return
 
