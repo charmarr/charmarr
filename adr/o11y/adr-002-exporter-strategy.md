@@ -63,7 +63,7 @@
 
 **Plex exporter: Option 1** — `axsuul/plex-media-server-exporter` (Ruby). Initial pick was jsclayton's Go binary for "simpler ops", but the project ships no semver-tagged multi-arch images (`:latest` is the only multi-arch ref), so version pinning loses Renovate auto-update support without extending the Renovate regex manager. axsuul ships proper tagged multi-arch releases (`2.1.0` and forward) and surfaces the metrics that actually matter operationally: live `plex_sessions_count{state, user, ...}`, `plex_video_transcode_sessions_count` for transcode pressure, `plex_media_count{type}` for library scale. jsclayton's metric set was ~6 metrics with limited operational signal (host_cpu/mem, library_storage_total, plays_total) — too thin for real alerts. Ruby image is ~150 MB vs Go's ~10 MB; acceptable trade for the richer signal.
 
-**Seerr / Overseerr exporter: Option 2** — no per-charm exporter. WillFantom's exporter is the only Prometheus-native option and is stale (no commits for 18+ months), with sparse metrics (just two metric families: `overseerr_requests_count`, `overseerr_user_requests`). The signals it provides are also derivable from Seerr's own admin UI — no operational gap to fill. Liveness is covered by kube-state-metrics + the crowsnest charm's topology-completeness signal once it exists. Operators who want request analytics should deploy Tautulli alongside.
+**Seerr / Overseerr exporter: Option 2** — no per-charm workload exporter. WillFantom's exporter is the only Prometheus-native option and is stale (no commits for 18+ months), with sparse metrics (just two metric families: `overseerr_requests_count`, `overseerr_user_requests`). The signals it provides are also derivable from Seerr's own admin UI — no operational gap to fill. Liveness is covered by kube-state-metrics + the topology daemon described below. Operators who want request analytics should deploy Tautulli alongside. Overseerr is feature-frozen (replaced by seerr-k8s) and does not get the topology daemon either — kube-state-metrics is the only signal.
 
 **Gluetun exporter: Option 2** — `thecfu/gluetun-exporter:0.1.1-standalone` sidecar. Original plan ([adr-005](adr-005-gluetun-metrics-shim.md)) was a custom Python shim distributed via charm-parts, but that assumed Python was available in Gluetun's container; Gluetun is built on alpine + Go binary with no Python. A pre-existing Go exporter by the scraparr author (already trusted in our fleet) covers the essentials — `gluetun_vpn_status`, `gluetun_vpn_infos{ip, country, city}`, `gluetun_forwarded_ports*` — at zero maintenance cost to charmarr. Standalone mode runs as a sidecar with localhost access to Gluetun's control API; bundled mode requires `CAP_NET_ADMIN` and rebuilds the workload image — overkill given cAdvisor already provides container_network_* counters from kube-state-metrics. ADR-005 is superseded.
 
@@ -79,12 +79,12 @@
 | `qbittorrent-k8s` | martabal/qbittorrent-exporter | `ghcr.io/martabal/qbittorrent-exporter` | `qbittorrent-exporter` | 8090 |
 | `sabnzbd-k8s` | msroest/sabnzbd_exporter | `docker.io/msroest/sabnzbd_exporter` | `sabnzbd-exporter` | 9387 |
 | `plex-k8s` | axsuul/plex-media-server-exporter | `ghcr.io/axsuul/plex-media-server-exporter` | `plex-exporter` | 9594 |
-| `seerr-k8s` | **None** — no acceptable exporter; rely on kube-state-metrics + crowsnest topology checks for liveness | n/a | n/a | n/a |
-| `overseerr-k8s` | **None** — same as seerr | n/a | n/a | n/a |
+| `seerr-k8s` | **Topology daemon only** — no workload exporter; ships `charmarr_relation_*` from the charm container via `CharmarrTopology` | n/a (in-charm) | n/a (charm-managed subprocess) | 9099 |
+| `overseerr-k8s` | **None** — charm is feature-frozen (deprecation warning shipped in revision adding the seerr-k8s replacement); no new o11y wiring | n/a | n/a | n/a |
 | `flaresolverr-k8s` | **Native** (`PROMETHEUS_ENABLED=true`) | n/a (workload image) | n/a | 8192 (default workload port) |
 | `gluetun-k8s` | thecfu/gluetun-exporter (standalone) | `ghcr.io/thecfu/gluetun-exporter:0.1.1-standalone` | `gluetun-exporter` | 8001 |
-| `charmarr-storage-k8s` | None — PVC metrics from kube-state-metrics | n/a | n/a | n/a |
-| `charmarr-multimeter-k8s` | None — test utility | n/a | n/a | n/a |
+| `charmarr-storage-k8s` | **Topology daemon + in-charm storage gauges** — broker-specific metrics (consumers bound, PVC mount state per consumer, hardware device mount state) emitted alongside `charmarr_relation_*` from the same endpoint | n/a (in-charm) | n/a (charm-managed subprocess) | 9099 |
+| `charmarr-multimeter-k8s` | None — test utility, deliberately excluded from crowsnest visibility | n/a | n/a | n/a |
 | `charmarr-crowsnest-k8s` | Custom Python — derived/stack metrics | charmarr-built (see [adr-003](adr-003-dashboards-and-alerts.md)) | `metrics` Pebble service | 9090 |
 
 ### Distribution: Sidecar Container with Upstream OCI
@@ -121,6 +121,21 @@ resources:
 Renovate tracks `upstream-source:` tags like the workload image — uniform PR shape across all images.
 
 **Why not custom OCI images:** maintaining 11+ charmarr-specific exporter images is real overhead (build pipelines, registry hosting, fork drift) when upstream already publishes images.
+
+### Topology Daemon (charm-side, every charm except `charmarr-multimeter-k8s`)
+
+In addition to whatever workload exporter a charm runs, **every charmarr charm except `charmarr-multimeter-k8s` (test utility) and `overseerr-k8s` (feature-frozen) ships a topology daemon from the charm container**. It exposes two metric families at `*:9099/metrics`:
+
+- `charmarr_relation_bound{relation, role, required}` (0/1) — is each *declared* relation currently bound?
+- `charmarr_relation_edge{relation, from_app, to_app}` (1) — one series per bound peer; `from_app`/`to_app` are oriented by the local role (`requires`→peer; `provides`→self as destination).
+
+These are the inputs crowsnest needs for topology-completeness alerts (`CharmarrArrMissingDownloadClient`, `CharmarrProwlarrIsolated`, `CharmarrStorageOrphaned`, etc.) and for the Node-Graph dashboard panel.
+
+**Why a charm-side daemon, not a sidecar container:** the metric source is *charm relation state*, not workload state. Putting it in a sidecar would require an inter-container relation-state channel (the workload container can't see Juju relation data). The charm container always has Python, and its hooks already react to relation events — emitting an exposition file on every event and serving it via a tiny detached `http.server` is dependency-free and ~150 LoC total. Implemented as `charmarr_lib.core.CharmarrTopology` in `charmarr-lib-core>=0.14.0`.
+
+**Pattern for "metrics-endpoint with only topology":** for charms with no workload exporter to ship alongside (currently `seerr-k8s`), the `metrics-endpoint` relation carries the topology daemon's output and nothing else. This is a complete, valid use of the relation — reviewers should expect a `# topology-only` note in the charmcraft.yaml relation block.
+
+**Pattern for "metrics-endpoint with topology + in-charm gauges":** `charmarr-storage-k8s` extends the same daemon's exposition file with broker-specific gauges (`charmarr_storage_consumers_total`, `charmarr_storage_pvc_mounted{consumer}`, `charmarr_storage_hardware_mounted{device, consumer}`). No sidecar, no separate port — just additional lines written to the same file the daemon already serves. This is the right home for charm-state metrics that are not derivable from kube-state-metrics or cAdvisor.
 
 **Why not charm-parts for every exporter:** while elegant for embedding a static Go binary, it forces us to push binaries into containers that may not have the right runtime (e.g. scraparr is a Python package, not a Go binary — LinuxServer's Alpine image has no Python).
 

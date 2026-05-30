@@ -39,15 +39,46 @@ Canonical maintains `sloth-k8s`, an operator that converts declarative SLO speci
 
 ### The SLO Catalog
 
+### Framework: User Contract vs Implementation Tier
+
+SLOs encode user-meaningful contracts. Per-app SLOs only make sense for apps where direct downtime translates directly to user pain. For plumbing apps, the user only notices the *effect* (request didn't fulfill, download failed, VPN dropped), not the cause - so plumbing failure surfaces through cross-cutting user-journey SLOs, not individual app SLOs.
+
+| Tier | Apps | SLO treatment |
+|---|---|---|
+| **User-facing** | seerr (request UI), plex (playback) | Per-app availability SLO |
+| **Plumbing** | radarr, sonarr, prowlarr, qbittorrent, sabnzbd, gluetun, charmarr-storage, flaresolverr | No per-app SLO. Failures surface in cross-cutting SLOs |
+| **Cross-cutting** | request fulfillment, VPN safety, download completion | Journey-level SLO |
+
+This avoids the SRE-anti-pattern of "SLO every app uniformly" - operators wading through 11 burn-rate alerts when only one is user-meaningful.
+
+### Objectives Calibrated for Homelab
+
+99.9% is SRE-grade (~45 min downtime/month). Homelab operators reboot nodes, refresh charms, rearrange storage, and tolerate that. Charmarr objectives:
+
+| Range | Use | Allowed downtime/month |
+|---|---|---|
+| 95% | aggregate "stack mostly works" | ~36 h |
+| 99% | individual user-facing app | ~7 h |
+| 99.5% | VPN tunnel (privacy criticality) | ~3.5 h |
+| 99.9% | safety invariant (VPN-bypass safety) | ~45 min |
+
+Multi-burn-rate alerts use only the 14-day and 30-day windows (slow erosion). Fast-burn alerts at 1h/6h are intentionally disabled - homelab operators don't carry pagers and 5-minute outages during normal operation are routine.
+
+### SLO Catalog
+
 Crowsnest ships SLOs grouped by domain in `src/slos/`:
 
-| File | SLOs | Why this domain |
-|---|---|---|
-| `requests.yaml` | request-fulfillment-availability, request-fulfillment-latency | User-visible: "I requested a movie, did it arrive?" |
-| `downloads.yaml` | download-completion-success, download-throughput | Stack reliability: "Is the data path working?" |
-| `availability.yaml` | media-server-availability, stack-up | "Are my apps actually serving?" |
-| `vpn.yaml` | vpn-tunnel-availability | Privacy/safety: "Did my downloads leak my real IP?" |
-| `indexer.yaml` | indexer-success-rate | Hidden plumbing: "Are searches working?" |
+| File | SLOs | Objective | Why this domain |
+|---|---|---|---|
+| `availability.yaml` | `seerr-availability` | 99% | Direct user surface: "I can submit a request" |
+| `availability.yaml` | `media-server-availability` | 99% | Direct user surface: "I can watch" |
+| `availability.yaml` | `stack-availability` | 95% | Operator-meaningful aggregate health |
+| `vpn.yaml` | `vpn-tunnel-availability` | 99.5% | Privacy: tunnel actively carrying traffic |
+| `vpn.yaml` | `downloads-vpn-safe` | 99.9% | Safety invariant: no torrent/usenet traffic ever leaks outside the tunnel |
+| `downloads.yaml` | `download-completion-rate` | 95% | Stack reliability: downloads succeed |
+| `fulfillment.yaml` | `request-fulfillment-availability` | 95% | End-to-end user journey: ask → watch |
+
+Notably absent: `indexer-availability`, `download-throughput`, `media-server-latency`, per-arr SLOs. Prowlarr/radarr/sonarr/qbit/sab downtime surfaces in `request-fulfillment-availability` (no new content reaches "available") and `download-completion-rate`. Adding per-app SLOs for them would be churn without user-meaningful signal.
 
 ### Example SLO Spec
 
@@ -81,19 +112,22 @@ slos:
 
 ### SLI Metrics — Who Produces Them
 
-The underlying counters and histograms feeding SLI queries are produced by crowsnest's own in-pod exporter. The exporter watches relation data from every charmarr charm and emits derived metrics on `/metrics`:
+SLI metrics are sourced from existing per-charm exporters and topology metrics where possible. New metrics are added at the source charm (not a central in-pod exporter in crowsnest) to keep producer/consumer separation clean.
 
-| SLI Metric | Derivation source |
-|---|---|
-| `charmarr_request_fulfillment_total{requester, manager}` | Seerr API → Radarr/Sonarr history → file system poll |
-| `charmarr_request_fulfillment_failures_total{requester, manager, reason}` | Same, with failure classification |
-| `charmarr_request_fulfillment_seconds_bucket{requester, manager}` | Histogram of fulfillment latency |
-| `charmarr_download_completion_total{client}` | qBit/SAB API → completed torrent/nzb count |
-| `charmarr_download_failures_total{client, reason}` | Same with failure events |
-| `charmarr_media_server_health` | Plex API ping status |
-| `charmarr_stack_up_total` | Count of charmarr charms in `active` status from juju status data |
-| `charmarr_vpn_tunnel_up` | Gluetun shim status (see [adr-005](adr-005-gluetun-metrics-shim.md)) |
-| `charmarr_indexer_query_success_total{indexer}` | Prowlarr API → indexer stats |
+| SLI Metric | Source charm | Mechanism |
+|---|---|---|
+| `up{juju_charm="seerr-k8s"}` | seerr | Existing topology endpoint |
+| `up{juju_charm="plex-k8s"}` | plex | Existing topology endpoint |
+| `up{juju_charm=~"...stack..."}` | all charmarr charms | Existing topology endpoints |
+| `gluetun_vpn_infos{ip!=""}` | gluetun | `thecfu/gluetun-exporter` sidecar (see adr-002) |
+| `charmarr_unsafe_mode_enabled` | qbittorrent, sabnzbd | `CharmarrChargedTopology` callback reading `self.config["unsafe-mode"]` |
+| `charmarr_relation_bound{relation="vpn-gateway"}` | qbittorrent, sabnzbd | `CharmarrTopology` relation surface |
+| `qbittorrent_torrents_completed_total`, `sabnzbd_completed_jobs_total` | qbittorrent, sabnzbd | Existing exporter sidecars |
+| `charmarr_requests_total{status}` | seerr | `CharmarrChargedTopology` callback polling seerr's `/api/v1/request/count` |
+
+The previous draft proposed a central in-pod exporter in crowsnest that polled every charm's API and emitted derived counters. That was rejected during implementation as anti-reconciler (state tracking for counters) and as crossing the producer/consumer boundary (crowsnest becomes a polling consumer of every other charm's API).
+
+Counters that genuinely cannot be sourced from existing exporters - notably `charmarr_request_fulfillment_total/failures_total` as separate counter pairs with per-attempt classification - are not shipped in v1. The `request-fulfillment-availability` SLO uses Sloth's `raw` SLI form against the gauges instead of the `events` form, which gives a "current ratio" semantic rather than a rate-of-failure semantic. Acceptable for homelab; revisit if a real exporter materializes.
 
 These metrics exist independently of Sloth being deployed. A user on `cos-lite` without Sloth gets the underlying SLI timeseries; they just don't get burn-rate alerts or SLO dashboards automatically.
 
