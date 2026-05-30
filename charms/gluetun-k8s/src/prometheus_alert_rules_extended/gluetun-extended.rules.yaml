@@ -1,0 +1,15 @@
+groups:
+  - name: gluetun.reliability.extended
+    rules:
+      - alert: GluetunFlapping
+        expr: changes(gluetun_vpn_status{juju_charm="gluetun-k8s"}[1h]) > 6
+        labels:
+          severity: warning
+          component: gluetun
+        annotations:
+          summary: Gluetun VPN status flapped >6 times in 1h on {{ $labels.juju_unit }}
+          description: |
+            The VPN connection state toggled more than 6 times in the last
+            hour. Likely an unstable VPN provider, a noisy network at the
+            cluster egress, or wireguard timing out. Inspect Gluetun's logs
+            and consider changing server-countries or vpn-endpoint-ip.

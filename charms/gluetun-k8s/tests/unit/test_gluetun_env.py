@@ -10,11 +10,13 @@ def test_env_includes_provider_and_private_key(ctx, mock_k8s_privileged):
     """Environment includes provider and WireGuard private key."""
     secret = Secret(tracked_content={"private-key": "test-private-key-value"})
     container = Container(name="gluetun", can_connect=True)
+
+    exporter_container = Container(name="gluetun-exporter", can_connect=True)
     state = ctx.run(
         ctx.on.config_changed(),
         State(
             leader=True,
-            containers=[container],
+            containers=[container, exporter_container],
             config={
                 "cluster-cidrs": "10.1.0.0/16",
                 "vpn-provider": "nordvpn",
@@ -34,11 +36,13 @@ def test_env_includes_optional_server_countries(ctx, mock_k8s_privileged):
     """Environment includes optional server-countries when configured."""
     secret = Secret(tracked_content={"private-key": "key"})
     container = Container(name="gluetun", can_connect=True)
+
+    exporter_container = Container(name="gluetun-exporter", can_connect=True)
     state = ctx.run(
         ctx.on.config_changed(),
         State(
             leader=True,
-            containers=[container],
+            containers=[container, exporter_container],
             config={
                 "cluster-cidrs": "10.1.0.0/16",
                 "vpn-provider": "nordvpn",
@@ -57,11 +61,13 @@ def test_env_for_custom_provider(ctx, mock_k8s_privileged):
     """Custom provider environment includes VPN endpoint configuration."""
     secret = Secret(tracked_content={"private-key": "key"})
     container = Container(name="gluetun", can_connect=True)
+
+    exporter_container = Container(name="gluetun-exporter", can_connect=True)
     state = ctx.run(
         ctx.on.config_changed(),
         State(
             leader=True,
-            containers=[container],
+            containers=[container, exporter_container],
             config={
                 "cluster-cidrs": "10.1.0.0/16",
                 "vpn-provider": "custom",
@@ -88,11 +94,13 @@ def test_override_env_merges_on_top(ctx, mock_k8s_privileged):
 
     secret = Secret(tracked_content={"private-key": "key"})
     container = Container(name="gluetun", can_connect=True)
+
+    exporter_container = Container(name="gluetun-exporter", can_connect=True)
     state = ctx.run(
         ctx.on.config_changed(),
         State(
             leader=True,
-            containers=[container],
+            containers=[container, exporter_container],
             config={
                 "cluster-cidrs": "10.1.0.0/16",
                 "vpn-provider": "nordvpn",
@@ -115,11 +123,13 @@ def test_override_env_overrides_base_values(ctx, mock_k8s_privileged):
 
     secret = Secret(tracked_content={"private-key": "key"})
     container = Container(name="gluetun", can_connect=True)
+
+    exporter_container = Container(name="gluetun-exporter", can_connect=True)
     state = ctx.run(
         ctx.on.config_changed(),
         State(
             leader=True,
-            containers=[container],
+            containers=[container, exporter_container],
             config={
                 "cluster-cidrs": "10.1.0.0/16",
                 "vpn-provider": "nordvpn",
@@ -141,11 +151,14 @@ def test_override_without_private_key(ctx, mock_k8s_privileged):
     import json
 
     container = Container(name="gluetun", can_connect=True)
+
+
+    exporter_container = Container(name="gluetun-exporter", can_connect=True)
     state = ctx.run(
         ctx.on.config_changed(),
         State(
             leader=True,
-            containers=[container],
+            containers=[container, exporter_container],
             config={
                 "cluster-cidrs": "10.1.0.0/16",
                 "vpn-provider": "expressvpn",

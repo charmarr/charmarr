@@ -1,0 +1,144 @@
+{
+  "title": "Gluetun",
+  "uid": "charmarr-gluetun",
+  "tags": ["charmarr", "gluetun"],
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "graphTooltip": 1,
+  "refresh": "30s",
+  "time": {"from": "now-6h", "to": "now"},
+  "timezone": "",
+  "templating": {
+    "list": [
+      {
+        "name": "juju_model",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+        "query": "label_values(up{juju_charm=\"gluetun-k8s\"}, juju_model)",
+        "refresh": 1, "includeAll": false, "multi": false
+      },
+      {
+        "name": "juju_application",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+        "query": "label_values(up{juju_charm=\"gluetun-k8s\", juju_model=\"$juju_model\"}, juju_application)",
+        "refresh": 1, "includeAll": false, "multi": false
+      },
+      {
+        "name": "juju_unit",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+        "query": "label_values(up{juju_charm=\"gluetun-k8s\", juju_model=\"$juju_model\", juju_application=\"$juju_application\"}, juju_unit)",
+        "refresh": 1, "includeAll": true, "multi": true
+      }
+    ]
+  },
+  "panels": [
+    {"id": 1, "type": "row", "title": "Service health", "collapsed": false, "gridPos": {"x": 0, "y": 0, "w": 24, "h": 1}},
+
+    {
+      "id": 2, "type": "stat", "title": "Workload reachable",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 0, "y": 1, "w": 4, "h": 4},
+      "targets": [{"expr": "min(up{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "refId": "A"}],
+      "fieldConfig": {"defaults": {"mappings": [{"type": "value", "options": {"0": {"text": "DOWN", "color": "red"}}}, {"type": "value", "options": {"1": {"text": "UP", "color": "green"}}}], "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}}},
+      "options": {"colorMode": "background", "graphMode": "none", "textMode": "value"}
+    },
+    {
+      "id": 3, "type": "stat", "title": "VPN tunnel",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 4, "y": 1, "w": 4, "h": 4},
+      "targets": [{"expr": "count(gluetun_vpn_infos{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\", ip!=\"\"}) > bool 0", "refId": "A"}],
+      "fieldConfig": {"defaults": {"noValue": "0", "mappings": [{"type": "value", "options": {"0": {"text": "DOWN", "color": "red"}}}, {"type": "value", "options": {"1": {"text": "CONNECTED", "color": "green"}}}], "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}}},
+      "options": {"colorMode": "background", "graphMode": "none", "textMode": "value"}
+    },
+    {
+      "id": 4, "type": "stat", "title": "Public IP country",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 8, "y": 1, "w": 4, "h": 4},
+      "targets": [{"expr": "gluetun_vpn_infos{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"}", "format": "table", "instant": true, "refId": "A"}],
+      "transformations": [
+        {"id": "labelsToFields", "options": {"valueLabel": "country"}}
+      ],
+      "options": {"colorMode": "value", "graphMode": "none", "textMode": "name"}
+    },
+    {
+      "id": 5, "type": "stat", "title": "Forwarded ports",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 12, "y": 1, "w": 4, "h": 4},
+      "targets": [{"expr": "max(gluetun_forwarded_ports_total{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "refId": "A"}],
+      "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}}},
+      "options": {"colorMode": "value", "graphMode": "area", "textMode": "value"}
+    },
+    {
+      "id": 6, "type": "stat", "title": "Log volume (5m)",
+      "datasource": {"type": "loki", "uid": "${lokids}"},
+      "gridPos": {"x": 16, "y": 1, "w": 4, "h": 4},
+      "targets": [{"expr": "sum(count_over_time({juju_model=\"$juju_model\", juju_application=\"$juju_application\"}[5m]))", "refId": "A"}],
+      "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}}},
+      "options": {"colorMode": "value", "graphMode": "area", "textMode": "value"}
+    },
+    {
+      "id": 7, "type": "stat", "title": "Errors in logs (1h)",
+      "datasource": {"type": "loki", "uid": "${lokids}"},
+      "gridPos": {"x": 20, "y": 1, "w": 4, "h": 4},
+      "targets": [{"expr": "sum(count_over_time({juju_model=\"$juju_model\", juju_application=\"$juju_application\"} |~ \"(?i)error|fatal\" [1h]))", "refId": "A"}],
+      "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 10}, {"color": "red", "value": 100}]}}},
+      "options": {"colorMode": "value", "graphMode": "area", "textMode": "value"}
+    },
+
+    {"id": 10, "type": "row", "title": "Connection state", "collapsed": false, "gridPos": {"x": 0, "y": 5, "w": 24, "h": 1}},
+
+    {
+      "id": 11, "type": "timeseries", "title": "VPN tunnel state over time",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 0, "y": 6, "w": 12, "h": 8},
+      "targets": [{"expr": "count by (juju_unit) (gluetun_vpn_infos{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\", ip!=\"\"}) > bool 0", "legendFormat": "{{juju_unit}}", "refId": "A"}],
+      "fieldConfig": {"defaults": {"min": 0, "max": 1, "decimals": 0}},
+      "options": {"legend": {"showLegend": true, "displayMode": "list", "placement": "bottom"}}
+    },
+    {
+      "id": 12, "type": "timeseries", "title": "Pod network throughput (cAdvisor)",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 12, "y": 6, "w": 12, "h": 8},
+      "targets": [
+        {"expr": "sum(rate(container_network_transmit_bytes_total{namespace=\"$juju_model\", pod=~\"$juju_application-.+\"}[5m]))", "legendFormat": "tx", "refId": "A"},
+        {"expr": "sum(rate(container_network_receive_bytes_total{namespace=\"$juju_model\", pod=~\"$juju_application-.+\"}[5m]))", "legendFormat": "rx", "refId": "B"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "binBps"}},
+      "options": {"legend": {"showLegend": true, "displayMode": "list", "placement": "bottom"}}
+    },
+
+    {"id": 20, "type": "row", "title": "VPN identity", "collapsed": false, "gridPos": {"x": 0, "y": 14, "w": 24, "h": 1}},
+
+    {
+      "id": 21, "type": "table", "title": "Current public IP info",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 0, "y": 15, "w": 12, "h": 6},
+      "targets": [{"expr": "gluetun_vpn_infos{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"}", "format": "table", "instant": true, "refId": "A"}],
+      "transformations": [
+        {"id": "organize", "options": {"excludeByName": {"Time": true, "__name__": true, "instance": true, "job": true, "juju_charm": true, "juju_model_uuid": true, "juju_model": true, "juju_application": true, "Value": true}, "renameByName": {"ip": "Public IP", "country": "Country", "city": "City", "region": "Region", "juju_unit": "Unit"}}}
+      ]
+    },
+    {
+      "id": 22, "type": "table", "title": "Forwarded ports",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 12, "y": 15, "w": 12, "h": 6},
+      "targets": [{"expr": "gluetun_forwarded_ports{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"}", "format": "table", "instant": true, "refId": "A"}],
+      "transformations": [
+        {"id": "organize", "options": {"excludeByName": {"Time": true, "__name__": true, "instance": true, "job": true, "juju_charm": true, "juju_model_uuid": true, "juju_model": true, "juju_application": true, "Value": true}, "renameByName": {"port": "Port", "juju_unit": "Unit"}}}
+      ]
+    },
+
+    {"id": 60, "type": "row", "title": "Logs", "collapsed": false, "gridPos": {"x": 0, "y": 21, "w": 24, "h": 1}},
+
+    {
+      "id": 61, "type": "logs", "title": "ERROR/WARN log lines (Gluetun + exporter)",
+      "datasource": {"type": "loki", "uid": "${lokids}"},
+      "gridPos": {"x": 0, "y": 22, "w": 24, "h": 10},
+      "targets": [{"expr": "{juju_model=\"$juju_model\", juju_application=\"$juju_application\"} |~ \"(?i)error|warn|fatal\"", "refId": "A"}],
+      "options": {"showTime": true, "showLabels": false, "wrapLogMessage": true, "sortOrder": "Descending"}
+    }
+  ]
+}

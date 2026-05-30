@@ -7,13 +7,14 @@ import ops
 from ops.testing import Container, Secret, State
 
 GLUETUN_CONTAINER = Container(name="gluetun", can_connect=True)
+GLUETUN_EXPORTER_CONTAINER = Container(name="gluetun-exporter", can_connect=True)
 
 
 def test_blocked_without_cluster_cidrs(ctx):
     """cluster-cidrs is required."""
     state = ctx.run(
         ctx.on.config_changed(),
-        State(leader=True, containers=[GLUETUN_CONTAINER]),
+        State(leader=True, containers=[GLUETUN_CONTAINER, GLUETUN_EXPORTER_CONTAINER]),
     )
     assert state.unit_status == ops.BlockedStatus("cluster-cidrs config is required")
 
@@ -24,7 +25,7 @@ def test_blocked_without_vpn_provider(ctx):
         ctx.on.config_changed(),
         State(
             leader=True,
-            containers=[GLUETUN_CONTAINER],
+            containers=[GLUETUN_CONTAINER, GLUETUN_EXPORTER_CONTAINER],
             config={"cluster-cidrs": "10.1.0.0/16,10.152.183.0/24"},
         ),
     )
@@ -37,7 +38,7 @@ def test_blocked_openvpn_not_supported(ctx):
         ctx.on.config_changed(),
         State(
             leader=True,
-            containers=[GLUETUN_CONTAINER],
+            containers=[GLUETUN_CONTAINER, GLUETUN_EXPORTER_CONTAINER],
             config={
                 "cluster-cidrs": "10.1.0.0/16",
                 "vpn-type": "openvpn",
@@ -54,7 +55,7 @@ def test_blocked_mullvad_requires_wireguard_addresses(ctx):
         ctx.on.config_changed(),
         State(
             leader=True,
-            containers=[GLUETUN_CONTAINER],
+            containers=[GLUETUN_CONTAINER, GLUETUN_EXPORTER_CONTAINER],
             config={
                 "cluster-cidrs": "10.1.0.0/16",
                 "vpn-provider": "mullvad",
@@ -75,7 +76,7 @@ def test_blocked_custom_requires_all_fields(ctx):
         ctx.on.config_changed(),
         State(
             leader=True,
-            containers=[GLUETUN_CONTAINER],
+            containers=[GLUETUN_CONTAINER, GLUETUN_EXPORTER_CONTAINER],
             config={
                 "cluster-cidrs": "10.1.0.0/16",
                 "vpn-provider": "custom",
@@ -97,7 +98,7 @@ def test_non_leader_standby_status(ctx, mock_k8s):
         ctx.on.config_changed(),
         State(
             leader=False,
-            containers=[GLUETUN_CONTAINER],
+            containers=[GLUETUN_CONTAINER, GLUETUN_EXPORTER_CONTAINER],
             config={
                 "cluster-cidrs": "10.1.0.0/16",
                 "vpn-provider": "nordvpn",
@@ -116,7 +117,7 @@ def test_blocked_when_secret_missing_private_key(ctx, mock_k8s):
         ctx.on.config_changed(),
         State(
             leader=True,
-            containers=[GLUETUN_CONTAINER],
+            containers=[GLUETUN_CONTAINER, GLUETUN_EXPORTER_CONTAINER],
             config={
                 "cluster-cidrs": "10.1.0.0/16",
                 "vpn-provider": "nordvpn",
@@ -134,7 +135,7 @@ def test_non_leader_blocked_when_scaled_beyond_one(ctx):
         ctx.on.config_changed(),
         State(
             leader=False,
-            containers=[GLUETUN_CONTAINER],
+            containers=[GLUETUN_CONTAINER, GLUETUN_EXPORTER_CONTAINER],
             planned_units=2,
         ),
     )
@@ -149,7 +150,7 @@ def test_leader_continues_when_scaled_beyond_one(ctx):
         ctx.on.config_changed(),
         State(
             leader=True,
-            containers=[GLUETUN_CONTAINER],
+            containers=[GLUETUN_CONTAINER, GLUETUN_EXPORTER_CONTAINER],
             planned_units=2,
         ),
     )
@@ -165,7 +166,7 @@ def test_override_bypasses_openvpn_rejection(ctx, mock_k8s_privileged):
         ctx.on.config_changed(),
         State(
             leader=True,
-            containers=[GLUETUN_CONTAINER],
+            containers=[GLUETUN_CONTAINER, GLUETUN_EXPORTER_CONTAINER],
             config={
                 "cluster-cidrs": "10.1.0.0/16",
                 "vpn-type": "openvpn",
@@ -184,7 +185,7 @@ def test_override_still_requires_cluster_cidrs(ctx):
         ctx.on.config_changed(),
         State(
             leader=True,
-            containers=[GLUETUN_CONTAINER],
+            containers=[GLUETUN_CONTAINER, GLUETUN_EXPORTER_CONTAINER],
             config={
                 "custom-overrides": json.dumps({"VPN_TYPE": "openvpn"}),
             },
@@ -201,7 +202,7 @@ def test_override_does_not_require_wireguard_secret(ctx, mock_k8s_privileged):
         ctx.on.config_changed(),
         State(
             leader=True,
-            containers=[GLUETUN_CONTAINER],
+            containers=[GLUETUN_CONTAINER, GLUETUN_EXPORTER_CONTAINER],
             config={
                 "cluster-cidrs": "10.1.0.0/16",
                 "custom-overrides": json.dumps(
@@ -219,7 +220,7 @@ def test_override_invalid_json_blocked(ctx):
         ctx.on.config_changed(),
         State(
             leader=True,
-            containers=[GLUETUN_CONTAINER],
+            containers=[GLUETUN_CONTAINER, GLUETUN_EXPORTER_CONTAINER],
             config={
                 "cluster-cidrs": "10.1.0.0/16",
                 "custom-overrides": "not-valid-json",

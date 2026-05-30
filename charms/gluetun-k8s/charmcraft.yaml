@@ -22,6 +22,18 @@ base: ubuntu@24.04
 platforms:
   amd64:
 
+charm-libs:
+  - lib: istio_beacon_k8s.service_mesh
+    version: "0"
+  - lib: prometheus_k8s.prometheus_scrape
+    version: "0"
+  - lib: loki_k8s.loki_push_api
+    version: "1"
+  - lib: grafana_k8s.grafana_dashboard
+    version: "0"
+  - lib: tempo_coordinator_k8s.tracing
+    version: "0"
+
 parts:
   charm:
     source: .
@@ -42,16 +54,47 @@ parts:
 containers:
   gluetun:
     resource: gluetun-image
+  gluetun-exporter:
+    resource: gluetun-exporter-image
 
 resources:
   gluetun-image:
     type: oci-image
     description: Gluetun VPN client container
     upstream-source: ghcr.io/qdm12/gluetun:v3.41.1
+  gluetun-exporter-image:
+    type: oci-image
+    description: thecfu/gluetun-exporter (standalone — polls gluetun's control API)
+    upstream-source: ghcr.io/thecfu/gluetun-exporter:0.1.1-standalone
 
 provides:
   vpn-gateway:
     interface: vpn-gateway
+  metrics-endpoint:
+    interface: prometheus_scrape
+    optional: true
+    description: Prometheus scrape target for the gluetun-exporter sidecar
+  grafana-dashboard:
+    interface: grafana_dashboard
+    optional: true
+    description: Ships charm-bundled Grafana dashboards to a related Grafana
+
+requires:
+  service-mesh:
+    interface: service_mesh
+    limit: 1
+    optional: true
+    description: Subscribe this charm into a service mesh for policy-driven traffic management
+  logging:
+    interface: loki_push_api
+    limit: 1
+    optional: true
+    description: Forwards Pebble service logs (workload + exporter) to Loki
+  charm-tracing:
+    interface: tracing
+    limit: 1
+    optional: true
+    description: Charm hook execution traces to Tempo via ops[tracing]
 
 config:
   options:
@@ -145,6 +188,15 @@ config:
         to port 53 on all interfaces, conflicting with pod-gateway's dnsmasq
         which binds to the VXLAN interface (172.16.0.1:53). This causes bind
         errors and connection instability. Keep disabled.
+
+    extended-alert-rules:
+      type: boolean
+      default: false
+      description: |
+        Ship the extended Prometheus alert rule set on the metrics-endpoint
+        relation in addition to the always-on baseline.
+
+        See src/prometheus_alert_rules_extended/gluetun-extended.rules.yaml.
 
 actions:
   speedtest:
