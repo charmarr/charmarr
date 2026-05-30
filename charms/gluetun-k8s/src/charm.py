@@ -10,6 +10,9 @@ from typing import Any
 
 import httpx
 import ops
+from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
+from charms.loki_k8s.v1.loki_push_api import LogForwarder
+from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from lightkube.core.exceptions import ApiError
 from lightkube.models.core_v1 import Container, SecurityContext
 from lightkube.resources.apps_v1 import StatefulSet
@@ -27,6 +30,11 @@ from charmarr_lib.vpn import (
 from charmarr_lib.vpn.interfaces import VPNGatewayProvider, VPNGatewayProviderData
 
 GLUETUN_CONTAINER_NAME = "gluetun"
+GLUETUN_EXPORTER_CONTAINER_NAME = "gluetun-exporter"
+GLUETUN_EXPORTER_SERVICE_NAME = "gluetun-exporter"
+GLUETUN_EXPORTER_BIN = "/opt/gluetun-exporter"
+GLUETUN_EXPORTER_PORT = 8001
+GLUETUN_EXPORTER_INTERVAL = 30
 DEFAULT_WIREGUARD_PORT = 51820
 
 logger = logging.getLogger(__name__)
@@ -54,8 +62,23 @@ class GluetunCharm(ops.CharmBase):
     def __init__(self, framework: ops.Framework) -> None:
         super().__init__(framework)
         self._container = self.unit.get_container(GLUETUN_CONTAINER_NAME)
+        self._exporter_container = self.unit.get_container(GLUETUN_EXPORTER_CONTAINER_NAME)
         self._vpn_gateway = VPNGatewayProvider(self, "vpn-gateway")
         self._k8s: K8sResourceManager | None = None
+
+        self._metrics_endpoint = MetricsEndpointProvider(
+            self,
+            jobs=[{"static_configs": [{"targets": [f"*:{GLUETUN_EXPORTER_PORT}"]}]}],
+            alert_rules_path=(
+                "src/prometheus_alert_rules_extended"
+                if bool(self.config.get("extended-alert-rules", False))
+                else "src/prometheus_alert_rules"
+            ),
+            refresh_event=[self.on.gluetun_exporter_pebble_ready],
+        )
+        self._grafana_dashboards = GrafanaDashboardProvider(self)
+        self._log_forwarder = LogForwarder(self, relation_name="logging")
+        self._charm_tracing = ops.tracing.Tracing(self, tracing_relation_name="charm-tracing")
 
         observe_events(self, reconcilable_events_k8s, self._reconcile)
         framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
@@ -347,6 +370,41 @@ class GluetunCharm(ops.CharmBase):
             instance_name=self.app.name,
         )
 
+    def _build_exporter_layer(self) -> ops.pebble.LayerDict:
+        return {
+            "summary": "gluetun-exporter Prometheus exporter",
+            "services": {
+                GLUETUN_EXPORTER_SERVICE_NAME: {
+                    "override": "replace",
+                    "summary": "thecfu/gluetun-exporter (standalone) sidecar",
+                    "command": GLUETUN_EXPORTER_BIN,
+                    "startup": "enabled",
+                    "environment": {
+                        "GLUETUN_URL": f"http://localhost:{GLUETUN_HTTP_PORT}",
+                        "EXPORTER_PORT": str(GLUETUN_EXPORTER_PORT),
+                        "EXPORTER_INTERVAL": str(GLUETUN_EXPORTER_INTERVAL),
+                    },
+                },
+            },
+            "checks": {
+                f"{GLUETUN_EXPORTER_CONTAINER_NAME}-ready": {
+                    "override": "replace",
+                    "level": "ready",
+                    "http": {"url": f"http://localhost:{GLUETUN_EXPORTER_PORT}/metrics"},
+                    "period": "30s",
+                    "timeout": "5s",
+                    "threshold": 3,
+                }
+            },
+        }
+
+    def _reconcile_exporter(self) -> None:
+        if not self._exporter_container.can_connect():
+            return
+        layer = self._build_exporter_layer()
+        self._exporter_container.add_layer(GLUETUN_EXPORTER_SERVICE_NAME, layer, combine=True)
+        self._exporter_container.replan()
+
     def _reconcile(self, event: ops.EventBase) -> None:
         """Reconcile charm state with desired configuration.
 
@@ -403,6 +461,9 @@ class GluetunCharm(ops.CharmBase):
         layer = self._build_pebble_layer(private_key)
         self._container.add_layer("gluetun", layer, combine=True)
         self._container.replan()
+
+        # Reconcile gluetun-exporter sidecar
+        self._reconcile_exporter()
 
         # Check VPN status and publish to relations
         health = self._check_vpn_health()

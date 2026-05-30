@@ -11,6 +11,7 @@ from ops.testing import Container, Secret, State
 from charm import VPNHealthStatus
 
 GLUETUN_CONTAINER = Container(name="gluetun", can_connect=True)
+GLUETUN_EXPORTER_CONTAINER = Container(name="gluetun-exporter", can_connect=True)
 
 
 def test_vpn_status_shows_connected_with_ip(ctx):
@@ -25,7 +26,7 @@ def test_vpn_status_shows_connected_with_ip(ctx):
             ctx.on.collect_unit_status(),
             State(
                 leader=True,
-                containers=[GLUETUN_CONTAINER],
+                containers=[GLUETUN_CONTAINER, GLUETUN_EXPORTER_CONTAINER],
                 config={
                     "cluster-cidrs": "10.1.0.0/16",
                     "vpn-provider": "nordvpn",
@@ -49,7 +50,7 @@ def test_vpn_status_shows_not_connected(ctx):
             ctx.on.collect_unit_status(),
             State(
                 leader=True,
-                containers=[GLUETUN_CONTAINER],
+                containers=[GLUETUN_CONTAINER, GLUETUN_EXPORTER_CONTAINER],
                 config={
                     "cluster-cidrs": "10.1.0.0/16",
                     "vpn-provider": "nordvpn",
@@ -75,7 +76,7 @@ def test_reconcile_calls_gateway_when_vpn_connected(ctx, mock_k8s_privileged):
             ctx.on.update_status(),
             State(
                 leader=True,
-                containers=[GLUETUN_CONTAINER],
+                containers=[GLUETUN_CONTAINER, GLUETUN_EXPORTER_CONTAINER],
                 config={
                     "cluster-cidrs": "10.1.0.0/16,10.152.183.0/24",
                     "vpn-provider": "nordvpn",
@@ -104,7 +105,7 @@ def test_reconcile_calls_gateway_even_when_vpn_disconnected(ctx, mock_k8s_privil
             ctx.on.update_status(),
             State(
                 leader=True,
-                containers=[GLUETUN_CONTAINER],
+                containers=[GLUETUN_CONTAINER, GLUETUN_EXPORTER_CONTAINER],
                 config={
                     "cluster-cidrs": "10.1.0.0/16",
                     "vpn-provider": "nordvpn",

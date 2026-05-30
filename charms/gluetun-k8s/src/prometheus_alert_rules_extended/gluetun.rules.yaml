@@ -1,0 +1,50 @@
+groups:
+  - name: gluetun.health
+    rules:
+      - alert: GluetunExporterDown
+        expr: up{juju_charm="gluetun-k8s"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: gluetun
+        annotations:
+          summary: gluetun-exporter scrape failing on {{ $labels.juju_unit }}
+          description: |
+            Prometheus cannot scrape the exporter's `/metrics` endpoint. The
+            sidecar container is likely dead, or it cannot reach Gluetun's
+            control API on localhost:8000. Check
+            `kubectl logs -c gluetun-exporter <pod>` and verify Gluetun is
+            healthy.
+
+      - alert: GluetunTunnelDown
+        expr: gluetun_vpn_status{juju_charm="gluetun-k8s"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: gluetun
+        annotations:
+          summary: Gluetun VPN tunnel down on {{ $labels.juju_unit }}
+          description: |
+            Gluetun reports the VPN tunnel is not connected. Workloads behind
+            this gateway (qbittorrent, sabnzbd, the arrs) lose external
+            connectivity unless their kill-switch lets traffic out the
+            cluster's normal egress - which would be an IP leak. Investigate
+            immediately: check the VPN provider's status, the wireguard
+            private key, and `kubectl logs -c gluetun <pod>`.
+
+  - name: gluetun.portforward
+    rules:
+      - alert: GluetunNoForwardedPorts
+        expr: gluetun_forwarded_ports_total{juju_charm="gluetun-k8s"} == 0
+        for: 30m
+        labels:
+          severity: warning
+          component: gluetun
+        annotations:
+          summary: Gluetun has zero forwarded ports on {{ $labels.juju_unit }}
+          description: |
+            No forwarded ports are active for 30 minutes. qBittorrent BitTorrent
+            incoming connections will fail. Only relevant if the VPN provider
+            supports port forwarding and it's configured; if it isn't,
+            disable this alert via `extended-alert-rules` config swap or
+            silence it in Alertmanager.
