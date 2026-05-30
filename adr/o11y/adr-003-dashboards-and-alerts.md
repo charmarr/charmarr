@@ -121,15 +121,18 @@ When `extended-alert-rules: true`, the charm additionally ships rules from `src/
 
 `charmarr-crowsnest-k8s` ships cross-cutting dashboards in `src/grafana_dashboards/`:
 
-| Dashboard | What it shows |
-|---|---|
-| `charmarr-fleet-overview.json` | Every charmarr charm's up/down state, restart counts, recent action invocations, summarized resource heat |
-| `charmarr-request-funnel.json` | Seerr→Radarr/Sonarr→qBittorrent/SABnzbd→storage→Plex timing breakdown |
-| `charmarr-data-flow.json` | Topology view: relations between charms, signal connectivity |
-| `charmarr-vpn-downloads.json` | Gluetun tunnel state correlated with download client throughput and queue depth |
-| `charmarr-storage-hotmap.json` | PVC fill %, IO heat per app sub-stack |
+`charmarr-crowsnest-k8s` ships a **single fleet-wide dashboard** (`charmarr-fleet.json`) with rows for each cross-cutting concern. Splitting into 5+ dashboards (per the original plan) was rejected after live evaluation — most rows are derived from the same 4-5 metric families, and operators routinely cross-reference between rows (e.g., a downloads dip is usually checked against the VPN tunnel state on the same screen).
 
-These dashboards consume metrics from per-charm exporters *and* from crowsnest's own derived-metrics exporter (see [adr-004](adr-004-sli-slo-strategy.md)).
+| Row | What it shows | Source |
+|---|---|---|
+| Fleet health | Every charmarr charm's up/down, restart counts | per-charm exporters + KSM |
+| Topology (Node Graph panel) | Live relation graph: nodes are apps, edges are bound relations | `charmarr_relation_edge` from the topology daemon |
+| Request funnel | Seerr→arrs→download clients→storage→Plex timing | per-charm exporters |
+| VPN + downloads | Gluetun tunnel state correlated with qbit/sab throughput + queue depth | gluetun-exporter, qbit/sab exporters |
+| Storage broker | Consumers bound, PVC mount state per consumer, hardware device mount state | `charmarr-storage-k8s` in-charm gauges |
+| Library state | Plex media counts, Radarr/Sonarr library size, missing items | plex-exporter, scraparr |
+
+These dashboards consume metrics from per-charm exporters, the per-charm topology daemons (see [adr-002](adr-002-exporter-strategy.md)), and crowsnest's own derived-metrics exporter (see [adr-004](adr-004-sli-slo-strategy.md)).
 
 ### Crowsnest Alert Rules
 
@@ -138,7 +141,10 @@ Crowsnest ships stack-level rules in `src/prometheus_alert_rules/charmarr-fleet.
 | Alert | Logic |
 |---|---|
 | `CharmarrStackPartialOutage` | `count(up{stack="charmarr"} == 0) / count(up{stack="charmarr"}) > 0.3` for 10m |
-| `CharmarrDataFlowBroken` | `charmarr_pipeline_complete == 0` for 15m (some required relation is unwired) |
+| `CharmarrArrMissingDownloadClient` | `count by (juju_application) (charmarr_relation_bound{relation="download-client", required="true"} == 0)` for 15m — arr deployed but no download client wired |
+| `CharmarrProwlarrIsolated` | `count(charmarr_relation_bound{juju_application=~".*prowlarr.*", relation="media-indexer", role="provides"} == 1) == 0` for 15m — prowlarr has no consumers |
+| `CharmarrStorageOrphaned` | `count(charmarr_relation_bound{juju_application=~".*storage.*", relation="media-storage", role="provides"} == 1) == 0` for 15m — storage broker has no consumers |
+| `CharmarrDownloadClientUnsafeNoVpn` | `(charmarr_relation_bound{juju_application=~".*qbittorrent.*|.*sabnzbd.*", relation="vpn"} == 0) and on(juju_model) (charmarr_unsafe_mode == 1)` — download client without VPN and unsafe-mode not explicitly enabled |
 | `CharmarrVPNDependentAlertNoise` | Suppression marker: when gluetun is down, downstream VPN-dependent app alerts are flagged for routing/silencing |
 | `CharmarrRecyclarrDriftHigh` | `max_over_time(charmarr_recyclarr_drift_seconds[1d]) > 86400 * 7` (>7 days since last TRaSH sync) |
 
