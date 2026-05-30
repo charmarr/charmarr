@@ -20,6 +20,8 @@ SABNZBD_CONTAINER = Container(
     execs={Exec(["chown", "-R", "1000:1000", "/config"])},
 )
 
+SABNZBD_EXPORTER_CONTAINER = Container(name="sabnzbd-exporter", can_connect=True)
+
 
 @pytest.fixture
 def ctx() -> Context[SABnzbdCharm]:

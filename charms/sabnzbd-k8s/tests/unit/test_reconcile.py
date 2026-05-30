@@ -12,7 +12,7 @@ from ops.testing import Container, Exec, Mount, Relation, Secret, State
 from charmarr_lib.core.interfaces import MediaStorageProviderData
 from charmarr_lib.vpn.interfaces import VPNGatewayProviderData
 
-from .conftest import SABNZBD_CONTAINER
+from .conftest import SABNZBD_CONTAINER, SABNZBD_EXPORTER_CONTAINER
 
 
 def test_reconcile_creates_api_key_secret(ctx, mock_k8s):
@@ -32,7 +32,7 @@ def test_reconcile_creates_api_key_secret(ctx, mock_k8s):
             ctx.on.config_changed(),
             State(
                 leader=True,
-                containers=[SABNZBD_CONTAINER],
+                containers=[SABNZBD_CONTAINER, SABNZBD_EXPORTER_CONTAINER],
                 relations=[storage_relation],
                 config={"unsafe-mode": True},
             ),
@@ -60,7 +60,7 @@ def test_reconcile_builds_pebble_layer(ctx, mock_k8s):
             ctx.on.config_changed(),
             State(
                 leader=True,
-                containers=[SABNZBD_CONTAINER],
+                containers=[SABNZBD_CONTAINER, SABNZBD_EXPORTER_CONTAINER],
                 relations=[storage_relation],
                 config={"unsafe-mode": True},
             ),
@@ -95,7 +95,7 @@ def test_reconcile_calls_storage_volume(ctx, mock_k8s):
             ctx.on.config_changed(),
             State(
                 leader=True,
-                containers=[SABNZBD_CONTAINER],
+                containers=[SABNZBD_CONTAINER, SABNZBD_EXPORTER_CONTAINER],
                 relations=[storage_relation],
                 config={"unsafe-mode": True},
             ),
@@ -137,7 +137,7 @@ def test_reconcile_calls_vpn_gateway_client(ctx, mock_k8s):
             ctx.on.config_changed(),
             State(
                 leader=True,
-                containers=[SABNZBD_CONTAINER],
+                containers=[SABNZBD_CONTAINER, SABNZBD_EXPORTER_CONTAINER],
                 relations=[storage_relation, vpn_relation],
             ),
         )
@@ -179,7 +179,7 @@ def test_ensure_user_exists_adds_user_and_group(ctx, mock_k8s):
                 ctx.on.config_changed(),
                 State(
                     leader=True,
-                    containers=[container],
+                    containers=[container, SABNZBD_EXPORTER_CONTAINER],
                     relations=[storage_relation],
                     config={"unsafe-mode": True},
                 ),
@@ -212,7 +212,7 @@ def test_secret_rotate_generates_new_api_key(ctx, mock_k8s):
             ctx.on.secret_rotate(secret),
             State(
                 leader=True,
-                containers=[SABNZBD_CONTAINER],
+                containers=[SABNZBD_CONTAINER, SABNZBD_EXPORTER_CONTAINER],
                 relations=[storage_relation],
                 secrets=[secret],
             ),
