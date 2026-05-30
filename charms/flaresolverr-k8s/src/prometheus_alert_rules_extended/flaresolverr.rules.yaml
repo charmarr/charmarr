@@ -1,0 +1,50 @@
+groups:
+  - name: flaresolverr.health
+    rules:
+      - alert: FlaresolverrDown
+        expr: up{juju_charm="flaresolverr-k8s"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: flaresolverr
+        annotations:
+          summary: FlareSolverr scrape failing on {{ $labels.juju_unit }}
+          description: |
+            Prometheus cannot scrape FlareSolverr's `/metrics` endpoint (port
+            8192). The workload is likely dead. While down, every Prowlarr
+            indexer that depends on it (Cloudflare-protected trackers) will
+            silently fail to search. Check `kubectl logs -c flaresolverr <pod>`.
+
+  - name: flaresolverr.performance
+    rules:
+      - alert: FlaresolverrHighSolveFailureRate
+        expr: |
+          sum(rate(flaresolverr_request_total{result!="solved"}[5m]))
+          / clamp_min(sum(rate(flaresolverr_request_total[5m])), 0.001)
+          > 0.3
+        for: 30m
+        labels:
+          severity: warning
+          component: flaresolverr
+        annotations:
+          summary: FlareSolverr solve failure rate above 30% for 30m on {{ $labels.juju_unit }}
+          description: |
+            Over the last 30 minutes, more than 30% of CAPTCHA-solve attempts
+            failed (errored or timed out). Common causes: upstream Cloudflare
+            tightened its challenge, a specific indexer changed its CDN, or
+            the FlareSolverr container's Chromium process is struggling.
+            Drill down to per-domain failure rates in the dashboard.
+
+      - alert: FlaresolverrSlowSolves
+        expr: histogram_quantile(0.95, sum by (le) (rate(flaresolverr_request_duration_bucket[5m]))) > 30
+        for: 30m
+        labels:
+          severity: warning
+          component: flaresolverr
+        annotations:
+          summary: FlareSolverr p95 solve latency above 30s for 30m on {{ $labels.juju_unit }}
+          description: |
+            95th percentile solve duration exceeded 30 seconds for half an
+            hour. Either Cloudflare is escalating challenges, or the
+            workload's Chromium is being throttled. Prowlarr searches will
+            time out and indexers will start being marked unhealthy.

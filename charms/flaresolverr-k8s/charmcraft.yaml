@@ -33,6 +33,14 @@ parts:
 charm-libs:
   - lib: istio_beacon_k8s.service_mesh
     version: "0"
+  - lib: prometheus_k8s.prometheus_scrape
+    version: "0"
+  - lib: loki_k8s.loki_push_api
+    version: "1"
+  - lib: grafana_k8s.grafana_dashboard
+    version: "0"
+  - lib: tempo_coordinator_k8s.tracing
+    version: "0"
 
 containers:
   flaresolverr:
@@ -51,6 +59,14 @@ provides:
     interface: cross_model_mesh
     optional: true
     description: Access cross-model applications via service mesh
+  metrics-endpoint:
+    interface: prometheus_scrape
+    optional: true
+    description: Prometheus scrape target for FlareSolverr's native /metrics endpoint
+  grafana-dashboard:
+    interface: grafana_dashboard
+    optional: true
+    description: Ships charm-bundled Grafana dashboards to a related Grafana
 
 requires:
   require-cmr-mesh:
@@ -62,6 +78,16 @@ requires:
     limit: 1
     optional: true
     description: Subscribe to Istio service mesh for mTLS
+  logging:
+    interface: loki_push_api
+    limit: 1
+    optional: true
+    description: Forwards Pebble service logs to Loki
+  charm-tracing:
+    interface: tracing
+    limit: 1
+    optional: true
+    description: Charm hook execution traces to Tempo via ops[tracing]
 
 config:
   options:
@@ -77,3 +103,11 @@ config:
       description: |
         Maximum timeout in milliseconds for browser navigation.
         Default is 60000 (60 seconds).
+    extended-alert-rules:
+      type: boolean
+      default: false
+      description: |
+        Ship the extended Prometheus alert rule set on the metrics-endpoint
+        relation in addition to the always-on baseline.
+
+        See src/prometheus_alert_rules_extended/flaresolverr-extended.rules.yaml.

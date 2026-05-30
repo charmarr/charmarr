@@ -9,7 +9,15 @@ import urllib.error
 import urllib.request
 
 import ops
-from charms.istio_beacon_k8s.v0.service_mesh import AppPolicy, Endpoint, ServiceMeshConsumer
+from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
+from charms.istio_beacon_k8s.v0.service_mesh import (
+    AppPolicy,
+    Endpoint,
+    ServiceMeshConsumer,
+    UnitPolicy,
+)
+from charms.loki_k8s.v1.loki_push_api import LogForwarder
+from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 
 from charmarr_lib.core import observe_events, reconcilable_events_k8s
 from charmarr_lib.core.interfaces import FlareSolverrProvider, FlareSolverrProviderData
@@ -18,6 +26,8 @@ logger = logging.getLogger(__name__)
 
 CONTAINER_NAME = "flaresolverr"
 PORT = 8191
+METRICS_PORT = 8192
+METRICS_PATH = "/metrics"
 
 
 class FlareSolverrCharm(ops.CharmBase):
@@ -27,6 +37,20 @@ class FlareSolverrCharm(ops.CharmBase):
         super().__init__(framework)
         self._container = self.unit.get_container(CONTAINER_NAME)
 
+        self._metrics_endpoint = MetricsEndpointProvider(
+            self,
+            jobs=[{"static_configs": [{"targets": [f"*:{METRICS_PORT}"]}]}],
+            alert_rules_path=(
+                "src/prometheus_alert_rules_extended"
+                if bool(self.config.get("extended-alert-rules", False))
+                else "src/prometheus_alert_rules"
+            ),
+            refresh_event=[self.on.flaresolverr_pebble_ready],
+        )
+        self._grafana_dashboards = GrafanaDashboardProvider(self)
+        self._log_forwarder = LogForwarder(self, relation_name="logging")
+        self._charm_tracing = ops.tracing.Tracing(self, tracing_relation_name="charm-tracing")
+
         self._flaresolverr = FlareSolverrProvider(self, "flaresolverr")
         self._service_mesh = ServiceMeshConsumer(
             self,
@@ -34,6 +58,10 @@ class FlareSolverrCharm(ops.CharmBase):
                 AppPolicy(
                     relation="flaresolverr",
                     endpoints=[Endpoint(ports=[PORT])],
+                ),
+                UnitPolicy(
+                    relation="metrics-endpoint",
+                    ports=[METRICS_PORT],
                 ),
             ],
         )
@@ -75,6 +103,8 @@ class FlareSolverrCharm(ops.CharmBase):
                             "LOG_LEVEL": log_level,
                             "BROWSER_TIMEOUT": str(timeout),
                             "TZ": "UTC",
+                            "PROMETHEUS_ENABLED": "true",
+                            "PROMETHEUS_PORT": str(METRICS_PORT),
                         },
                     }
                 },
@@ -85,7 +115,14 @@ class FlareSolverrCharm(ops.CharmBase):
                         "http": {"url": f"http://localhost:{PORT}/health"},
                         "period": "30s",
                         "timeout": "5s",
-                    }
+                    },
+                    "metrics-ready": {
+                        "override": "replace",
+                        "level": "ready",
+                        "http": {"url": f"http://localhost:{METRICS_PORT}{METRICS_PATH}"},
+                        "period": "30s",
+                        "timeout": "5s",
+                    },
                 },
             }
         )
