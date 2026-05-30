@@ -1,0 +1,57 @@
+version: prometheus/v1
+service: charmarr-vpn
+labels:
+  stack: charmarr
+  domain: vpn
+slos:
+  - name: vpn-tunnel-availability
+    objective: 99.5
+    description: |
+      Gluetun VPN tunnel actively carrying traffic. SLI keys off
+      `gluetun_vpn_infos{ip!=""}` because WireGuard is a silent protocol -
+      `gluetun_vpn_status` stays 1 even when the tunnel is dead (see the
+      gluetun-k8s o11y quirks note). 99.5% tighter than other SLOs
+      because tunnel failure correlates with privacy exposure.
+    sli:
+      events:
+        error_query: |
+          count(gluetun_vpn_infos{ip=""})
+        total_query: |
+          count(gluetun_vpn_infos)
+    alerting:
+      name: CharmarrVPNTunnelBudgetBurn
+      labels:
+        category: privacy
+      annotations:
+        summary: Gluetun VPN tunnel error budget burn ({{$value}} fraction)
+      page_alert:
+        disable: true
+      ticket_alert:
+        labels:
+          severity: ticket
+
+  - name: downloads-vpn-safe
+    objective: 99.9
+    description: |
+      Safety invariant: no torrent or usenet traffic ever leaves a
+      download client that's in unsafe-mode while no vpn-gateway relation
+      is bound. Should be effectively never violated. 99.9% reflects the
+      operational expectation that operators wire VPN before flipping
+      unsafe-mode, not after.
+    sli:
+      events:
+        error_query: |
+          sum(charmarr_unsafe_mode_enabled and on(juju_application) charmarr_relation_bound{relation="vpn-gateway"} == 0)
+        total_query: |
+          sum(charmarr_unsafe_mode_enabled >= 0)
+    alerting:
+      name: CharmarrDownloadsVpnSafeBudgetBurn
+      labels:
+        category: safety
+      annotations:
+        summary: VPN-safe invariant burn ({{$value}} fraction)
+      page_alert:
+        disable: true
+      ticket_alert:
+        labels:
+          severity: ticket

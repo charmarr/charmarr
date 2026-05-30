@@ -1,0 +1,77 @@
+version: prometheus/v1
+service: charmarr-availability
+labels:
+  stack: charmarr
+  domain: availability
+slos:
+  - name: seerr-availability
+    objective: 99.0
+    description: |
+      Seerr (request management UI) is reachable. Direct user surface -
+      "I can submit a request". 99% allows ~7h/month for refreshes,
+      pod restarts, upgrades.
+    sli:
+      events:
+        error_query: |
+          sum(up{juju_charm="seerr-k8s"} == 0)
+        total_query: |
+          sum(up{juju_charm="seerr-k8s"} >= 0)
+    alerting:
+      name: CharmarrSeerrBudgetBurn
+      labels:
+        category: user-facing
+      annotations:
+        summary: Seerr error budget burn ({{$value}} fraction)
+      page_alert:
+        disable: true
+      ticket_alert:
+        labels:
+          severity: ticket
+
+  - name: media-server-availability
+    objective: 99.0
+    description: |
+      Plex (playback surface) is reachable. Direct user surface - "I can
+      watch". 99% allows ~7h/month - typical for transcode restarts and
+      library scans.
+    sli:
+      events:
+        error_query: |
+          sum(up{juju_charm="plex-k8s"} == 0)
+        total_query: |
+          sum(up{juju_charm="plex-k8s"} >= 0)
+    alerting:
+      name: CharmarrMediaServerBudgetBurn
+      labels:
+        category: user-facing
+      annotations:
+        summary: Plex error budget burn ({{$value}} fraction)
+      page_alert:
+        disable: true
+      ticket_alert:
+        labels:
+          severity: ticket
+
+  - name: stack-availability
+    objective: 95.0
+    description: |
+      Aggregate availability across the entire charmarr stack. 95%
+      reflects the AND-combination of N apps each at ~99%. Operator-
+      meaningful summary - not a user-facing SLO.
+    sli:
+      events:
+        error_query: |
+          sum(up{juju_charm=~"(radarr|sonarr|prowlarr|qbittorrent|sabnzbd|plex|gluetun|flaresolverr|seerr|charmarr-storage|charmarr-crowsnest)-k8s"} == 0)
+        total_query: |
+          sum(up{juju_charm=~"(radarr|sonarr|prowlarr|qbittorrent|sabnzbd|plex|gluetun|flaresolverr|seerr|charmarr-storage|charmarr-crowsnest)-k8s"} >= 0)
+    alerting:
+      name: CharmarrStackBudgetBurn
+      labels:
+        category: stack-health
+      annotations:
+        summary: Charmarr stack error budget burn ({{$value}} fraction)
+      page_alert:
+        disable: true
+      ticket_alert:
+        labels:
+          severity: ticket

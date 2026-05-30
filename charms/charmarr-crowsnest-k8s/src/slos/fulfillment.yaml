@@ -1,0 +1,41 @@
+version: prometheus/v1
+service: charmarr-fulfillment
+labels:
+  stack: charmarr
+  domain: fulfillment
+slos:
+  - name: request-fulfillment-availability
+    objective: 95.0
+    description: |
+      End-to-end user journey: of the requests an operator has approved
+      via Seerr, the fraction that have reached the "available" state
+      (file imported, library refreshed). 95% accounts for ongoing
+      requests that haven't completed yet (in flight) and a small
+      fraction of stuck/failed requests.
+
+      Notably absent from the error count: `declined` (operator-driven
+      reject, not a system failure) and `pending` (operator hasn't
+      approved yet, also operator-driven).
+
+      Uses Sloth's `raw` SLI form rather than `events` because the
+      source counters are point-in-time gauges from seerr's
+      /api/v1/request/count, not rate-able counters. Burn-rate semantics
+      become "current ratio over time", which is acceptable for a
+      slowly-changing metric.
+    sli:
+      raw:
+        error_ratio_query: |
+          (sum(charmarr_requests_total{status=~"approved|processing"}))
+          /
+          clamp_min(sum(charmarr_requests_total{status=~"approved|processing|available"}), 1)
+    alerting:
+      name: CharmarrRequestFulfillmentBudgetBurn
+      labels:
+        category: user-experience
+      annotations:
+        summary: Request fulfillment error budget burn ({{$value}} fraction)
+      page_alert:
+        disable: true
+      ticket_alert:
+        labels:
+          severity: ticket

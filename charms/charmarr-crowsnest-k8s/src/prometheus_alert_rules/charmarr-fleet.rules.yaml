@@ -1,0 +1,96 @@
+groups:
+  - name: charmarr-fleet.topology
+    rules:
+      - alert: CharmarrArrMissingDownloadClient
+        expr: |
+          sum by (juju_application) (
+            charmarr_relation_bound{relation="download-client", required="true"} == 0
+          ) > 0
+        for: 15m
+        labels:
+          severity: warning
+          component: fleet
+        annotations:
+          summary: |
+            {{ $labels.juju_application }} has no download-client relation bound
+          description: |
+            An arr-shaped charm declared `download-client` as a required
+            relation but it is not currently bound. New movies/episodes
+            will not download. Wire the relation: `juju relate
+            {{ $labels.juju_application }} qbittorrent` (or `sabnzbd`).
+
+      - alert: CharmarrProwlarrIsolated
+        expr: |
+          sum(
+            charmarr_relation_edge{relation="media-indexer", to_app=~".*prowlarr.*"}
+          ) == 0
+        for: 15m
+        labels:
+          severity: warning
+          component: fleet
+        annotations:
+          summary: Prowlarr is deployed but no arr is consuming it
+          description: |
+            Prowlarr provides `media-indexer` but no charmarr arr is
+            related as a requirer. Searches via prowlarr produce nothing.
+            Wire `juju relate radarr prowlarr` (and sonarr).
+
+      - alert: CharmarrStorageOrphaned
+        expr: |
+          sum(
+            charmarr_relation_edge{relation="media-storage", to_app=~".*storage.*"}
+          ) == 0
+        for: 15m
+        labels:
+          severity: warning
+          component: fleet
+        annotations:
+          summary: charmarr-storage has no consumers
+          description: |
+            charmarr-storage provides `media-storage` but no charm in the
+            stack is mounting it. Either an in-progress deploy (ignore)
+            or the operator forgot to wire the arrs/dl-clients/plex to
+            shared storage.
+
+      - alert: CharmarrDownloadClientUnsafeNoVpn
+        expr: |
+          sum by (juju_application) (
+            charmarr_unsafe_mode_enabled == 1
+            and on(juju_application) charmarr_relation_bound{relation="vpn-gateway"} == 0
+          ) > 0
+        for: 5m
+        labels:
+          severity: critical
+          component: fleet
+        annotations:
+          summary: |
+            {{ $labels.juju_application }} is in unsafe-mode but has no VPN gateway bound
+          description: |
+            Download client {{ $labels.juju_application }} has
+            `unsafe-mode=true` AND no `vpn-gateway` relation. Torrent or
+            usenet traffic is leaving the pod without the VPN tunnel,
+            exposing the operator's real IP. Either wire `juju relate
+            {{ $labels.juju_application }} gluetun` or set
+            `unsafe-mode=false` to block the traffic.
+
+  - name: charmarr-fleet.health
+    rules:
+      - alert: CharmarrStackPartialOutage
+        expr: |
+          (
+            count(up{juju_charm=~"(radarr|sonarr|prowlarr|qbittorrent|sabnzbd|plex|gluetun|flaresolverr|seerr|charmarr-storage|charmarr-crowsnest)-k8s"} == 0)
+            /
+            count(up{juju_charm=~"(radarr|sonarr|prowlarr|qbittorrent|sabnzbd|plex|gluetun|flaresolverr|seerr|charmarr-storage|charmarr-crowsnest)-k8s"})
+          ) > 0.3
+        for: 10m
+        labels:
+          severity: warning
+          component: fleet
+        annotations:
+          summary: >30% of charmarr apps are down
+          description: |
+            More than 30% of the charmarr stack is unreachable for >10m.
+            Indicates a shared infrastructure problem - mesh policy
+            propagation issue, otelcol failure, controller restart, or
+            namespace-level issue. Inspect with
+            `juju status -m charmarr` first.

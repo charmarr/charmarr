@@ -1,0 +1,133 @@
+name: charmarr-crowsnest-k8s
+type: charm
+title: Charmarr Crowsnest
+summary: Cross-cutting observability for the Charmarr stack
+description: |
+  Workloadless charm that ships fleet-wide alert rules, a Grafana
+  dashboard, and SLO specifications derived from the topology metrics
+  published by the rest of the Charmarr stack (`charmarr_relation_bound`,
+  `charmarr_relation_edge`, `charmarr_storage_*`, `charmarr_unsafe_mode_*`,
+  `charmarr_requests_*`).
+
+  Deploy this charm alongside any Charmarr stack to get:
+
+  - Topology-completeness alerts: arr without a download client, prowlarr
+    with no consumers, storage broker with no consumers, download client
+    in unsafe-mode while the VPN gateway relation is missing, partial
+    stack outage.
+  - A fleet dashboard with the relation graph, fleet health, embedded
+    storage state, and per-app status.
+  - A homelab-calibrated SLO catalog (95-99.9% objectives) published over
+    the `sloth` interface. Relate to a sloth-k8s deployment to get
+    Prometheus recording rules and multi-burn-rate alerts generated
+    automatically.
+
+  Crowsnest is a pure observability producer - it has no workload of its
+  own and does not require operator config. See `adr-003` (dashboards and
+  alerts) and `adr-004` (SLO strategy) in the charmarr repo for the
+  architecture.
+
+links:
+  documentation: https://github.com/charmarr/charmarr
+  source: https://github.com/charmarr/charmarr
+  issues: https://github.com/charmarr/charmarr/issues
+
+assumes:
+  - k8s-api
+  - juju >= 3.6
+
+base: ubuntu@24.04
+platforms:
+  amd64:
+
+parts:
+  charm:
+    source: .
+    plugin: uv
+    build-packages: [git]
+    build-snaps: [astral-uv]
+
+charm-libs:
+  - lib: istio_beacon_k8s.service_mesh
+    version: "0"
+  - lib: prometheus_k8s.prometheus_scrape
+    version: "0"
+  - lib: grafana_k8s.grafana_dashboard
+    version: "0"
+  - lib: grafana_k8s.grafana_source
+    version: "0"
+  - lib: istio_ingress_k8s.istio_ingress_route
+    version: "0"
+  - lib: loki_k8s.loki_push_api
+    version: "1"
+  - lib: tempo_coordinator_k8s.tracing
+    version: "0"
+
+provides:
+  provide-cmr-mesh:
+    interface: cross_model_mesh
+    optional: true
+    description: Access cross-model applications via service mesh.
+  metrics-endpoint:
+    interface: prometheus_scrape
+    optional: true
+    description: |
+      Prometheus scrape target. Crowsnest publishes its own topology
+      metrics here; the operational meat is the alert rules bundled in
+      the relation data via the prometheus_scrape lib.
+  grafana-dashboard:
+    interface: grafana_dashboard
+    optional: true
+    description: Ships the bundled `charmarr-fleet` Grafana dashboard.
+  grafana-source:
+    interface: grafana_datasource
+    optional: true
+    description: |
+      Auto-registers a Grafana datasource pointing at the topology graph
+      aggregator endpoint. Publishes the external URL when an ingress
+      relation is wired; otherwise publishes the in-cluster Service FQDN.
+  sloth:
+    interface: sloth
+    optional: true
+    description: |
+      Publishes the Charmarr SLO catalog to a related sloth-k8s charm.
+      Sloth generates Prometheus recording rules and multi-burn-rate
+      alerts from these specs.
+
+requires:
+  require-cmr-mesh:
+    interface: cross_model_mesh
+    optional: true
+    description: Allow cross-model access via service mesh.
+  crowsnest:
+    interface: crowsnest
+    optional: true
+    description: |
+      Charmarr peers that opt into the fleet view. Crowsnest reads each
+      provider's `topology_url` from the relation, polls it, and aggregates
+      the result into the fleet relation graph served via the
+      `nodegraph-api` Grafana plugin.
+  service-mesh:
+    interface: service_mesh
+    limit: 1
+    optional: true
+    description: Subscribe this charm into a service mesh for policy-driven traffic management.
+  logging:
+    interface: loki_push_api
+    limit: 1
+    optional: true
+    description: Forwards charm hook logs to Loki (no workload logs - charm is workloadless).
+  charm-tracing:
+    interface: tracing
+    limit: 1
+    optional: true
+    description: Charm hook execution traces to Tempo via ops[tracing].
+  istio-ingress-route:
+    interface: istio_ingress_route
+    limit: 1
+    optional: true
+    description: |
+      External ingress for the charm's HTTP-facing endpoints. When wired,
+      the published external host is reused by outbound integrations
+      (e.g. `grafana-source`) so consumers reach this charm via the
+      ingress rather than the in-cluster Service FQDN.
