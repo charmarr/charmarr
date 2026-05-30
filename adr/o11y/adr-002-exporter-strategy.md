@@ -37,8 +37,17 @@
 * **Option 2:** `martabal/qbittorrent-exporter` (Go, modern, tag/category labels).
 
 ### Plex Exporter Choice
-* **Option 1:** `axsuul/plex-media-server-exporter` (Ruby, most complete metric set).
-* **Option 2:** `jsclayton/prometheus-plex-exporter` (Go, single binary, simpler ops).
+* **Option 1:** `axsuul/plex-media-server-exporter` (Ruby, most complete metric set, actively maintained with proper semver-tagged multi-arch releases).
+* **Option 2:** `jsclayton/prometheus-plex-exporter` (Go, single binary, simpler ops but no tagged multi-arch releases - only `:latest` is multi-arch; Renovate can't track digest moves without a regex manager extension).
+
+### Seerr / Overseerr Exporter Choice
+* **Option 1:** `WillFantom/overseerr-exporter` (Go, ~30 stars, last commit October 2023 — 1.5+ years stale at time of evaluation).
+* **Option 2:** No per-charm exporter — rely on kube-state-metrics for pod liveness only.
+
+### Gluetun Exporter Choice
+* **Option 1:** Custom Python shim distributed via charm-parts (~150 LoC), polling Gluetun's control API and emitting Prometheus metrics (see [adr-005](adr-005-gluetun-metrics-shim.md) — original plan).
+* **Option 2:** `thecfu/gluetun-exporter:0.1.1-standalone` — third-party Go exporter (same author as scraparr), polls Gluetun's HTTP control API, exposed via Pebble service in the workload container.
+* **Option 3:** `thecfu/gluetun-exporter:0.1.1-bundled` — same exporter, but rebuilt on top of the Gluetun image with `CAP_NET_ADMIN` to read netlink throughput counters.
 
 ## Decision Outcome
 
@@ -52,7 +61,11 @@
 
 **qBittorrent exporter: Option 2** — `martabal/qbittorrent-exporter` (Go). Modern, label semantics match the multi-instance pattern of charmarr's qbit deployments, single binary.
 
-**Plex exporter: Option 2** — `jsclayton/prometheus-plex-exporter` (Go). Single binary, simpler operationally. The richer "user/title" data from `axsuul` is best served by Tautulli (out of scope for this ADR; user-facing analytics dashboard is later work).
+**Plex exporter: Option 1** — `axsuul/plex-media-server-exporter` (Ruby). Initial pick was jsclayton's Go binary for "simpler ops", but the project ships no semver-tagged multi-arch images (`:latest` is the only multi-arch ref), so version pinning loses Renovate auto-update support without extending the Renovate regex manager. axsuul ships proper tagged multi-arch releases (`2.1.0` and forward) and surfaces the metrics that actually matter operationally: live `plex_sessions_count{state, user, ...}`, `plex_video_transcode_sessions_count` for transcode pressure, `plex_media_count{type}` for library scale. jsclayton's metric set was ~6 metrics with limited operational signal (host_cpu/mem, library_storage_total, plays_total) — too thin for real alerts. Ruby image is ~150 MB vs Go's ~10 MB; acceptable trade for the richer signal.
+
+**Seerr / Overseerr exporter: Option 2** — no per-charm exporter. WillFantom's exporter is the only Prometheus-native option and is stale (no commits for 18+ months), with sparse metrics (just two metric families: `overseerr_requests_count`, `overseerr_user_requests`). The signals it provides are also derivable from Seerr's own admin UI — no operational gap to fill. Liveness is covered by kube-state-metrics + the crowsnest charm's topology-completeness signal once it exists. Operators who want request analytics should deploy Tautulli alongside.
+
+**Gluetun exporter: Option 2** — `thecfu/gluetun-exporter:0.1.1-standalone` sidecar. Original plan ([adr-005](adr-005-gluetun-metrics-shim.md)) was a custom Python shim distributed via charm-parts, but that assumed Python was available in Gluetun's container; Gluetun is built on alpine + Go binary with no Python. A pre-existing Go exporter by the scraparr author (already trusted in our fleet) covers the essentials — `gluetun_vpn_status`, `gluetun_vpn_infos{ip, country, city}`, `gluetun_forwarded_ports*` — at zero maintenance cost to charmarr. Standalone mode runs as a sidecar with localhost access to Gluetun's control API; bundled mode requires `CAP_NET_ADMIN` and rebuilds the workload image — overkill given cAdvisor already provides container_network_* counters from kube-state-metrics. ADR-005 is superseded.
 
 ## Implementation Details
 
@@ -64,12 +77,12 @@
 | `sonarr-k8s` | scraparr | same | `scraparr` | 7100 |
 | `prowlarr-k8s` | scraparr | same | `scraparr` | 7100 |
 | `qbittorrent-k8s` | martabal/qbittorrent-exporter | `ghcr.io/martabal/qbittorrent-exporter` | `qbittorrent-exporter` | 8090 |
-| `sabnzbd-k8s` | msroest/sabnzbd_exporter | `ghcr.io/msroest/sabnzbd_exporter` | `sabnzbd-exporter` | 9387 |
-| `plex-k8s` | jsclayton/prometheus-plex-exporter | `ghcr.io/jsclayton/prometheus-plex-exporter` | `plex-exporter` | 9594 |
-| `seerr-k8s` | WillFantom/overseerr-exporter (Seerr API compat verified) | `ghcr.io/willfantom/overseerr-exporter` | `seerr-exporter` | 9850 |
-| `overseerr-k8s` | Same as seerr | same | `overseerr-exporter` | 9850 |
+| `sabnzbd-k8s` | msroest/sabnzbd_exporter | `docker.io/msroest/sabnzbd_exporter` | `sabnzbd-exporter` | 9387 |
+| `plex-k8s` | axsuul/plex-media-server-exporter | `ghcr.io/axsuul/plex-media-server-exporter` | `plex-exporter` | 9594 |
+| `seerr-k8s` | **None** — no acceptable exporter; rely on kube-state-metrics + crowsnest topology checks for liveness | n/a | n/a | n/a |
+| `overseerr-k8s` | **None** — same as seerr | n/a | n/a | n/a |
 | `flaresolverr-k8s` | **Native** (`PROMETHEUS_ENABLED=true`) | n/a (workload image) | n/a | 8192 (default workload port) |
-| `gluetun-k8s` | Custom Python shim — charm-parts fallback | charmarr-built, embedded via `parts:` (see [adr-005](adr-005-gluetun-metrics-shim.md)) | `metrics` Pebble service inside `gluetun` container | 9876 |
+| `gluetun-k8s` | thecfu/gluetun-exporter (standalone) | `ghcr.io/thecfu/gluetun-exporter:0.1.1-standalone` | `gluetun-exporter` | 8001 |
 | `charmarr-storage-k8s` | None — PVC metrics from kube-state-metrics | n/a | n/a | n/a |
 | `charmarr-multimeter-k8s` | None — test utility | n/a | n/a | n/a |
 | `charmarr-crowsnest-k8s` | Custom Python — derived/stack metrics | charmarr-built (see [adr-003](adr-003-dashboards-and-alerts.md)) | `metrics` Pebble service | 9090 |
@@ -113,7 +126,7 @@ Renovate tracks `upstream-source:` tags like the workload image — uniform PR s
 
 **Why not runtime download:** breaks air-gapped deploys; decouples exporter version from charm revision.
 
-**When charm-parts still applies:** the Gluetun shim is code we own — there's no upstream OCI image to point at. We embed the shim via `parts:` and run it as a Pebble service inside the existing `gluetun` container. See [adr-005](adr-005-gluetun-metrics-shim.md).
+**When charm-parts still applies:** no current use case. The original Gluetun shim plan (custom Python via charm-parts) is superseded by the thecfu/gluetun-exporter sidecar — see [adr-005](adr-005-gluetun-metrics-shim.md) for the revised decision. The charm-parts mechanism remains available as a fallback for any future charm that needs an exporter and has no acceptable upstream image, but the fleet currently has no instance of that pattern.
 
 ### Pebble Layer Pattern
 
@@ -198,7 +211,7 @@ Each charm adds a Pebble `ready` check for its exporter's `/metrics` endpoint. I
 - **Runtime mismatches are a non-problem.** Python-based exporters (scraparr, sabnzbd_exporter) ship their own Python runtime in their image; Go exporters ship single static binaries in their image. The workload container stays untouched.
 - **Charm standalone composability preserved.** Each charm produces useful metrics on its own — no hidden dependency on crowsnest or any other charmarr charm.
 - **Charm owns the exporter lifecycle.** Each sidecar gets its own Juju-injected Pebble; restarts, secret-key rotation, config drift are all reconciled by the existing charm code paths.
-- **Active upstream for every choice.** scraparr/martabal/jsclayton are all currently maintained, avoiding the exportarr-style aging problem.
+- **Active upstream for every choice.** scraparr/martabal/axsuul/thecfu are all currently maintained with proper tagged multi-arch releases. Inactive upstreams (jsclayton for plex, WillFantom for overseerr) were rejected after live evaluation — see the per-app decision rationale for plex and seerr.
 - **Exporter health is observable.** Pebble checks + status surface failures the same way the workload does. Sidecar crashes don't take down the workload container, and vice versa.
 
 ### Bad

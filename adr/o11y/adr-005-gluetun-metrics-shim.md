@@ -1,5 +1,67 @@
 # Gluetun Metrics Shim
 
+> **Status: Superseded by live evaluation.** The original plan in this ADR — custom ~150 LoC Python shim distributed via charm-parts — assumed Python was available in Gluetun's container. It is not. Gluetun's upstream image is alpine + a single Go binary; no Python runtime to host the shim.
+>
+> The current deployed solution uses **`thecfu/gluetun-exporter:0.1.1-standalone`** as a sidecar container in the gluetun-k8s pod (same pattern as scraparr for the arr charms — same upstream author too). See the **Revised Decision** section below. The original "considered options + decision" text is preserved for context.
+
+## Revised Decision
+
+**Use `ghcr.io/thecfu/gluetun-exporter:0.1.1-standalone` as a sidecar OCI container resource.** Matches every other sidecar exporter in the fleet (scraparr, qbittorrent-exporter, etc.) — uniform pattern. Zero custom code to maintain. The exporter author is the same person we already trust for scraparr.
+
+What the standalone exporter emits:
+- `gluetun_vpn_status` (0/1) — but see caveat in the Operator Notes below
+- `gluetun_vpn_infos{ip, country, city, region}` — info gauge; **`ip!=""` is the real connection signal**
+- `gluetun_forwarded_ports{port}` — info
+- `gluetun_forwarded_ports_total` — count
+
+Charm wiring:
+```yaml
+# charmcraft.yaml
+containers:
+  gluetun:
+    resource: gluetun-image
+  gluetun-exporter:
+    resource: gluetun-exporter-image
+
+resources:
+  gluetun-exporter-image:
+    type: oci-image
+    upstream-source: ghcr.io/thecfu/gluetun-exporter:0.1.1-standalone
+```
+
+```python
+# charm.py — sidecar Pebble layer
+{
+    "services": {
+        "gluetun-exporter": {
+            "override": "replace",
+            "command": "/opt/gluetun-exporter",
+            "environment": {
+                "GLUETUN_URL": "http://localhost:8000",
+                "EXPORTER_PORT": "8001",
+                "EXPORTER_INTERVAL": "30",
+            },
+        }
+    }
+}
+```
+
+Speedtest stays as the existing manual action (`juju run gluetun/0 speedtest`). The exporter does not run speedtests. Auto-trigger via update-status was considered and rejected: librespeed saturates the tunnel during the test, schedule logic in the charm adds complexity for low value, and operators can cron the action externally if they want sampling.
+
+Cluster egress IP-leak detection: the operationally meaningful signal is "is there ANY tunnel traffic flowing" (covered by `GluetunTunnelDown` keyed off `gluetun_vpn_infos{ip!=""}`). A per-deployment "is the public IP the cluster's natural egress" check needs operator-specific config and is left to operator-owned alert rules, not shipped baseline.
+
+## Operator Notes / Known Quirks
+
+1. **`gluetun_vpn_status` is unreliable on WireGuard.** WireGuard is a silent protocol — gluetun reports `running` the moment the WG interface is configured, regardless of whether traffic flows. The charm's baseline alerts and dashboard key off `count(gluetun_vpn_infos{ip!=""}) > 0` instead, which is the real signal. OpenVPN does not have this issue.
+
+2. **Pebble log forwarding inside the gluetun container is blocked by the killswitch when the VPN is dead.** All containers in the pod share the network namespace, so even the `gluetun-exporter` sidecar's outbound traffic is subject to gluetun's iptables rules. When `VPN_BLOCK_OTHER_TRAFFIC=true` (default) AND the tunnel cannot carry traffic, Pebble's HTTP push to Loki times out — the `logging-relation-joined` hook itself fails. In production with a working VPN this is fine; in test deploys with a placeholder wireguard key, drop the logging relation for that test cycle.
+
+3. **Logs in production route through the VPN tunnel.** Operators who want telemetry to bypass the VPN (lower latency, less VPN bandwidth burn) would need to set up split-tunneling in gluetun for the Loki/otelcol destinations — out of scope for the default charm.
+
+## Original Context, Considered Options, and Decision (Preserved)
+
+The rest of this document captures the original plan as written, for historical context. The implementation details below are NOT what shipped.
+
 ## Context and Problem Statement
 
 [ADR-002](adr-002-exporter-strategy.md) commits every charmarr charm to exposing Prometheus metrics via an exporter. Gluetun is the one charm where no acceptable third-party exporter exists. Upstream Gluetun has [an open feature request for native Prometheus metrics](https://github.com/qdm12/gluetun/issues/279) but no implementation. There is no mature community exporter.
