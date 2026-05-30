@@ -1,0 +1,30 @@
+groups:
+  - name: plex.load.extended
+    rules:
+      - alert: PlexHighTranscodeLoad
+        expr: (sum by (juju_model, juju_application, juju_unit) (plex_video_transcode_sessions_count) / clamp_min(sum by (juju_model, juju_application, juju_unit) (plex_sessions_count), 1)) > 0.5
+        for: 30m
+        labels:
+          severity: warning
+          component: plex
+        annotations:
+          summary: More than half of Plex sessions are video-transcoding for 30m on {{ $labels.juju_unit }}
+          description: |
+            Sustained high ratio of video-transcoding sessions on the Plex
+            server. Likely CPU under pressure or hardware-transcoding
+            disabled. Consider enabling HW transcode or capping concurrent
+            streams.
+
+  - name: plex.reliability.extended
+    rules:
+      - alert: PlexSidecarFlapping
+        expr: changes(up{juju_charm="plex-k8s"}[1h]) > 6
+        labels:
+          severity: warning
+          component: plex
+        annotations:
+          summary: Plex scrape state flapped >6 times in 1h on {{ $labels.juju_unit }}
+          description: |
+            The exporter's scrape state toggled more than 6 times in the last
+            hour. Indicates an unstable workload or networking issue between
+            the containers. Check Pebble service restart history.

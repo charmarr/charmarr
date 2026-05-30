@@ -1,0 +1,29 @@
+groups:
+  - name: plex.health
+    rules:
+      - alert: PlexExporterDown
+        expr: up{juju_charm="plex-k8s"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: plex
+        annotations:
+          summary: plex-exporter scrape failing on {{ $labels.juju_unit }}
+          description: |
+            Prometheus cannot scrape the exporter's `/metrics` endpoint.
+            Either the sidecar container is dead, or it cannot reach the
+            Plex API. Check `kubectl logs -c plex-exporter <pod>`.
+
+      - alert: PlexServerDown
+        expr: plex_up{juju_charm="plex-k8s"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: plex
+        annotations:
+          summary: Plex Media Server unreachable from exporter on {{ $labels.juju_unit }}
+          description: |
+            The plex-exporter sidecar is up but its `plex_up` heartbeat is
+            reporting the Plex server as unreachable. Likely the workload
+            container is unhealthy or the X-Plex-Token has expired. Check
+            `kubectl logs -c plex <pod>`.

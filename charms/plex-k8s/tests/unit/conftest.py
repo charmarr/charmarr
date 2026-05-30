@@ -21,6 +21,8 @@ PLEX_CONTAINER = Container(
     },
 )
 
+PLEX_EXPORTER_CONTAINER = Container(name="plex-exporter", can_connect=True)
+
 
 @pytest.fixture
 def ctx() -> Context[PlexCharm]:
