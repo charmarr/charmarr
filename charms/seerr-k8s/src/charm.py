@@ -10,7 +10,12 @@ from collections.abc import Callable
 from urllib.parse import urlparse
 
 import ops
-from charms.istio_beacon_k8s.v0.service_mesh import ServiceMeshConsumer
+from charms.istio_beacon_k8s.v0.service_mesh import (
+    AppPolicy,
+    Endpoint,
+    ServiceMeshConsumer,
+    UnitPolicy,
+)
 from charms.istio_ingress_k8s.v0.istio_ingress_route import (
     BackendRef,
     HTTPPathMatch,
@@ -22,6 +27,7 @@ from charms.istio_ingress_k8s.v0.istio_ingress_route import (
     Listener,
     ProtocolType,
 )
+from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from charms.velero_libs.v0.velero_backup_config import VeleroBackupProvider, VeleroBackupSpec
 
 from _seerr import (
@@ -37,8 +43,12 @@ from _seerr import (
     SeerrApiError,
 )
 from charmarr_lib.core import (
+    CharmarrChargedTopology,
+    CharmarrTopologyRelation,
     ContentVariant,
     MediaManager,
+    MetricFamily,
+    MetricSample,
     RequestManager,
     generate_api_key,
     get_secret_rotation_policy,
@@ -47,6 +57,8 @@ from charmarr_lib.core import (
     sync_secret_rotation_policy,
 )
 from charmarr_lib.core.interfaces import (
+    CrowsnestProvider,
+    CrowsnestProviderData,
     MediaManagerProviderData,
     MediaManagerRequirer,
     MediaManagerRequirerData,
@@ -63,9 +75,35 @@ class SeerrCharm(ops.CharmBase):
         super().__init__(framework)
         self._container = self.unit.get_container(CONTAINER_NAME)
 
+        self._topology = CharmarrChargedTopology(
+            self,
+            relations=[
+                CharmarrTopologyRelation("media-manager", role="requires", required=True),
+                CharmarrTopologyRelation("media-server", role="requires", required=True),
+            ],
+            extra_exposition=self._build_request_gauges,
+        )
+        self._metrics_endpoint = MetricsEndpointProvider(
+            self,
+            jobs=[self._topology.scrape_job],
+        )
+
         self._media_manager = MediaManagerRequirer(self, "media-manager")
         self._media_server = MediaServerRequirer(self, "media-server")
-        self._service_mesh = ServiceMeshConsumer(self)
+        self._crowsnest = CrowsnestProvider(self, "crowsnest")
+        self._service_mesh = ServiceMeshConsumer(
+            self,
+            policies=[
+                AppPolicy(
+                    relation="crowsnest",
+                    endpoints=[Endpoint(ports=[self._topology.port])],
+                ),
+                UnitPolicy(
+                    relation="metrics-endpoint",
+                    ports=[self._topology.port],
+                ),
+            ],
+        )
         self._ingress = IstioIngressRouteRequirer(self, relation_name="istio-ingress-route")
         self._velero_backup = VeleroBackupProvider(
             self,
@@ -440,8 +478,54 @@ class SeerrCharm(ops.CharmBase):
         self._ingress.submit_config(config)
         logger.info("Submitted ingress route config for Seerr")
 
+    def _build_request_gauges(self) -> list[MetricFamily]:
+        """Poll seerr's /api/v1/request/count and emit per-status gauges.
+
+        Backs the `request-fulfillment-availability` SLO in
+        charmarr-crowsnest. Errors during the poll (workload not ready,
+        API key not yet provisioned, http timeout) are swallowed by
+        CharmarrChargedTopology; topology metrics still ship.
+        """
+        api_key = self._get_api_key()
+        if not api_key:
+            return []
+        with self._get_api_client(api_key) as api:
+            counts = api.get_request_counts()
+
+        samples = [
+            MetricSample(labels={"status": status}, value=float(value))
+            for status, value in counts.items()
+            if isinstance(value, int | float)
+        ]
+        if not samples:
+            return []
+        return [
+            MetricFamily(
+                name="charmarr_requests_total",
+                help=(
+                    "Current count of seerr requests bucketed by status "
+                    "(pending, approved, processing, available, declined). "
+                    "Backs the request-fulfillment-availability SLO."
+                ),
+                samples=samples,
+            ),
+        ]
+
     def _reconcile(self, _: ops.EventBase) -> None:
         """Reconcile charm state with desired configuration."""
+        self._topology.reconcile()
+        # The topology endpoint is a cluster-internal concern - crowsnest polls
+        # it from inside the same K8s cluster. Hardcode the in-cluster Service
+        # FQDN; never expose this URL externally.
+        self._crowsnest.publish_data(
+            CrowsnestProviderData(
+                topology_url=(
+                    f"http://{self.app.name}.{self.model.name}"
+                    f".svc.cluster.local:{self._topology.port}/metrics"
+                )
+            )
+        )
+
         if not self.unit.is_leader():
             if self._container.can_connect():
                 self._container.add_layer(
@@ -469,7 +553,7 @@ class SeerrCharm(ops.CharmBase):
         self._container.add_layer(SERVICE_NAME, layer, combine=True)
         self._container.replan()
 
-        self.unit.set_ports(WEBUI_PORT)
+        self.unit.set_ports(WEBUI_PORT, self._topology.port)
 
         self._publish_requirer_data()
 

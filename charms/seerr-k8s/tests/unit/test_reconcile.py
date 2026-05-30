@@ -89,10 +89,9 @@ def test_reconcile_sets_port(ctx):
         ),
     )
 
-    assert len(state.opened_ports) == 1
-    port = next(iter(state.opened_ports))
-    assert port.port == 5055
-    assert port.protocol == "tcp"
+    opened = {p.port for p in state.opened_ports}
+    assert opened == {5055, 9099}
+    assert all(p.protocol == "tcp" for p in state.opened_ports)
 
 
 def test_reconcile_syncs_secret_rotation_policy(ctx):

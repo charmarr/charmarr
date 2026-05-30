@@ -50,6 +50,8 @@ charm-libs:
     version: "0"
   - lib: istio_ingress_k8s.istio_ingress_route
     version: "0"
+  - lib: prometheus_k8s.prometheus_scrape
+    version: "0"
   # FIXME: velero_libs.velero_backup_config not yet on Charmhub.
   # Check with Kubeflow team when it's published, then fetch via charmcraft fetch-libs.
   # Currently vendored from https://github.com/canonical/velero-operator
@@ -81,11 +83,26 @@ provides:
     interface: cross_model_mesh
     optional: true
     description: Access cross-model applications via service mesh
+  crowsnest:
+    interface: crowsnest
+    optional: true
+    description: |
+      Opt this charm into the charmarr-crowsnest-k8s fleet view. The
+      provider publishes its topology endpoint URL; crowsnest aggregates
+      across all related peers for the fleet graph and SLO catalog.
   velero-backup-config:
     interface: velero_backup_config
     limit: 1
     optional: true
     description: Configure Velero backups for config storage
+  metrics-endpoint:
+    interface: prometheus_scrape
+    optional: true
+    description: |
+      Prometheus scrape target. Carries only the charmarr topology metrics
+      (`charmarr_relation_bound`, `charmarr_relation_edge`) - seerr has no
+      workload exporter, see adr-002. Provides crowsnest the fleet liveness
+      and graph signal for the request-management tier.
 
 requires:
   require-cmr-mesh:
