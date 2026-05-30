@@ -1,0 +1,34 @@
+groups:
+  - name: flaresolverr.domain.extended
+    rules:
+      - alert: FlaresolverrDomainConsistentlyFailing
+        expr: |
+          sum by (juju_model, juju_application, juju_unit, domain) (rate(flaresolverr_request_total{result!="solved"}[10m]))
+          / clamp_min(sum by (juju_model, juju_application, juju_unit, domain) (rate(flaresolverr_request_total[10m])), 0.001)
+          > 0.8
+        for: 1h
+        labels:
+          severity: warning
+          component: flaresolverr
+        annotations:
+          summary: FlareSolverr domain `{{ $labels.domain }}` failing >80% for 1h on {{ $labels.juju_unit }}
+          description: |
+            More than 80% of CAPTCHA solves for `{{ $labels.domain }}` have
+            failed for the past hour. Likely that specific indexer changed
+            its Cloudflare config or is rate-limiting. Disable the indexer in
+            Prowlarr or wait for the upstream to settle.
+
+  - name: flaresolverr.reliability.extended
+    rules:
+      - alert: FlaresolverrFlapping
+        expr: changes(up{juju_charm="flaresolverr-k8s"}[1h]) > 6
+        labels:
+          severity: warning
+          component: flaresolverr
+        annotations:
+          summary: FlareSolverr scrape state has flapped >6 times in 1h on {{ $labels.juju_unit }}
+          description: |
+            The scrape state toggled more than 6 times in the last hour.
+            Indicates an unstable workload (Chromium OOMing or crashing).
+            Check Pebble service restart history and the workload's memory
+            limit.
