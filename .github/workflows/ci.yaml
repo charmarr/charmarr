@@ -30,6 +30,7 @@ jobs:
       plex: ${{ steps.check.outputs.plex }}
       overseerr: ${{ steps.check.outputs.overseerr }}
       seerr: ${{ steps.check.outputs.seerr }}
+      crowsnest: ${{ steps.check.outputs.crowsnest }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -86,6 +87,10 @@ jobs:
 
           if echo "$changed" | grep -q "^charms/seerr-k8s/"; then
             echo "seerr=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          if echo "$changed" | grep -q "^charms/charmarr-crowsnest-k8s/"; then
+            echo "crowsnest=true" >> "$GITHUB_OUTPUT"
           fi
 
   multimeter:
@@ -170,4 +175,11 @@ jobs:
     needs: detect
     if: needs.detect.outputs.seerr == 'true'
     uses: ./.github/workflows/_seerr-k8s-ci.yaml
+    secrets: inherit
+
+  crowsnest:
+    name: Crowsnest
+    needs: detect
+    if: needs.detect.outputs.crowsnest == 'true'
+    uses: ./.github/workflows/_crowsnest-k8s-ci.yaml
     secrets: inherit
