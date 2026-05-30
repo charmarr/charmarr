@@ -60,6 +60,16 @@ class SeerrApi:
         """Get Seerr status (health check)."""
         return self._request("GET", "/api/v1/status")
 
+    def get_request_counts(self) -> dict:
+        """Get request counts by status (for SLI gauges).
+
+        Returns a dict like ``{"pending": 5, "approved": 10, "declined": 2,
+        "processing": 3, "available": 100, "movie": 80, "tv": 20}`` with
+        the request-bucket counts seerr currently tracks.
+        """
+        result = self._request("GET", "/api/v1/request/count")
+        return result if isinstance(result, dict) else {}
+
     def is_initialized(self) -> bool:
         """Check if Seerr has completed initial setup.
 
