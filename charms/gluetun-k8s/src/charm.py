@@ -21,7 +21,15 @@ from pydantic import BaseModel
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from _speedtest import handle_speedtest
-from charmarr_lib.core import K8sResourceManager, observe_events, reconcilable_events_k8s
+from charmarr_lib.core.interfaces import CrowsnestProvider, CrowsnestProviderData
+
+from charmarr_lib.core import (
+    CharmarrTopology,
+    CharmarrTopologyRelation,
+    K8sResourceManager,
+    observe_events,
+    reconcilable_events_k8s,
+)
 from charmarr_lib.vpn import (
     ISTIO_ZTUNNEL_LINK_LOCAL,
     get_cluster_dns_ip,
@@ -66,9 +74,19 @@ class GluetunCharm(ops.CharmBase):
         self._vpn_gateway = VPNGatewayProvider(self, "vpn-gateway")
         self._k8s: K8sResourceManager | None = None
 
+        self._topology = CharmarrTopology(
+            self,
+            relations=[
+                CharmarrTopologyRelation("vpn-gateway", role="provides", required=False),
+            ],
+        )
+        self._crowsnest = CrowsnestProvider(self, "crowsnest")
         self._metrics_endpoint = MetricsEndpointProvider(
             self,
-            jobs=[{"static_configs": [{"targets": [f"*:{GLUETUN_EXPORTER_PORT}"]}]}],
+            jobs=[
+                {"static_configs": [{"targets": [f"*:{GLUETUN_EXPORTER_PORT}"]}]},
+                self._topology.scrape_job,
+            ],
             alert_rules_path=(
                 "src/prometheus_alert_rules_extended"
                 if bool(self.config.get("extended-alert-rules", False))
@@ -409,14 +427,30 @@ class GluetunCharm(ops.CharmBase):
         """Reconcile charm state with desired configuration.
 
         Reconciliation steps:
-        1. Non-leader: register readiness check (for K8s probe) and exit
-        2. Validate charm config (returns error string if invalid)
-        3. Ensure container is privileged (patches StatefulSet, pod restarts)
-        4. Wait for Pebble connection
-        5. Retrieve WireGuard private key from Juju secret
-        6. Push iptables rules and configure Pebble layer
-        7. Check VPN health and publish provider data
+        1. Refresh topology metrics + ensure topology daemon is running
+        2. Non-leader: register readiness check (for K8s probe) and exit
+        3. Validate charm config (returns error string if invalid)
+        4. Ensure container is privileged (patches StatefulSet, pod restarts)
+        5. Wait for Pebble connection
+        6. Retrieve WireGuard private key from Juju secret
+        7. Push iptables rules and configure Pebble layer
+        8. Check VPN health and publish provider data
         """
+        self._topology.reconcile()
+        self.unit.set_ports(self._topology.port)
+        # The topology endpoint is a cluster-internal concern - crowsnest polls
+        # it from inside the same K8s cluster. Hardcode the in-cluster Service
+        # FQDN; never expose this URL externally. Gluetun is outside the mesh
+        # so no AppPolicy is needed - the K8s Service port (above) is enough.
+        self._crowsnest.publish_data(
+            CrowsnestProviderData(
+                topology_url=(
+                    f"http://{self.app.name}.{self.model.name}"
+                    f".svc.cluster.local:{self._topology.port}/metrics"
+                )
+            )
+        )
+
         # NOTE: charmarr v1 does not support scaling.
         # Non-leader: register readiness check so K8s removes them from Service endpoints.
         # This acts as a guardrail if someone scales the application beyond 1.

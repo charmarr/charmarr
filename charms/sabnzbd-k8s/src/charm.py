@@ -49,9 +49,13 @@ from _sabnzbd import (
     reconcile_sabnzbd_config,
 )
 from charmarr_lib.core import (
+    CharmarrChargedTopology,
+    CharmarrTopologyRelation,
     DownloadClient,
     DownloadClientType,
     K8sResourceManager,
+    MetricFamily,
+    MetricSample,
     ensure_pebble_user,
     generate_api_key,
     get_config_hash,
@@ -63,6 +67,8 @@ from charmarr_lib.core import (
 )
 from charmarr_lib.core.constants import MEDIA_TYPE_DOWNLOAD_PATHS
 from charmarr_lib.core.interfaces import (
+    CrowsnestProvider,
+    CrowsnestProviderData,
     DownloadClientProvider,
     DownloadClientProviderData,
     MediaStorageRequirer,
@@ -89,9 +95,21 @@ class SABnzbdCharm(ops.CharmBase):
         self._exporter_container = self.unit.get_container(METRICS_CONTAINER_NAME)
         self._k8s: K8sResourceManager | None = None
 
+        self._topology = CharmarrChargedTopology(
+            self,
+            relations=[
+                CharmarrTopologyRelation("media-storage", role="requires", required=True),
+                CharmarrTopologyRelation("vpn-gateway", role="requires", required=False),
+                CharmarrTopologyRelation("download-client", role="provides", required=False),
+            ],
+            extra_exposition=self._build_charm_gauges,
+        )
         self._metrics_endpoint = MetricsEndpointProvider(
             self,
-            jobs=[{"static_configs": [{"targets": [f"*:{METRICS_PORT}"]}]}],
+            jobs=[
+                {"static_configs": [{"targets": [f"*:{METRICS_PORT}"]}]},
+                self._topology.scrape_job,
+            ],
             alert_rules_path=(
                 "src/prometheus_alert_rules_extended"
                 if bool(self.config.get("extended-alert-rules", False))
@@ -106,6 +124,7 @@ class SABnzbdCharm(ops.CharmBase):
         self._download_client = DownloadClientProvider(self, "download-client")
         self._media_storage = MediaStorageRequirer(self, "media-storage")
         self._vpn_gateway = VPNGatewayRequirer(self, "vpn-gateway")
+        self._crowsnest = CrowsnestProvider(self, "crowsnest")
         self._service_mesh = ServiceMeshConsumer(
             self,
             policies=[
@@ -113,9 +132,13 @@ class SABnzbdCharm(ops.CharmBase):
                     relation="download-client",
                     endpoints=[Endpoint(ports=[WEBUI_PORT])],
                 ),
+                AppPolicy(
+                    relation="crowsnest",
+                    endpoints=[Endpoint(ports=[self._topology.port])],
+                ),
                 UnitPolicy(
                     relation="metrics-endpoint",
-                    ports=[METRICS_PORT],
+                    ports=[METRICS_PORT, self._topology.port],
                 ),
             ],
         )
@@ -422,21 +445,57 @@ class SABnzbdCharm(ops.CharmBase):
         self._exporter_container.add_layer(METRICS_SERVICE_NAME, layer, combine=True)
         self._exporter_container.replan()
 
+    def _build_charm_gauges(self) -> list[MetricFamily]:
+        """Charm-state metrics published alongside topology.
+
+        Currently: `charmarr_unsafe_mode_enabled` - whether sab is configured
+        to allow downloads without a VPN gateway relation. Crowsnest combines
+        this with `charmarr_relation_bound{relation="vpn-gateway"}` to detect
+        usenet traffic outside the tunnel.
+        """
+        unsafe = 1.0 if bool(self.config.get("unsafe-mode", False)) else 0.0
+        return [
+            MetricFamily(
+                name="charmarr_unsafe_mode_enabled",
+                help=(
+                    "1 when the download client is configured to accept traffic "
+                    "without a vpn-gateway relation (config: unsafe-mode=true), "
+                    'else 0. Combine with charmarr_relation_bound{relation="vpn-gateway"} '
+                    "to detect usenet traffic outside the tunnel."
+                ),
+                samples=[MetricSample(value=unsafe)],
+            ),
+        ]
+
     def _reconcile(self, event: ops.EventBase) -> None:
         """Reconcile charm state with desired configuration.
 
         Reconciliation steps:
-        1. Non-leader: register readiness check (for K8s probe) and exit
-        2. Submit ingress route config (if ingress relation exists)
-        3. Wait for Pebble connection
-        4. Wait for media-storage relation (provides PVC and PUID/PGID)
-        5. Create API key if not exist
-        6. Publish download client data to related media managers
-        7. Write config file if not exist
-        8. Mount shared storage PVC
-        9. Reconcile VPN gateway client (if related)
-        10. Configure Pebble layer and start service
+        1. Refresh topology metrics + ensure topology daemon is running
+        2. Non-leader: register readiness check (for K8s probe) and exit
+        3. Submit ingress route config (if ingress relation exists)
+        4. Wait for Pebble connection
+        5. Wait for media-storage relation (provides PVC and PUID/PGID)
+        6. Create API key if not exist
+        7. Publish download client data to related media managers
+        8. Write config file if not exist
+        9. Mount shared storage PVC
+        10. Reconcile VPN gateway client (if related)
+        11. Configure Pebble layer and start service
         """
+        self._topology.reconcile()
+        # The topology endpoint is a cluster-internal concern - crowsnest polls
+        # it from inside the same K8s cluster. Hardcode the in-cluster Service
+        # FQDN; never expose this URL externally.
+        self._crowsnest.publish_data(
+            CrowsnestProviderData(
+                topology_url=(
+                    f"http://{self.app.name}.{self.model.name}"
+                    f".svc.cluster.local:{self._topology.port}/metrics"
+                )
+            )
+        )
+
         # Non-leader: register readiness check so K8s removes from Service endpoints
         if not self.unit.is_leader():
             if self._container.can_connect():
@@ -512,7 +571,7 @@ class SABnzbdCharm(ops.CharmBase):
         self._reconcile_exporter(api_key.api_key)
 
         # Expose WebUI port on the Kubernetes Service
-        self.unit.set_ports(WEBUI_PORT)
+        self.unit.set_ports(WEBUI_PORT, self._topology.port)
 
         # Configure app via API once workload is ready
         if self._is_workload_ready(api_key):

@@ -54,6 +54,8 @@ from _plex import (
     inject_online_token,
 )
 from charmarr_lib.core import (
+    CharmarrTopology,
+    CharmarrTopologyRelation,
     ContentVariant,
     K8sResourceManager,
     MediaManager,
@@ -64,6 +66,8 @@ from charmarr_lib.core import (
     reconcile_storage_volume,
 )
 from charmarr_lib.core.interfaces import (
+    CrowsnestProvider,
+    CrowsnestProviderData,
     MediaManagerProviderData,
     MediaManagerRequirer,
     MediaServerProvider,
@@ -83,9 +87,20 @@ class PlexCharm(ops.CharmBase):
         self._exporter_container = self.unit.get_container(METRICS_CONTAINER_NAME)
         self._k8s: K8sResourceManager | None = None
 
+        self._topology = CharmarrTopology(
+            self,
+            relations=[
+                CharmarrTopologyRelation("media-storage", role="requires", required=True),
+                CharmarrTopologyRelation("media-manager", role="requires", required=False),
+                CharmarrTopologyRelation("media-server", role="provides", required=False),
+            ],
+        )
         self._metrics_endpoint = MetricsEndpointProvider(
             self,
-            jobs=[{"static_configs": [{"targets": [f"*:{METRICS_PORT}"]}]}],
+            jobs=[
+                {"static_configs": [{"targets": [f"*:{METRICS_PORT}"]}]},
+                self._topology.scrape_job,
+            ],
             alert_rules_path=(
                 "src/prometheus_alert_rules_extended"
                 if bool(self.config.get("extended-alert-rules", False))
@@ -100,6 +115,7 @@ class PlexCharm(ops.CharmBase):
         self._media_storage = MediaStorageRequirer(self, "media-storage")
         self._media_manager = MediaManagerRequirer(self, "media-manager")
         self._media_server = MediaServerProvider(self, "media-server")
+        self._crowsnest = CrowsnestProvider(self, "crowsnest")
         self._service_mesh = ServiceMeshConsumer(
             self,
             policies=[
@@ -107,9 +123,13 @@ class PlexCharm(ops.CharmBase):
                     relation="media-server",
                     endpoints=[Endpoint(ports=[WEBUI_PORT])],
                 ),
+                AppPolicy(
+                    relation="crowsnest",
+                    endpoints=[Endpoint(ports=[self._topology.port])],
+                ),
                 UnitPolicy(
                     relation="metrics-endpoint",
-                    ports=[METRICS_PORT],
+                    ports=[METRICS_PORT, self._topology.port],
                 ),
             ],
         )
@@ -419,15 +439,29 @@ class PlexCharm(ops.CharmBase):
         """Reconcile charm state with desired configuration.
 
         Reconciliation steps:
-        1. Non-leader: register readiness check and exit
-        2. Submit ingress route config (if ingress relation exists)
-        3. Wait for Pebble connection
-        4. Wait for media-storage relation
-        5. Mount shared storage PVC
-        6. Reconcile hardware transcoding (if enabled)
-        7. Configure Pebble layer with claim token (if unclaimed)
-        8. Start workload
+        1. Refresh topology metrics + ensure topology daemon is running
+        2. Non-leader: register readiness check and exit
+        3. Submit ingress route config (if ingress relation exists)
+        4. Wait for Pebble connection
+        5. Wait for media-storage relation
+        6. Mount shared storage PVC
+        7. Reconcile hardware transcoding (if enabled)
+        8. Configure Pebble layer with claim token (if unclaimed)
+        9. Start workload
         """
+        self._topology.reconcile()
+        # The topology endpoint is a cluster-internal concern - crowsnest polls
+        # it from inside the same K8s cluster. Hardcode the in-cluster Service
+        # FQDN; never expose this URL externally.
+        self._crowsnest.publish_data(
+            CrowsnestProviderData(
+                topology_url=(
+                    f"http://{self.app.name}.{self.model.name}"
+                    f".svc.cluster.local:{self._topology.port}/metrics"
+                )
+            )
+        )
+
         if not self.unit.is_leader():
             if self._container.can_connect():
                 self._container.add_layer(
@@ -501,7 +535,7 @@ class PlexCharm(ops.CharmBase):
         if online_token := self._get_online_token():
             self._reconcile_exporter(online_token)
 
-        self.unit.set_ports(WEBUI_PORT)
+        self.unit.set_ports(WEBUI_PORT, self._topology.port)
 
         # Publish media-server data for request managers (Overseerr)
         self._media_server.publish_data(

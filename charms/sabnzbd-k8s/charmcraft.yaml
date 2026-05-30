@@ -83,6 +83,13 @@ provides:
     interface: cross_model_mesh
     optional: true
     description: Access cross-model applications via service mesh
+  crowsnest:
+    interface: crowsnest
+    optional: true
+    description: |
+      Opt this charm into the charmarr-crowsnest-k8s fleet view. The
+      provider publishes its topology endpoint URL; crowsnest aggregates
+      across all related peers for the fleet graph and SLO catalog.
   velero-backup-config:
     interface: velero_backup_config
     limit: 1

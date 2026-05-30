@@ -19,8 +19,18 @@ from charms.istio_beacon_k8s.v0.service_mesh import (
 from charms.loki_k8s.v1.loki_push_api import LogForwarder
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 
-from charmarr_lib.core import observe_events, reconcilable_events_k8s
-from charmarr_lib.core.interfaces import FlareSolverrProvider, FlareSolverrProviderData
+from charmarr_lib.core import (
+    CharmarrTopology,
+    CharmarrTopologyRelation,
+    observe_events,
+    reconcilable_events_k8s,
+)
+from charmarr_lib.core.interfaces import (
+    CrowsnestProvider,
+    CrowsnestProviderData,
+    FlareSolverrProvider,
+    FlareSolverrProviderData,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -37,9 +47,18 @@ class FlareSolverrCharm(ops.CharmBase):
         super().__init__(framework)
         self._container = self.unit.get_container(CONTAINER_NAME)
 
+        self._topology = CharmarrTopology(
+            self,
+            relations=[
+                CharmarrTopologyRelation("flaresolverr", role="provides", required=False),
+            ],
+        )
         self._metrics_endpoint = MetricsEndpointProvider(
             self,
-            jobs=[{"static_configs": [{"targets": [f"*:{METRICS_PORT}"]}]}],
+            jobs=[
+                {"static_configs": [{"targets": [f"*:{METRICS_PORT}"]}]},
+                self._topology.scrape_job,
+            ],
             alert_rules_path=(
                 "src/prometheus_alert_rules_extended"
                 if bool(self.config.get("extended-alert-rules", False))
@@ -52,6 +71,7 @@ class FlareSolverrCharm(ops.CharmBase):
         self._charm_tracing = ops.tracing.Tracing(self, tracing_relation_name="charm-tracing")
 
         self._flaresolverr = FlareSolverrProvider(self, "flaresolverr")
+        self._crowsnest = CrowsnestProvider(self, "crowsnest")
         self._service_mesh = ServiceMeshConsumer(
             self,
             policies=[
@@ -59,9 +79,13 @@ class FlareSolverrCharm(ops.CharmBase):
                     relation="flaresolverr",
                     endpoints=[Endpoint(ports=[PORT])],
                 ),
+                AppPolicy(
+                    relation="crowsnest",
+                    endpoints=[Endpoint(ports=[self._topology.port])],
+                ),
                 UnitPolicy(
                     relation="metrics-endpoint",
-                    ports=[METRICS_PORT],
+                    ports=[METRICS_PORT, self._topology.port],
                 ),
             ],
         )
@@ -76,11 +100,24 @@ class FlareSolverrCharm(ops.CharmBase):
 
     def _reconcile(self, event: ops.EventBase) -> None:
         """Reconcile charm state."""
+        self._topology.reconcile()
+        # The topology endpoint is a cluster-internal concern - crowsnest polls
+        # it from inside the same K8s cluster. Hardcode the in-cluster Service
+        # FQDN; never expose this URL externally.
+        self._crowsnest.publish_data(
+            CrowsnestProviderData(
+                topology_url=(
+                    f"http://{self.app.name}.{self.model.name}"
+                    f".svc.cluster.local:{self._topology.port}/metrics"
+                )
+            )
+        )
+
         if not self._container.can_connect():
             return
 
         self._configure_pebble()
-        self.unit.set_ports(PORT)
+        self.unit.set_ports(PORT, self._topology.port)
 
         if self._is_workload_ready():
             self._publish_relation_data()
