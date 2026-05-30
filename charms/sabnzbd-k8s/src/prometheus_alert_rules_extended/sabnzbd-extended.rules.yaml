@@ -1,0 +1,41 @@
+groups:
+  - name: sabnzbd.queue.extended
+    rules:
+      - alert: SabnzbdQueueDepthSustained
+        expr: sabnzbd_queue_size > 50
+        for: 2h
+        labels:
+          severity: warning
+          component: sabnzbd
+        annotations:
+          summary: SABnzbd queue size above 50 for 2h on {{ $labels.juju_unit }}
+          description: |
+            Sustained queue backlog. Either the Usenet provider connection
+            cannot keep up, or downloads are being rejected and re-queued.
+            Investigate provider speed and per-job failure causes.
+
+      - alert: SabnzbdQueueGrowing
+        expr: increase(sabnzbd_queue_size[1h]) > 20
+        labels:
+          severity: warning
+          component: sabnzbd
+        annotations:
+          summary: SABnzbd queue grew by >20 jobs in the last hour on {{ $labels.juju_unit }}
+          description: |
+            Fast queue growth suggests indexer/RSS feed is dumping jobs faster
+            than they can drain. Tune per-feed limits in the connected arr
+            apps or expand provider capacity.
+
+  - name: sabnzbd.reliability.extended
+    rules:
+      - alert: SabnzbdSidecarFlapping
+        expr: changes(up{juju_charm="sabnzbd-k8s"}[1h]) > 6
+        labels:
+          severity: warning
+          component: sabnzbd
+        annotations:
+          summary: SABnzbd scrape state has flapped >6 times in 1h on {{ $labels.juju_unit }}
+          description: |
+            The exporter's scrape result has toggled more than 6 times in the
+            last hour. Indicates an unstable workload or networking issue
+            between the containers. Check Pebble service restart history.

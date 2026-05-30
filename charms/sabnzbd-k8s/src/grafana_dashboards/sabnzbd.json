@@ -1,0 +1,160 @@
+{
+  "title": "SABnzbd",
+  "uid": "charmarr-sabnzbd",
+  "tags": ["charmarr", "sabnzbd"],
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "graphTooltip": 1,
+  "refresh": "30s",
+  "time": {"from": "now-6h", "to": "now"},
+  "timezone": "",
+  "templating": {
+    "list": [
+      {
+        "name": "juju_model",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+        "query": "label_values(up{juju_charm=\"sabnzbd-k8s\"}, juju_model)",
+        "refresh": 1, "includeAll": false, "multi": false
+      },
+      {
+        "name": "juju_application",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+        "query": "label_values(up{juju_charm=\"sabnzbd-k8s\", juju_model=\"$juju_model\"}, juju_application)",
+        "refresh": 1, "includeAll": false, "multi": false
+      },
+      {
+        "name": "juju_unit",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+        "query": "label_values(up{juju_charm=\"sabnzbd-k8s\", juju_model=\"$juju_model\", juju_application=\"$juju_application\"}, juju_unit)",
+        "refresh": 1, "includeAll": true, "multi": true
+      }
+    ]
+  },
+  "panels": [
+    {"id": 1, "type": "row", "title": "Service health", "collapsed": false, "gridPos": {"x": 0, "y": 0, "w": 24, "h": 1}},
+
+    {
+      "id": 2, "type": "stat", "title": "Workload reachable",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 0, "y": 1, "w": 4, "h": 4},
+      "targets": [{"expr": "min(up{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "refId": "A"}],
+      "fieldConfig": {"defaults": {"mappings": [{"type": "value", "options": {"0": {"text": "DOWN", "color": "red"}}}, {"type": "value", "options": {"1": {"text": "UP", "color": "green"}}}], "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}}},
+      "options": {"colorMode": "background", "graphMode": "none", "textMode": "value"}
+    },
+    {
+      "id": 3, "type": "stat", "title": "Queued jobs",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 4, "y": 1, "w": 4, "h": 4},
+      "targets": [{"expr": "sum(sabnzbd_queue_size{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "refId": "A"}],
+      "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 20}, {"color": "red", "value": 100}]}}},
+      "options": {"colorMode": "value", "graphMode": "area", "textMode": "value"}
+    },
+    {
+      "id": 4, "type": "stat", "title": "Download speed",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 8, "y": 1, "w": 4, "h": 4},
+      "targets": [{"expr": "sum(sabnzbd_queue_download_rate_bytes_per_second{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "binBps"}},
+      "options": {"colorMode": "value", "graphMode": "area", "textMode": "value"}
+    },
+    {
+      "id": 5, "type": "stat", "title": "Paused",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 12, "y": 1, "w": 4, "h": 4},
+      "targets": [{"expr": "max(sabnzbd_paused{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "refId": "A"}],
+      "fieldConfig": {"defaults": {"mappings": [{"type": "value", "options": {"0": {"text": "RUNNING", "color": "green"}}}, {"type": "value", "options": {"1": {"text": "PAUSED", "color": "yellow"}}}], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}]}}},
+      "options": {"colorMode": "background", "graphMode": "none", "textMode": "value"}
+    },
+    {
+      "id": 6, "type": "stat", "title": "Log volume (5m)",
+      "datasource": {"type": "loki", "uid": "${lokids}"},
+      "gridPos": {"x": 16, "y": 1, "w": 4, "h": 4},
+      "targets": [{"expr": "sum(count_over_time({juju_model=\"$juju_model\", juju_application=\"$juju_application\"}[5m]))", "refId": "A"}],
+      "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}}},
+      "options": {"colorMode": "value", "graphMode": "area", "textMode": "value"}
+    },
+    {
+      "id": 7, "type": "stat", "title": "Errors in logs (1h)",
+      "datasource": {"type": "loki", "uid": "${lokids}"},
+      "gridPos": {"x": 20, "y": 1, "w": 4, "h": 4},
+      "targets": [{"expr": "sum(count_over_time({juju_model=\"$juju_model\", juju_application=\"$juju_application\"} |~ \"(?i)error|fatal\" [1h]))", "refId": "A"}],
+      "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 10}, {"color": "red", "value": 100}]}}},
+      "options": {"colorMode": "value", "graphMode": "area", "textMode": "value"}
+    },
+
+    {"id": 10, "type": "row", "title": "Transfer activity", "collapsed": false, "gridPos": {"x": 0, "y": 5, "w": 24, "h": 1}},
+
+    {
+      "id": 11, "type": "timeseries", "title": "Download speed over time",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 0, "y": 6, "w": 12, "h": 8},
+      "targets": [{"expr": "sum(sabnzbd_queue_download_rate_bytes_per_second{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "legendFormat": "B/s", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "binBps"}},
+      "options": {"legend": {"showLegend": true, "displayMode": "list", "placement": "bottom"}}
+    },
+    {
+      "id": 12, "type": "timeseries", "title": "Queue size (jobs) over time",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 12, "y": 6, "w": 12, "h": 8},
+      "targets": [{"expr": "sum(sabnzbd_queue_size{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "legendFormat": "jobs", "refId": "A"}],
+      "options": {"legend": {"showLegend": true, "displayMode": "list", "placement": "bottom"}}
+    },
+    {
+      "id": 13, "type": "stat", "title": "Queue remaining",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 0, "y": 14, "w": 6, "h": 4},
+      "targets": [{"expr": "sum(sabnzbd_queue_remaining_bytes{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "bytes"}},
+      "options": {"colorMode": "value", "graphMode": "area", "textMode": "value"}
+    },
+    {
+      "id": 14, "type": "stat", "title": "Queue ETA",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 6, "y": 14, "w": 6, "h": 4},
+      "targets": [{"expr": "max(sabnzbd_queue_remaining_seconds{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "s", "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 3600}, {"color": "red", "value": 86400}]}}},
+      "options": {"colorMode": "value", "graphMode": "area", "textMode": "value"}
+    },
+    {
+      "id": 15, "type": "stat", "title": "Queue total size",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 12, "y": 14, "w": 6, "h": 4},
+      "targets": [{"expr": "sum(sabnzbd_queue_total_size_bytes{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "bytes"}},
+      "options": {"colorMode": "value", "graphMode": "area", "textMode": "value"}
+    },
+    {
+      "id": 16, "type": "stat", "title": "All-time downloaded",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 18, "y": 14, "w": 6, "h": 4},
+      "targets": [{"expr": "sum(sabnzbd_download_bytes{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "bytes"}},
+      "options": {"colorMode": "value", "graphMode": "none", "textMode": "value"}
+    },
+
+    {"id": 20, "type": "row", "title": "Per-server breakdown", "collapsed": false, "gridPos": {"x": 0, "y": 18, "w": 24, "h": 1}},
+
+    {
+      "id": 21, "type": "bargauge", "title": "Downloaded by server",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 0, "y": 19, "w": 24, "h": 8},
+      "targets": [{"expr": "sabnzbd_server_download_bytes{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"}", "legendFormat": "{{server}}", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "bytes"}},
+      "options": {"orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true}
+    },
+
+    {"id": 60, "type": "row", "title": "Logs", "collapsed": false, "gridPos": {"x": 0, "y": 27, "w": 24, "h": 1}},
+
+    {
+      "id": 61, "type": "logs", "title": "ERROR/WARN log lines (SABnzbd + exporter)",
+      "datasource": {"type": "loki", "uid": "${lokids}"},
+      "gridPos": {"x": 0, "y": 28, "w": 24, "h": 10},
+      "targets": [{"expr": "{juju_model=\"$juju_model\", juju_application=\"$juju_application\"} |~ \"(?i)error|warn|fatal\"", "refId": "A"}],
+      "options": {"showTime": true, "showLabels": false, "wrapLogMessage": true, "sortOrder": "Descending"}
+    }
+  ]
+}

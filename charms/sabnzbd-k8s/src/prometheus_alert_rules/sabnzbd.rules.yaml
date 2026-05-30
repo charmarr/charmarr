@@ -1,0 +1,59 @@
+groups:
+  - name: sabnzbd.health
+    rules:
+      - alert: SabnzbdExporterDown
+        expr: up{juju_charm="sabnzbd-k8s"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: sabnzbd
+        annotations:
+          summary: sabnzbd-exporter scrape failing on {{ $labels.juju_unit }}
+          description: |
+            Prometheus cannot scrape the exporter's /metrics endpoint. Either
+            the sidecar container is dead, or it cannot authenticate against
+            SABnzbd's API (API key drift). Check
+            `kubectl logs -c sabnzbd-exporter <pod>` and SABnzbd's API key.
+
+  - name: sabnzbd.queue
+    rules:
+      - alert: SabnzbdPausedWithWork
+        expr: sabnzbd_paused == 1 and sabnzbd_queue_size > 0
+        for: 30m
+        labels:
+          severity: warning
+          component: sabnzbd
+        annotations:
+          summary: SABnzbd paused with pending jobs on {{ $labels.juju_unit }}
+          description: |
+            SABnzbd has been paused for 30 minutes while jobs are in queue.
+            Likely operator forgot to unpause or a scheduled pause window
+            outstayed its welcome. Resume from the SABnzbd UI.
+
+      - alert: SabnzbdDownloadStuck
+        expr: sabnzbd_queue_size > 0 and sabnzbd_queue_download_rate_bytes_per_second == 0
+        for: 30m
+        labels:
+          severity: warning
+          component: sabnzbd
+        annotations:
+          summary: SABnzbd has queued jobs but zero download speed on {{ $labels.juju_unit }}
+          description: |
+            Queue has work but the global download rate has been 0 B/s for
+            30 minutes. Likely Usenet provider connection failure, DNS, or
+            VPN egress issue. Check `kubectl logs -c sabnzbd <pod>` and
+            test the Usenet server connectivity.
+
+      - alert: SabnzbdQueueETALong
+        expr: sabnzbd_queue_remaining_seconds > 86400
+        for: 1h
+        labels:
+          severity: warning
+          component: sabnzbd
+        annotations:
+          summary: SABnzbd queue ETA over 24h on {{ $labels.juju_unit }}
+          description: |
+            Estimated time to drain the queue has exceeded 24 hours for an
+            hour straight. The queue is backed up beyond what the current
+            download rate can handle. Investigate throughput or thin the
+            queue (cancel low-priority jobs).

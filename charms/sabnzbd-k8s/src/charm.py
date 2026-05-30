@@ -8,10 +8,12 @@ import logging
 from typing import NamedTuple
 
 import ops
+from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.istio_beacon_k8s.v0.service_mesh import (
     AppPolicy,
     Endpoint,
     ServiceMeshConsumer,
+    UnitPolicy,
 )
 from charms.istio_ingress_k8s.v0.istio_ingress_route import (
     BackendRef,
@@ -24,13 +26,23 @@ from charms.istio_ingress_k8s.v0.istio_ingress_route import (
     Listener,
     ProtocolType,
 )
+from charms.loki_k8s.v1.loki_push_api import LogForwarder
+from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from charms.velero_libs.v0.velero_backup_config import VeleroBackupProvider, VeleroBackupSpec
 
 from _sabnzbd import (
     API_KEY_SECRET_LABEL,
     CONFIG_FILE,
     CONTAINER_NAME,
+    EXPORTER_COMMAND,
+    EXPORTER_ENV_APIKEYS,
+    EXPORTER_ENV_BASEURLS,
+    EXPORTER_ENV_PORT,
     HEALTH_CHECK_URL,
+    METRICS_CONTAINER_NAME,
+    METRICS_PATH,
+    METRICS_PORT,
+    METRICS_SERVICE_NAME,
     SERVICE_NAME,
     WEBUI_PORT,
     SABnzbdApi,
@@ -74,7 +86,22 @@ class SABnzbdCharm(ops.CharmBase):
     def __init__(self, framework: ops.Framework) -> None:
         super().__init__(framework)
         self._container = self.unit.get_container(CONTAINER_NAME)
+        self._exporter_container = self.unit.get_container(METRICS_CONTAINER_NAME)
         self._k8s: K8sResourceManager | None = None
+
+        self._metrics_endpoint = MetricsEndpointProvider(
+            self,
+            jobs=[{"static_configs": [{"targets": [f"*:{METRICS_PORT}"]}]}],
+            alert_rules_path=(
+                "src/prometheus_alert_rules_extended"
+                if bool(self.config.get("extended-alert-rules", False))
+                else "src/prometheus_alert_rules"
+            ),
+            refresh_event=[self.on.sabnzbd_exporter_pebble_ready],
+        )
+        self._grafana_dashboards = GrafanaDashboardProvider(self)
+        self._log_forwarder = LogForwarder(self, relation_name="logging")
+        self._charm_tracing = ops.tracing.Tracing(self, tracing_relation_name="charm-tracing")
 
         self._download_client = DownloadClientProvider(self, "download-client")
         self._media_storage = MediaStorageRequirer(self, "media-storage")
@@ -85,6 +112,10 @@ class SABnzbdCharm(ops.CharmBase):
                 AppPolicy(
                     relation="download-client",
                     endpoints=[Endpoint(ports=[WEBUI_PORT])],
+                ),
+                UnitPolicy(
+                    relation="metrics-endpoint",
+                    ports=[METRICS_PORT],
                 ),
             ],
         )
@@ -354,6 +385,42 @@ class SABnzbdCharm(ops.CharmBase):
 
         self._reconcile_config(new_api_key)
         self._container.replan()
+        self._reconcile_exporter(new_api_key)
+
+    def _build_exporter_layer(self, api_key: str) -> ops.pebble.LayerDict:
+        return {
+            "summary": "sabnzbd-exporter Prometheus exporter",
+            "services": {
+                METRICS_SERVICE_NAME: {
+                    "override": "replace",
+                    "summary": "msroest/sabnzbd_exporter sidecar",
+                    "command": EXPORTER_COMMAND,
+                    "startup": "enabled",
+                    "environment": {
+                        EXPORTER_ENV_BASEURLS: f"http://localhost:{WEBUI_PORT}/sabnzbd",
+                        EXPORTER_ENV_APIKEYS: api_key,
+                        EXPORTER_ENV_PORT: str(METRICS_PORT),
+                    },
+                },
+            },
+            "checks": {
+                f"{METRICS_CONTAINER_NAME}-ready": {
+                    "override": "replace",
+                    "level": "ready",
+                    "http": {"url": f"http://localhost:{METRICS_PORT}{METRICS_PATH}"},
+                    "period": "10s",
+                    "timeout": "3s",
+                    "threshold": 3,
+                }
+            },
+        }
+
+    def _reconcile_exporter(self, api_key: str) -> None:
+        if not self._exporter_container.can_connect():
+            return
+        layer = self._build_exporter_layer(api_key)
+        self._exporter_container.add_layer(METRICS_SERVICE_NAME, layer, combine=True)
+        self._exporter_container.replan()
 
     def _reconcile(self, event: ops.EventBase) -> None:
         """Reconcile charm state with desired configuration.
@@ -440,6 +507,9 @@ class SABnzbdCharm(ops.CharmBase):
         layer = self._build_pebble_layer(storage.puid, storage.pgid)
         self._container.add_layer(SERVICE_NAME, layer, combine=True)
         self._container.replan()
+
+        # Reconcile sabnzbd-exporter sidecar (Prometheus exporter)
+        self._reconcile_exporter(api_key.api_key)
 
         # Expose WebUI port on the Kubernetes Service
         self.unit.set_ports(WEBUI_PORT)

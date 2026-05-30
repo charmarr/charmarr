@@ -11,7 +11,7 @@ from ops.testing import Container, Relation, State
 from charmarr_lib.core.interfaces import MediaStorageProviderData
 from charmarr_lib.vpn.interfaces import VPNGatewayProviderData
 
-from .conftest import SABNZBD_CONTAINER
+from .conftest import SABNZBD_CONTAINER, SABNZBD_EXPORTER_CONTAINER
 
 
 def test_waiting_for_pebble(ctx, mock_k8s):
@@ -27,7 +27,7 @@ def test_waiting_for_pebble(ctx, mock_k8s):
         ctx.on.start(),
         State(
             leader=True,
-            containers=[container],
+            containers=[container, SABNZBD_EXPORTER_CONTAINER],
             relations=[storage_relation],
             config={"unsafe-mode": True},
         ),
@@ -39,7 +39,7 @@ def test_blocked_without_media_storage(ctx, mock_k8s):
     """Charm is blocked without media-storage relation."""
     state = ctx.run(
         ctx.on.config_changed(),
-        State(leader=True, containers=[SABNZBD_CONTAINER]),
+        State(leader=True, containers=[SABNZBD_CONTAINER, SABNZBD_EXPORTER_CONTAINER]),
     )
     assert state.unit_status == ops.BlockedStatus("Waiting for media-storage relation")
 
@@ -56,7 +56,7 @@ def test_non_leader_standby_status(ctx, mock_k8s):
         ctx.on.start(),
         State(
             leader=False,
-            containers=[SABNZBD_CONTAINER],
+            containers=[SABNZBD_CONTAINER, SABNZBD_EXPORTER_CONTAINER],
             relations=[storage_relation],
             config={"unsafe-mode": True},
         ),
@@ -70,7 +70,7 @@ def test_non_leader_blocked_when_scaled_beyond_one(ctx):
         ctx.on.config_changed(),
         State(
             leader=False,
-            containers=[SABNZBD_CONTAINER],
+            containers=[SABNZBD_CONTAINER, SABNZBD_EXPORTER_CONTAINER],
             planned_units=2,
         ),
     )
@@ -85,7 +85,7 @@ def test_leader_continues_when_scaled_beyond_one(ctx, mock_k8s):
         ctx.on.config_changed(),
         State(
             leader=True,
-            containers=[SABNZBD_CONTAINER],
+            containers=[SABNZBD_CONTAINER, SABNZBD_EXPORTER_CONTAINER],
             planned_units=2,
         ),
     )
@@ -121,7 +121,7 @@ def test_waiting_for_vpn_when_related_but_not_connected(ctx, mock_k8s):
             ctx.on.config_changed(),
             State(
                 leader=True,
-                containers=[SABNZBD_CONTAINER],
+                containers=[SABNZBD_CONTAINER, SABNZBD_EXPORTER_CONTAINER],
                 relations=[storage_relation, vpn_relation],
             ),
         )
@@ -140,7 +140,7 @@ def test_blocked_without_vpn_gateway_by_default(ctx, mock_k8s):
         ctx.on.config_changed(),
         State(
             leader=True,
-            containers=[SABNZBD_CONTAINER],
+            containers=[SABNZBD_CONTAINER, SABNZBD_EXPORTER_CONTAINER],
             relations=[storage_relation],
         ),
     )
@@ -166,7 +166,7 @@ def test_not_blocked_when_unsafe_mode_enabled(ctx, mock_k8s):
             ctx.on.config_changed(),
             State(
                 leader=True,
-                containers=[SABNZBD_CONTAINER],
+                containers=[SABNZBD_CONTAINER, SABNZBD_EXPORTER_CONTAINER],
                 relations=[storage_relation],
                 config={"unsafe-mode": True},
             ),
@@ -205,7 +205,7 @@ def test_not_blocked_when_vpn_gateway_related(ctx, mock_k8s):
             ctx.on.config_changed(),
             State(
                 leader=True,
-                containers=[SABNZBD_CONTAINER],
+                containers=[SABNZBD_CONTAINER, SABNZBD_EXPORTER_CONTAINER],
                 relations=[storage_relation, vpn_relation],
             ),
         )
