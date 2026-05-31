@@ -16,8 +16,11 @@ output "model_uuid" {
 output "provides" {
   description = "Map of provided endpoints for integration"
   value = {
-    media_indexer    = "media-indexer"
-    provide_cmr_mesh = "provide-cmr-mesh"
+    media_indexer     = "media-indexer"
+    provide_cmr_mesh  = "provide-cmr-mesh"
+    crowsnest         = "crowsnest"
+    metrics_endpoint  = "metrics-endpoint"
+    grafana_dashboard = "grafana-dashboard"
   }
 }
 
@@ -30,5 +33,7 @@ output "requires" {
     service_mesh         = "service-mesh"
     velero_backup_config = "velero-backup-config"
     istio_ingress_route  = "istio-ingress-route"
+    logging              = "logging"
+    charm_tracing        = "charm-tracing"
   }
 }

@@ -301,6 +301,53 @@ variable "seerr" {
 }
 
 # -----------------------------------------------------------------------------
+# Observability (Optional)
+# -----------------------------------------------------------------------------
+
+variable "cos" {
+  description = <<-EOT
+    Wire the charmarr stack to a remote Canonical Observability Stack via
+    cross-model relations. Set to null to skip the entire o11y plane
+    (no otelcol, no crowsnest, no integrations). When non-null, deploys
+    otelcol locally + crowsnest, and integrates them with the cos offers.
+
+    Offer URLs are typically of the form `admin/cos.<offer-name>` and
+    must already exist (run `juju offer` on the cos side first).
+  EOT
+  type = object({
+    offers = object({
+      grafana            = string
+      loki_logging       = string
+      mimir_remote_write = string
+      send_ca_cert       = string
+      tempo_tracing      = string
+    })
+  })
+  default = null
+}
+
+variable "otelcol" {
+  description = "Override configuration for the opentelemetry-collector-k8s charm (deployed when cos != null)"
+  type = object({
+    channel     = optional(string, "2/edge")
+    constraints = optional(string, "arch=amd64")
+    revision    = optional(number, null)
+    config      = optional(map(string), {})
+  })
+  default = {}
+}
+
+variable "crowsnest" {
+  description = "Override configuration for the charmarr-crowsnest-k8s charm (deployed when cos != null)"
+  type = object({
+    constraints = optional(string, "arch=amd64")
+    revision    = optional(number, null)
+    config      = optional(map(string), {})
+  })
+  default = {}
+}
+
+# -----------------------------------------------------------------------------
 # Istio Charm Overrides (Optional)
 # -----------------------------------------------------------------------------
 

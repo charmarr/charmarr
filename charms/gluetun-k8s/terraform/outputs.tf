@@ -16,6 +16,18 @@ output "model_uuid" {
 output "provides" {
   description = "Map of provided endpoints for integration"
   value = {
-    vpn_gateway = "vpn-gateway"
+    vpn_gateway       = "vpn-gateway"
+    crowsnest         = "crowsnest"
+    metrics_endpoint  = "metrics-endpoint"
+    grafana_dashboard = "grafana-dashboard"
+  }
+}
+
+output "requires" {
+  description = "Map of required endpoints for integration"
+  value = {
+    service_mesh  = "service-mesh"
+    logging       = "logging"
+    charm_tracing = "charm-tracing"
   }
 }

@@ -1,6 +1,6 @@
 output "app_name" {
   description = "Application name"
-  value       = juju_application.seerr.name
+  value       = juju_application.crowsnest.name
 }
 
 output "model" {
@@ -16,9 +16,11 @@ output "model_uuid" {
 output "provides" {
   description = "Map of provided endpoints for integration"
   value = {
-    provide_cmr_mesh = "provide-cmr-mesh"
-    crowsnest        = "crowsnest"
-    metrics_endpoint = "metrics-endpoint"
+    provide_cmr_mesh  = "provide-cmr-mesh"
+    metrics_endpoint  = "metrics-endpoint"
+    grafana_dashboard = "grafana-dashboard"
+    grafana_source    = "grafana-source"
+    sloth             = "sloth"
   }
 }
 
@@ -26,9 +28,10 @@ output "requires" {
   description = "Map of required endpoints for integration"
   value = {
     require_cmr_mesh    = "require-cmr-mesh"
-    media_manager       = "media-manager"
-    media_server        = "media-server"
+    crowsnest           = "crowsnest"
     service_mesh        = "service-mesh"
+    logging             = "logging"
+    charm_tracing       = "charm-tracing"
     istio_ingress_route = "istio-ingress-route"
   }
 }

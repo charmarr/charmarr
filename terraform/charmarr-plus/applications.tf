@@ -312,6 +312,64 @@ module "seerr" {
 }
 
 # -----------------------------------------------------------------------------
+# Observability Charms (deployed when var.cos != null)
+# -----------------------------------------------------------------------------
+
+resource "juju_application" "otelcol" {
+  count      = var.cos != null ? 1 : 0
+  name       = "otelcol"
+  model_uuid = data.juju_model.model.uuid
+  trust      = true
+
+  charm {
+    name     = "opentelemetry-collector-k8s"
+    channel  = var.otelcol.channel
+    revision = var.otelcol.revision
+  }
+
+  constraints = var.otelcol.constraints
+  config      = var.otelcol.config
+}
+
+module "crowsnest" {
+  count  = var.cos != null ? 1 : 0
+  source = "git::https://github.com/charmarr/charmarr//charms/charmarr-crowsnest-k8s/terraform?ref=main"
+
+  model       = var.model
+  owner       = var.owner
+  app_name    = "crowsnest"
+  channel     = var.channel
+  constraints = var.crowsnest.constraints
+  revision    = var.crowsnest.revision
+  config      = var.crowsnest.config
+}
+
+data "juju_offer" "cos_grafana" {
+  count = var.cos != null ? 1 : 0
+  url   = var.cos.offers.grafana
+}
+
+data "juju_offer" "cos_loki_logging" {
+  count = var.cos != null ? 1 : 0
+  url   = var.cos.offers.loki_logging
+}
+
+data "juju_offer" "cos_mimir_remote_write" {
+  count = var.cos != null ? 1 : 0
+  url   = var.cos.offers.mimir_remote_write
+}
+
+data "juju_offer" "cos_send_ca_cert" {
+  count = var.cos != null ? 1 : 0
+  url   = var.cos.offers.send_ca_cert
+}
+
+data "juju_offer" "cos_tempo_tracing" {
+  count = var.cos != null ? 1 : 0
+  url   = var.cos.offers.tempo_tracing
+}
+
+# -----------------------------------------------------------------------------
 # Istio Charms
 # -----------------------------------------------------------------------------
 

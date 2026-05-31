@@ -107,43 +107,43 @@ jobs:
           if [[ -z "$CHARM_INPUT" || "$CHARM_INPUT" == "auto" ]]; then
             changed=$(git diff --name-only HEAD~1 HEAD)
 
-            if echo "$changed" | grep -q "^charms/charmarr-multimeter-k8s/"; then
+            if echo "$changed" | grep "^charms/charmarr-multimeter-k8s/" | grep -qv "^charms/charmarr-multimeter-k8s/terraform/"; then
               echo "multimeter=true" >> "$GITHUB_OUTPUT"
             fi
-            if echo "$changed" | grep -q "^charms/charmarr-storage-k8s/"; then
+            if echo "$changed" | grep "^charms/charmarr-storage-k8s/" | grep -qv "^charms/charmarr-storage-k8s/terraform/"; then
               echo "storage=true" >> "$GITHUB_OUTPUT"
             fi
-            if echo "$changed" | grep -q "^charms/gluetun-k8s/"; then
+            if echo "$changed" | grep "^charms/gluetun-k8s/" | grep -qv "^charms/gluetun-k8s/terraform/"; then
               echo "gluetun=true" >> "$GITHUB_OUTPUT"
             fi
-            if echo "$changed" | grep -q "^charms/qbittorrent-k8s/"; then
+            if echo "$changed" | grep "^charms/qbittorrent-k8s/" | grep -qv "^charms/qbittorrent-k8s/terraform/"; then
               echo "qbittorrent=true" >> "$GITHUB_OUTPUT"
             fi
-            if echo "$changed" | grep -q "^charms/sabnzbd-k8s/"; then
+            if echo "$changed" | grep "^charms/sabnzbd-k8s/" | grep -qv "^charms/sabnzbd-k8s/terraform/"; then
               echo "sabnzbd=true" >> "$GITHUB_OUTPUT"
             fi
-            if echo "$changed" | grep -q "^charms/flaresolverr-k8s/"; then
+            if echo "$changed" | grep "^charms/flaresolverr-k8s/" | grep -qv "^charms/flaresolverr-k8s/terraform/"; then
               echo "flaresolverr=true" >> "$GITHUB_OUTPUT"
             fi
-            if echo "$changed" | grep -q "^charms/prowlarr-k8s/"; then
+            if echo "$changed" | grep "^charms/prowlarr-k8s/" | grep -qv "^charms/prowlarr-k8s/terraform/"; then
               echo "prowlarr=true" >> "$GITHUB_OUTPUT"
             fi
-            if echo "$changed" | grep -q "^charms/radarr-k8s/"; then
+            if echo "$changed" | grep "^charms/radarr-k8s/" | grep -qv "^charms/radarr-k8s/terraform/"; then
               echo "radarr=true" >> "$GITHUB_OUTPUT"
             fi
-            if echo "$changed" | grep -q "^charms/sonarr-k8s/"; then
+            if echo "$changed" | grep "^charms/sonarr-k8s/" | grep -qv "^charms/sonarr-k8s/terraform/"; then
               echo "sonarr=true" >> "$GITHUB_OUTPUT"
             fi
-            if echo "$changed" | grep -q "^charms/plex-k8s/"; then
+            if echo "$changed" | grep "^charms/plex-k8s/" | grep -qv "^charms/plex-k8s/terraform/"; then
               echo "plex=true" >> "$GITHUB_OUTPUT"
             fi
-            if echo "$changed" | grep -q "^charms/overseerr-k8s/"; then
+            if echo "$changed" | grep "^charms/overseerr-k8s/" | grep -qv "^charms/overseerr-k8s/terraform/"; then
               echo "overseerr=true" >> "$GITHUB_OUTPUT"
             fi
-            if echo "$changed" | grep -q "^charms/seerr-k8s/"; then
+            if echo "$changed" | grep "^charms/seerr-k8s/" | grep -qv "^charms/seerr-k8s/terraform/"; then
               echo "seerr=true" >> "$GITHUB_OUTPUT"
             fi
-            if echo "$changed" | grep -q "^charms/charmarr-crowsnest-k8s/"; then
+            if echo "$changed" | grep "^charms/charmarr-crowsnest-k8s/" | grep -qv "^charms/charmarr-crowsnest-k8s/terraform/"; then
               echo "crowsnest=true" >> "$GITHUB_OUTPUT"
             fi
           fi

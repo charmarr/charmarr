@@ -16,8 +16,11 @@ output "model_uuid" {
 output "provides" {
   description = "Map of provided endpoints for integration"
   value = {
-    flaresolverr     = "flaresolverr"
-    provide_cmr_mesh = "provide-cmr-mesh"
+    flaresolverr      = "flaresolverr"
+    provide_cmr_mesh  = "provide-cmr-mesh"
+    crowsnest         = "crowsnest"
+    metrics_endpoint  = "metrics-endpoint"
+    grafana_dashboard = "grafana-dashboard"
   }
 }
 
@@ -26,5 +29,7 @@ output "requires" {
   value = {
     require_cmr_mesh = "require-cmr-mesh"
     service_mesh     = "service-mesh"
+    logging          = "logging"
+    charm_tracing    = "charm-tracing"
   }
 }
