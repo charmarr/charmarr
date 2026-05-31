@@ -42,6 +42,7 @@ from _prowlarr import (
     METRICS_SERVICE_NAME,
     SCRAPARR_COMMAND,
     SCRAPARR_ENV_API_KEY,
+    SCRAPARR_ENV_DETAILED,
     SCRAPARR_ENV_URL,
     SERVICE_NAME,
     WEBUI_PORT,
@@ -474,6 +475,7 @@ class ProwlarrCharm(ops.CharmBase):
                     "environment": {
                         SCRAPARR_ENV_URL: f"http://localhost:{WEBUI_PORT}",
                         SCRAPARR_ENV_API_KEY: api_key,
+                        SCRAPARR_ENV_DETAILED: "true",
                     },
                 },
             },

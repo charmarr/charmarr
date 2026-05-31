@@ -39,6 +39,7 @@ from _radarr import (
     METRICS_SERVICE_NAME,
     SCRAPARR_COMMAND,
     SCRAPARR_ENV_API_KEY,
+    SCRAPARR_ENV_DETAILED,
     SCRAPARR_ENV_URL,
     SERVICE_NAME,
     WEBUI_PORT,
@@ -46,11 +47,13 @@ from _radarr import (
 from charmarr_lib.core import (
     ArrApiClient,
     ArrApiError,
-    CharmarrTopology,
+    CharmarrChargedTopology,
     CharmarrTopologyRelation,
     ContentVariant,
     K8sResourceManager,
     MediaManager,
+    MetricFamily,
+    MetricSample,
     RecyclarrError,
     ensure_pebble_user,
     generate_api_key,
@@ -93,7 +96,7 @@ class RadarrCharm(ops.CharmBase):
         self._scraparr_container = self.unit.get_container(METRICS_CONTAINER_NAME)
         self._k8s: K8sResourceManager | None = None
 
-        self._topology = CharmarrTopology(
+        self._topology = CharmarrChargedTopology(
             self,
             relations=[
                 CharmarrTopologyRelation("download-client", role="requires", required=True),
@@ -102,6 +105,7 @@ class RadarrCharm(ops.CharmBase):
                 CharmarrTopologyRelation("vpn-gateway", role="requires", required=False),
                 CharmarrTopologyRelation("media-manager", role="provides", required=False),
             ],
+            extra_exposition=self._build_queue_gauges,
         )
         self._metrics_endpoint = MetricsEndpointProvider(
             self,
@@ -288,6 +292,7 @@ class RadarrCharm(ops.CharmBase):
                     "environment": {
                         SCRAPARR_ENV_URL: f"http://localhost:{WEBUI_PORT}",
                         SCRAPARR_ENV_API_KEY: api_key,
+                        SCRAPARR_ENV_DETAILED: "true",
                     },
                 },
             },
@@ -339,6 +344,52 @@ class RadarrCharm(ops.CharmBase):
         except ArrApiError as e:
             logger.debug("Workload not ready: %s", e)
             return False
+
+    def _build_queue_gauges(self) -> list[MetricFamily]:
+        """Poll Radarr's /api/v3/queue and emit one series per queued item.
+
+        Surfaces what's currently in-flight (title, status, protocol) so
+        per-charm + crowsnest dashboards can render a live "active downloads"
+        table without recreating Radarr's UI. Silent on workload-not-ready
+        or empty queue - topology metrics still ship.
+        """
+        secret_data = self._get_api_key_secret()
+        if not secret_data:
+            return []
+        api_key, _ = secret_data
+        try:
+            with self._get_api_client(api_key) as api:
+                items = api.get_queue()
+        except ArrApiError as e:
+            logger.debug("Queue poll failed: %s", e)
+            return []
+
+        if not items:
+            return []
+
+        size_samples: list[MetricSample] = []
+        remaining_samples: list[MetricSample] = []
+        for item in items:
+            labels = {
+                "title": item.title,
+                "status": item.status,
+                "protocol": item.protocol,
+            }
+            size_samples.append(MetricSample(labels=labels, value=float(item.size)))
+            remaining_samples.append(MetricSample(labels=labels, value=float(item.sizeleft)))
+
+        return [
+            MetricFamily(
+                name="charmarr_queue_item_size_bytes",
+                help="Total size in bytes of a currently queued media item.",
+                samples=size_samples,
+            ),
+            MetricFamily(
+                name="charmarr_queue_item_remaining_bytes",
+                help="Bytes remaining to download for a currently queued media item.",
+                samples=remaining_samples,
+            ),
+        ]
 
     def _get_secret_content(self, secret_id: str) -> dict[str, str]:
         """Retrieve secret content by ID for reconcilers."""

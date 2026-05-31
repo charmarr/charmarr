@@ -37,6 +37,18 @@ class SABnzbdApi:
         data = response.json()
         return data.get("version", "")
 
+    def get_queue(self) -> list[dict]:
+        """Get the current download queue slots.
+
+        Each slot dict carries `filename`, `status`, `mb` (total MB),
+        `mbleft` (MB remaining), `cat`, `percentage`, etc. — all as
+        strings per SABnzbd convention.
+        """
+        response = self._client.get(self._url("queue"))
+        response.raise_for_status()
+        data = response.json()
+        return data.get("queue", {}).get("slots", [])
+
     def set_config(self, section: str, keyword: str, value: str) -> None:
         """Set a config value."""
         response = self._client.get(

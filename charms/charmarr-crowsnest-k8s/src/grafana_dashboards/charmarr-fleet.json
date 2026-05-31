@@ -7,10 +7,22 @@
     "crowsnest"
   ],
   "schemaVersion": 39,
-  "version": 2,
+  "version": 5,
   "editable": true,
   "graphTooltip": 1,
   "refresh": "30s",
+  "links": [
+    {
+      "title": "Charmarr dashboards",
+      "type": "dashboards",
+      "tags": ["charmarr"],
+      "asDropdown": true,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "targetBlank": false
+    }
+  ],
   "time": {
     "from": "now-6h",
     "to": "now"
@@ -553,7 +565,8 @@
     {
       "id": 131,
       "type": "piechart",
-      "title": "Requests by status",
+      "title": "Requests by stage",
+      "description": "Mutually-exclusive funnel stages. `approved` in seerr's count includes everything already processing/available, so we derive `awaiting` = approved - processing - available so the slices add up to the total.",
       "datasource": {
         "type": "prometheus",
         "uid": "${prometheusds}"
@@ -566,9 +579,29 @@
       },
       "targets": [
         {
-          "expr": "max by (status) (charmarr_requests_total{juju_model=\"$juju_model\", status=~\"pending|approved|processing|available|declined\"})",
-          "legendFormat": "{{status}}",
+          "expr": "sum(charmarr_requests_total{juju_model=\"$juju_model\", status=\"pending\"})",
+          "legendFormat": "pending",
           "refId": "A"
+        },
+        {
+          "expr": "clamp_min(sum(charmarr_requests_total{juju_model=\"$juju_model\", status=\"approved\"}) - sum(charmarr_requests_total{juju_model=\"$juju_model\", status=\"processing\"}) - sum(charmarr_requests_total{juju_model=\"$juju_model\", status=\"available\"}), 0)",
+          "legendFormat": "awaiting",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(charmarr_requests_total{juju_model=\"$juju_model\", status=\"processing\"})",
+          "legendFormat": "processing",
+          "refId": "C"
+        },
+        {
+          "expr": "sum(charmarr_requests_total{juju_model=\"$juju_model\", status=\"available\"})",
+          "legendFormat": "available",
+          "refId": "D"
+        },
+        {
+          "expr": "sum(charmarr_requests_total{juju_model=\"$juju_model\", status=\"declined\"})",
+          "legendFormat": "declined",
+          "refId": "E"
         }
       ],
       "fieldConfig": {
@@ -626,14 +659,14 @@
             {
               "matcher": {
                 "id": "byName",
-                "options": "approved"
+                "options": "awaiting"
               },
               "properties": [
                 {
                   "id": "color",
                   "value": {
                     "mode": "fixed",
-                    "fixedColor": "blue"
+                    "fixedColor": "orange"
                   }
                 }
               ]
@@ -648,7 +681,7 @@
                   "id": "color",
                   "value": {
                     "mode": "fixed",
-                    "fixedColor": "purple"
+                    "fixedColor": "blue"
                   }
                 }
               ]
@@ -1247,13 +1280,62 @@
       }
     },
     {
+      "id": 155,
+      "type": "stat",
+      "title": "Arr free space",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheusds}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 58,
+        "w": 24,
+        "h": 5
+      },
+      "targets": [
+        {
+          "expr": "max by (juju_application) (radarr_free_disk_size{juju_model=\"$juju_model\"})",
+          "legendFormat": "{{juju_application}}",
+          "refId": "A"
+        },
+        {
+          "expr": "max by (juju_application) (sonarr_free_disk_size{juju_model=\"$juju_model\"})",
+          "legendFormat": "{{juju_application}}",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "orange", "value": 53687091200},
+              {"color": "green", "value": 214748364800}
+            ]
+          },
+          "color": {"mode": "thresholds"}
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "justifyMode": "center",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": ""}
+      }
+    },
+    {
       "id": 160,
       "type": "row",
       "title": "Logs",
       "collapsed": true,
       "gridPos": {
         "x": 0,
-        "y": 58,
+        "y": 63,
         "w": 24,
         "h": 1
       },
@@ -1268,7 +1350,7 @@
           },
           "gridPos": {
             "x": 0,
-            "y": 59,
+            "y": 64,
             "w": 24,
             "h": 12
           },

@@ -3,7 +3,7 @@
   "uid": "charmarr-qbittorrent",
   "tags": ["charmarr", "qbittorrent"],
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "editable": true,
   "graphTooltip": 1,
   "refresh": "30s",
@@ -197,12 +197,89 @@
       "fieldConfig": {"defaults": {}, "overrides": [{"matcher": {"id": "byName", "options": "DL speed (B/s)"}, "properties": [{"id": "unit", "value": "binBps"}]}]}
     },
 
-    {"id": 60, "type": "row", "title": "Logs", "collapsed": false, "gridPos": {"x": 0, "y": 45, "w": 24, "h": 1}},
+    {
+      "id": 42,
+      "type": "table",
+      "title": "Active downloads",
+      "description": "All torrents with bytes remaining > 0 (still downloading). Sorted by remaining bytes desc so biggest-pending floats to the top. Native qbittorrent-exporter metrics.",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 0, "y": 45, "w": 24, "h": 8},
+      "targets": [
+        {
+          "expr": "qbittorrent_torrent_size_bytes{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"} and on (name) (qbittorrent_torrent_amount_left_bytes > 0)",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        },
+        {
+          "expr": "qbittorrent_torrent_amount_left_bytes{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"} > 0",
+          "format": "table",
+          "instant": true,
+          "refId": "B"
+        },
+        {
+          "expr": "qbittorrent_torrent_download_speed_bytes{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"} and on (name) (qbittorrent_torrent_amount_left_bytes > 0)",
+          "format": "table",
+          "instant": true,
+          "refId": "C"
+        },
+        {
+          "expr": "qbittorrent_torrent_progress{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"} and on (name) (qbittorrent_torrent_amount_left_bytes > 0)",
+          "format": "table",
+          "instant": true,
+          "refId": "D"
+        }
+      ],
+      "transformations": [
+        {"id": "joinByField", "options": {"byField": "name", "mode": "outer"}},
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time 1": true, "Time 2": true, "Time 3": true, "Time 4": true,
+              "__name__ 1": true, "__name__ 2": true, "__name__ 3": true, "__name__ 4": true,
+              "instance 1": true, "instance 2": true, "instance 3": true, "instance 4": true,
+              "job 1": true, "job 2": true, "job 3": true, "job 4": true,
+              "juju_charm 1": true, "juju_charm 2": true, "juju_charm 3": true, "juju_charm 4": true,
+              "juju_model 1": true, "juju_model 2": true, "juju_model 3": true, "juju_model 4": true,
+              "juju_model_uuid 1": true, "juju_model_uuid 2": true, "juju_model_uuid 3": true, "juju_model_uuid 4": true,
+              "juju_application 1": true, "juju_application 2": true, "juju_application 3": true, "juju_application 4": true,
+              "juju_unit 1": true, "juju_unit 2": true, "juju_unit 3": true, "juju_unit 4": true,
+              "hash 1": true, "hash 2": true, "hash 3": true, "hash 4": true
+            },
+            "renameByName": {
+              "name": "Name",
+              "Value #A": "Size",
+              "Value #B": "Remaining",
+              "Value #C": "DL speed",
+              "Value #D": "Progress"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "Name"}, "properties": [{"id": "unit", "value": "string"}, {"id": "custom.width", "value": 420}]},
+          {"matcher": {"id": "byName", "options": "Size"}, "properties": [{"id": "unit", "value": "bytes"}]},
+          {"matcher": {"id": "byName", "options": "Remaining"}, "properties": [{"id": "unit", "value": "bytes"}]},
+          {"matcher": {"id": "byName", "options": "DL speed"}, "properties": [{"id": "unit", "value": "binBps"}]},
+          {"matcher": {"id": "byName", "options": "Progress"}, "properties": [{"id": "unit", "value": "percentunit"}, {"id": "decimals", "value": 1}]}
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [{"displayName": "Remaining", "desc": true}],
+        "footer": {"show": false}
+      }
+    },
+
+    {"id": 60, "type": "row", "title": "Logs", "collapsed": false, "gridPos": {"x": 0, "y": 53, "w": 24, "h": 1}},
 
     {
       "id": 61, "type": "logs", "title": "ERROR/WARN log lines (qBittorrent + exporter)",
       "datasource": {"type": "loki", "uid": "${lokids}"},
-      "gridPos": {"x": 0, "y": 46, "w": 24, "h": 10},
+      "gridPos": {"x": 0, "y": 54, "w": 24, "h": 10},
       "targets": [{"expr": "{juju_model=\"$juju_model\", juju_application=\"$juju_application\"} |~ \"(?i)error|warn|fatal\"", "refId": "A"}],
       "options": {"showTime": true, "showLabels": false, "wrapLogMessage": true, "sortOrder": "Descending"}
     }

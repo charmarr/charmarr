@@ -3,7 +3,7 @@
   "uid": "charmarr-sabnzbd",
   "tags": ["charmarr", "sabnzbd"],
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "editable": true,
   "graphTooltip": 1,
   "refresh": "30s",
@@ -136,23 +136,86 @@
       "options": {"colorMode": "value", "graphMode": "none", "textMode": "value"}
     },
 
-    {"id": 20, "type": "row", "title": "Per-server breakdown", "collapsed": false, "gridPos": {"x": 0, "y": 18, "w": 24, "h": 1}},
+    {
+      "id": 16,
+      "type": "table",
+      "title": "Active downloads",
+      "description": "NZBs currently in sab's queue (charm-emitted via ?mode=queue). Sorted by bytes remaining so the biggest in-flight items float to the top.",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 0, "y": 18, "w": 24, "h": 8},
+      "targets": [
+        {
+          "expr": "charmarr_queue_item_size_bytes{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"}",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        },
+        {
+          "expr": "charmarr_queue_item_remaining_bytes{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"}",
+          "format": "table",
+          "instant": true,
+          "refId": "B"
+        }
+      ],
+      "transformations": [
+        {"id": "joinByField", "options": {"byField": "title", "mode": "outer"}},
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time 1": true, "Time 2": true,
+              "__name__ 1": true, "__name__ 2": true,
+              "instance 1": true, "instance 2": true,
+              "job 1": true, "job 2": true,
+              "juju_charm 1": true, "juju_charm 2": true,
+              "juju_model 1": true, "juju_model 2": true,
+              "juju_model_uuid 1": true, "juju_model_uuid 2": true,
+              "juju_application 1": true, "juju_application 2": true,
+              "juju_unit 1": true, "juju_unit 2": true,
+              "status 2": true, "category 2": true
+            },
+            "renameByName": {
+              "title": "Title",
+              "status 1": "Status",
+              "category 1": "Category",
+              "Value #A": "Size",
+              "Value #B": "Remaining"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {"unit": "bytes"},
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "Title"}, "properties": [{"id": "unit", "value": "string"}, {"id": "custom.width", "value": 420}]},
+          {"matcher": {"id": "byName", "options": "Status"}, "properties": [{"id": "unit", "value": "string"}, {"id": "custom.width", "value": 120}]},
+          {"matcher": {"id": "byName", "options": "Category"}, "properties": [{"id": "unit", "value": "string"}, {"id": "custom.width", "value": 120}]}
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [{"displayName": "Remaining", "desc": true}],
+        "footer": {"show": false}
+      }
+    },
+
+    {"id": 20, "type": "row", "title": "Per-server breakdown", "collapsed": false, "gridPos": {"x": 0, "y": 26, "w": 24, "h": 1}},
 
     {
       "id": 21, "type": "bargauge", "title": "Downloaded by server",
       "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
-      "gridPos": {"x": 0, "y": 19, "w": 24, "h": 8},
+      "gridPos": {"x": 0, "y": 27, "w": 24, "h": 8},
       "targets": [{"expr": "sabnzbd_server_download_bytes{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"}", "legendFormat": "{{server}}", "refId": "A"}],
       "fieldConfig": {"defaults": {"unit": "bytes"}},
       "options": {"orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true}
     },
 
-    {"id": 60, "type": "row", "title": "Logs", "collapsed": false, "gridPos": {"x": 0, "y": 27, "w": 24, "h": 1}},
+    {"id": 60, "type": "row", "title": "Logs", "collapsed": false, "gridPos": {"x": 0, "y": 35, "w": 24, "h": 1}},
 
     {
       "id": 61, "type": "logs", "title": "ERROR/WARN log lines (SABnzbd + exporter)",
       "datasource": {"type": "loki", "uid": "${lokids}"},
-      "gridPos": {"x": 0, "y": 28, "w": 24, "h": 10},
+      "gridPos": {"x": 0, "y": 36, "w": 24, "h": 10},
       "targets": [{"expr": "{juju_model=\"$juju_model\", juju_application=\"$juju_application\"} |~ \"(?i)error|warn|fatal\"", "refId": "A"}],
       "options": {"showTime": true, "showLabels": false, "wrapLogMessage": true, "sortOrder": "Descending"}
     }

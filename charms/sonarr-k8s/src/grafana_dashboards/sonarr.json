@@ -6,7 +6,7 @@
     "sonarr"
   ],
   "schemaVersion": 39,
-  "version": 2,
+  "version": 4,
   "editable": true,
   "graphTooltip": 1,
   "refresh": "30s",
@@ -761,13 +761,75 @@
       }
     },
     {
+      "id": 60,
+      "type": "table",
+      "title": "Active downloads",
+      "description": "Items currently in sonarr's queue (charm-emitted via /api/v3/queue). Sorted by bytes remaining so the biggest in-flight items float to the top.",
+      "datasource": {"type": "prometheus", "uid": "${prometheusds}"},
+      "gridPos": {"x": 0, "y": 23, "w": 24, "h": 8},
+      "targets": [
+        {
+          "expr": "charmarr_queue_item_size_bytes{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"}",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        },
+        {
+          "expr": "charmarr_queue_item_remaining_bytes{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"}",
+          "format": "table",
+          "instant": true,
+          "refId": "B"
+        }
+      ],
+      "transformations": [
+        {"id": "joinByField", "options": {"byField": "title", "mode": "outer"}},
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time 1": true, "Time 2": true,
+              "__name__ 1": true, "__name__ 2": true,
+              "instance 1": true, "instance 2": true,
+              "job 1": true, "job 2": true,
+              "juju_charm 1": true, "juju_charm 2": true,
+              "juju_model 1": true, "juju_model 2": true,
+              "juju_model_uuid 1": true, "juju_model_uuid 2": true,
+              "juju_application 1": true, "juju_application 2": true,
+              "juju_unit 1": true, "juju_unit 2": true,
+              "status 2": true, "protocol 2": true
+            },
+            "renameByName": {
+              "title": "Title",
+              "status 1": "Status",
+              "protocol 1": "Protocol",
+              "Value #A": "Size",
+              "Value #B": "Remaining"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {"unit": "bytes"},
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "Title"}, "properties": [{"id": "unit", "value": "string"}, {"id": "custom.width", "value": 420}]},
+          {"matcher": {"id": "byName", "options": "Status"}, "properties": [{"id": "unit", "value": "string"}, {"id": "custom.width", "value": 120}]},
+          {"matcher": {"id": "byName", "options": "Protocol"}, "properties": [{"id": "unit", "value": "string"}, {"id": "custom.width", "value": 100}]}
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [{"displayName": "Remaining", "desc": true}],
+        "footer": {"show": false}
+      }
+    },
+    {
       "id": 30,
       "type": "row",
       "title": "Storage",
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 23,
+        "y": 31,
         "w": 24,
         "h": 1
       }
@@ -782,7 +844,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 24,
+        "y": 32,
         "w": 12,
         "h": 8
       },
@@ -812,21 +874,21 @@
     {
       "id": 32,
       "type": "bargauge",
-      "title": "Used percentage per unit",
-      "description": "Free/total disk usage. Per-folder breakdown isn't possible — sonarr's API reports total size per root folder but free space only per mount point.",
+      "title": "Filesystem used percentage",
+      "description": "Used fraction of the underlying filesystem (capacity minus free), aggregated per unit. `sonarr_disk_size_total` is media-stored bytes, not capacity — capacity comes from `sonarr_available_disk_size`.",
       "datasource": {
         "type": "prometheus",
         "uid": "${prometheusds}"
       },
       "gridPos": {
         "x": 12,
-        "y": 24,
+        "y": 32,
         "w": 12,
         "h": 8
       },
       "targets": [
         {
-          "expr": "(max by (juju_unit) (sonarr_disk_size_total{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"}) - max by (juju_unit) (sonarr_free_disk_size{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})) / max by (juju_unit) (sonarr_disk_size_total{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"}) * 100",
+          "expr": "(max by (juju_unit) (sonarr_available_disk_size{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"}) - max by (juju_unit) (sonarr_free_disk_size{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})) / max by (juju_unit) (sonarr_available_disk_size{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"}) * 100",
           "legendFormat": "{{juju_unit}}",
           "refId": "A"
         }
@@ -868,7 +930,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 32,
+        "y": 40,
         "w": 24,
         "h": 1
       }
@@ -883,7 +945,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 33,
+        "y": 41,
         "w": 12,
         "h": 8
       },
@@ -912,7 +974,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 33,
+        "y": 41,
         "w": 12,
         "h": 8
       },
@@ -938,7 +1000,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 41,
+        "y": 49,
         "w": 24,
         "h": 1
       }
@@ -953,7 +1015,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 42,
+        "y": 50,
         "w": 12,
         "h": 8
       },
@@ -982,7 +1044,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 42,
+        "y": 50,
         "w": 12,
         "h": 8
       },
@@ -1008,7 +1070,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 50,
+        "y": 58,
         "w": 24,
         "h": 1
       }
@@ -1023,7 +1085,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 51,
+        "y": 59,
         "w": 24,
         "h": 10
       },

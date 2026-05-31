@@ -7,6 +7,7 @@
 import logging
 from typing import NamedTuple
 
+import httpx
 import ops
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.istio_beacon_k8s.v0.service_mesh import (
@@ -448,10 +449,10 @@ class SABnzbdCharm(ops.CharmBase):
     def _build_charm_gauges(self) -> list[MetricFamily]:
         """Charm-state metrics published alongside topology.
 
-        Currently: `charmarr_unsafe_mode_enabled` - whether sab is configured
-        to allow downloads without a VPN gateway relation. Crowsnest combines
-        this with `charmarr_relation_bound{relation="vpn-gateway"}` to detect
-        usenet traffic outside the tunnel.
+        - `charmarr_unsafe_mode_enabled` - whether sab is configured to allow
+          downloads without a VPN gateway relation.
+        - `charmarr_queue_item_size_bytes` / `_remaining_bytes` - one series per
+          currently queued NZB, powering the fleet "active downloads" tables.
         """
         unsafe = 1.0 if bool(self.config.get("unsafe-mode", False)) else 0.0
         return [
@@ -464,6 +465,59 @@ class SABnzbdCharm(ops.CharmBase):
                     "to detect usenet traffic outside the tunnel."
                 ),
                 samples=[MetricSample(value=unsafe)],
+            ),
+            *self._build_queue_gauges(),
+        ]
+
+    def _build_queue_gauges(self) -> list[MetricFamily]:
+        """Poll SABnzbd's queue endpoint and emit one series per active slot.
+
+        SABnzbd returns sizes as MB strings (e.g. `"1.2"`); converted to
+        bytes here. Silent on workload-not-ready or empty queue - topology
+        metrics still ship.
+        """
+        api_key = self._get_api_key()
+        if not api_key:
+            return []
+        try:
+            with self._get_api_client(api_key) as api:
+                slots = api.get_queue()
+        except (httpx.HTTPError, ValueError) as e:
+            logger.debug("Queue poll failed: %s", e)
+            return []
+
+        if not slots:
+            return []
+
+        def mb_str_to_bytes(value: object) -> float:
+            try:
+                return float(str(value)) * 1024 * 1024
+            except (TypeError, ValueError):
+                return 0.0
+
+        size_samples: list[MetricSample] = []
+        remaining_samples: list[MetricSample] = []
+        for slot in slots:
+            labels = {
+                "title": str(slot.get("filename", "")),
+                "status": str(slot.get("status", "")),
+                "category": str(slot.get("cat", "")),
+            }
+            size_samples.append(MetricSample(labels=labels, value=mb_str_to_bytes(slot.get("mb"))))
+            remaining_samples.append(
+                MetricSample(labels=labels, value=mb_str_to_bytes(slot.get("mbleft")))
+            )
+
+        return [
+            MetricFamily(
+                name="charmarr_queue_item_size_bytes",
+                help="Total size in bytes of a currently queued NZB.",
+                samples=size_samples,
+            ),
+            MetricFamily(
+                name="charmarr_queue_item_remaining_bytes",
+                help="Bytes remaining to download for a currently queued NZB.",
+                samples=remaining_samples,
             ),
         ]
 
