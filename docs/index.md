@@ -121,11 +121,11 @@ And you're done. Charmarr begins autonomously wiring up the apps for you.
 
     Enable Istio Ambient for mTLS and authz firewalls between services, auto-configured from charm relations. Enterprise security, one flag away.
 
--   :material-heart-pulse: **It fixes itself**
+-   :material-radar: **o11y, out of the box**
 
     ---
 
-    Pod dies? Charmarr reconciles. You sleep. Config drift? Charmarr heals. You chill.
+    Every charm self-exports metrics, logs, traces, and a Grafana dashboard. Crowsnest watches the whole fleet from above.
 
 -   :material-key-change: **Keys rotate themselves**
 

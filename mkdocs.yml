@@ -93,6 +93,11 @@ nav:
       - security/index.md
       - Networking: security/network.md
       - Secrets: security/secrets.md
+  - Observability:
+      - observability/index.md
+      - Enable: observability/enable.md
+      - Dashboards: observability/dashboards.md
+      - Crowsnest: observability/crowsnest.md
   - Backup:
       - backup/index.md
   - Releases:
