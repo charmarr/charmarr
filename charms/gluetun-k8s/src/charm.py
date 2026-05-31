@@ -21,8 +21,6 @@ from pydantic import BaseModel
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from _speedtest import handle_speedtest
-from charmarr_lib.core.interfaces import CrowsnestProvider, CrowsnestProviderData
-
 from charmarr_lib.core import (
     CharmarrTopology,
     CharmarrTopologyRelation,
@@ -30,6 +28,7 @@ from charmarr_lib.core import (
     observe_events,
     reconcilable_events_k8s,
 )
+from charmarr_lib.core.interfaces import CrowsnestProvider, CrowsnestProviderData
 from charmarr_lib.vpn import (
     ISTIO_ZTUNNEL_LINK_LOCAL,
     get_cluster_dns_ip,
