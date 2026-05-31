@@ -7,7 +7,7 @@
     "crowsnest"
   ],
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "editable": true,
   "graphTooltip": 1,
   "refresh": "30s",
@@ -257,7 +257,7 @@
       },
       "targets": [
         {
-          "expr": "sum(qbittorrent_global_download_speed_bytes{juju_model=\"$juju_model\"}) + sum(sabnzbd_queue_download_rate_bytes_per_second{juju_model=\"$juju_model\"})",
+          "expr": "sum(qbittorrent_global_download_speed_bytes{juju_model=\"$juju_model\"}) + sum(rate(sabnzbd_download_bytes{juju_model=\"$juju_model\"}[5m]))",
           "refId": "A"
         }
       ],
@@ -879,7 +879,7 @@
           "refId": "B"
         },
         {
-          "expr": "sum(sabnzbd_queue_download_rate_bytes_per_second{juju_model=\"$juju_model\"})",
+          "expr": "sum(rate(sabnzbd_download_bytes{juju_model=\"$juju_model\"}[5m]))",
           "legendFormat": "sabnzbd",
           "refId": "C"
         }
@@ -915,7 +915,7 @@
     },
     {
       "id": 142,
-      "type": "status-history",
+      "type": "state-timeline",
       "title": "VPN tunnel state",
       "datasource": {
         "type": "prometheus",
@@ -973,7 +973,8 @@
       "options": {
         "showValue": "never",
         "rowHeight": 0.9,
-        "colWidth": 0.95,
+        "mergeValues": true,
+        "alignValue": "left",
         "legend": {
           "showLegend": false,
           "displayMode": "list"

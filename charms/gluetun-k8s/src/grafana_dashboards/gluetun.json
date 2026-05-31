@@ -3,7 +3,7 @@
   "uid": "charmarr-gluetun",
   "tags": ["charmarr", "gluetun"],
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "editable": true,
   "graphTooltip": 1,
   "refresh": "30s",

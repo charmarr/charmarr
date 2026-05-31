@@ -6,7 +6,7 @@
     "radarr"
   ],
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "editable": true,
   "graphTooltip": 1,
   "refresh": "30s",
@@ -822,7 +822,8 @@
     {
       "id": 32,
       "type": "bargauge",
-      "title": "Used percentage per root folder",
+      "title": "Used percentage per unit",
+      "description": "Free/total disk usage. Per-folder breakdown isn't possible — radarr's API reports total size per root folder but free space only per mount point.",
       "datasource": {
         "type": "prometheus",
         "uid": "${prometheusds}"
@@ -835,8 +836,8 @@
       },
       "targets": [
         {
-          "expr": "(radarr_disk_size_total{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\", path=~\"$path\"} - radarr_free_disk_size{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\", path=~\"$path\"}) / radarr_disk_size_total{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\", path=~\"$path\"} * 100",
-          "legendFormat": "{{path}}",
+          "expr": "(max by (juju_unit) (radarr_disk_size_total{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"}) - max by (juju_unit) (radarr_free_disk_size{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"})) / max by (juju_unit) (radarr_disk_size_total{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"}) * 100",
+          "legendFormat": "{{juju_unit}}",
           "refId": "A"
         }
       ],
