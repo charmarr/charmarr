@@ -7,7 +7,7 @@
     "crowsnest"
   ],
   "schemaVersion": 39,
-  "version": 5,
+  "version": 6,
   "editable": true,
   "graphTooltip": 1,
   "refresh": "30s",
@@ -18,7 +18,7 @@
       "tags": ["charmarr"],
       "asDropdown": true,
       "icon": "external link",
-      "includeVars": true,
+      "includeVars": false,
       "keepTime": true,
       "targetBlank": false
     }

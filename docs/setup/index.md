@@ -10,7 +10,7 @@ Get Charmarr running on your Kubernetes cluster in minutes.
 
     Prepare your cluster and tools.
 
-    [:octicons-arrow-right-24: Check requirements](prerequisites.md)
+    [:octicons-arrow-right-24: Read more](prerequisites.md)
 
 -   **2a. Quick Deploy**
 
@@ -18,7 +18,7 @@ Get Charmarr running on your Kubernetes cluster in minutes.
 
     Pre-configured terraform modules.
 
-    [:octicons-arrow-right-24: Get started](quickdeploy.md)
+    [:octicons-arrow-right-24: Read more](quickdeploy.md)
 
 -   **2b. Manual Deploy**
 
@@ -26,7 +26,7 @@ Get Charmarr running on your Kubernetes cluster in minutes.
 
     Juju CLI. More control, more fun.
 
-    [:octicons-arrow-right-24: Learn more](manual.md)
+    [:octicons-arrow-right-24: Read more](manual.md)
 
 -   **3. Post-Deploy**
 
@@ -34,6 +34,6 @@ Get Charmarr running on your Kubernetes cluster in minutes.
 
     UI configurations in required apps.
 
-    [:octicons-arrow-right-24: Final steps](post-deploy.md)
+    [:octicons-arrow-right-24: Read more](post-deploy.md)
 
 </div>
