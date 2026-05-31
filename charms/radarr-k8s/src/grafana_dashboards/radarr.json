@@ -835,7 +835,7 @@
       },
       "targets": [
         {
-          "expr": "(radarr_disk_size{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\", path=~\"$path\"} / (radarr_disk_size{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\", path=~\"$path\"} + radarr_free_disk_size{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\", path=~\"$path\"})) * 100",
+          "expr": "(radarr_disk_size_total{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\", path=~\"$path\"} - radarr_free_disk_size{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\", path=~\"$path\"}) / radarr_disk_size_total{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\", path=~\"$path\"} * 100",
           "legendFormat": "{{path}}",
           "refId": "A"
         }

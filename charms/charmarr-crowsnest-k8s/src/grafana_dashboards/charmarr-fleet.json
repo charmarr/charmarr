@@ -197,7 +197,7 @@
       },
       "targets": [
         {
-          "expr": "sum(charmarr_requests_total{juju_model=\"$juju_model\", status=\"available\"}) / clamp_min(sum(charmarr_requests_total{juju_model=\"$juju_model\", status=~\"approved|processing|available\"}), 1)",
+          "expr": "sum(charmarr_requests_total{juju_model=\"$juju_model\", status=\"available\"}) / clamp_min(sum(charmarr_requests_total{juju_model=\"$juju_model\", status=\"approved\"}), 1)",
           "refId": "A"
         }
       ],
@@ -257,7 +257,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(qbittorrent_dl_info_data_bytes_total{juju_model=\"$juju_model\"}[5m])) + sum(rate(sabnzbd_download_bytes_total{juju_model=\"$juju_model\"}[5m]))",
+          "expr": "sum(qbittorrent_global_download_speed_bytes{juju_model=\"$juju_model\"}) + sum(sabnzbd_queue_download_rate_bytes_per_second{juju_model=\"$juju_model\"})",
           "refId": "A"
         }
       ],
@@ -796,7 +796,7 @@
       },
       "targets": [
         {
-          "expr": "sum(charmarr_requests_total{juju_model=\"$juju_model\", status=\"available\"}) / clamp_min(sum(charmarr_requests_total{juju_model=\"$juju_model\", status=~\"approved|processing|available\"}), 1)",
+          "expr": "sum(charmarr_requests_total{juju_model=\"$juju_model\", status=\"available\"}) / clamp_min(sum(charmarr_requests_total{juju_model=\"$juju_model\", status=\"approved\"}), 1)",
           "refId": "A"
         }
       ],
@@ -869,17 +869,17 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(qbittorrent_dl_info_data_bytes_total{juju_model=\"$juju_model\"}[5m]))",
+          "expr": "sum(qbittorrent_global_download_speed_bytes{juju_model=\"$juju_model\"})",
           "legendFormat": "qbittorrent download",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(qbittorrent_up_info_data_bytes_total{juju_model=\"$juju_model\"}[5m]))",
+          "expr": "sum(qbittorrent_global_upload_speed_bytes{juju_model=\"$juju_model\"})",
           "legendFormat": "qbittorrent upload",
           "refId": "B"
         },
         {
-          "expr": "sum(rate(sabnzbd_download_bytes_total{juju_model=\"$juju_model\"}[5m]))",
+          "expr": "sum(sabnzbd_queue_download_rate_bytes_per_second{juju_model=\"$juju_model\"})",
           "legendFormat": "sabnzbd",
           "refId": "C"
         }
@@ -931,6 +931,7 @@
         {
           "expr": "count(gluetun_vpn_infos{juju_model=\"$juju_model\", ip!=\"\"}) > bool 0",
           "legendFormat": "tunnel",
+          "interval": "2m",
           "refId": "A"
         }
       ],

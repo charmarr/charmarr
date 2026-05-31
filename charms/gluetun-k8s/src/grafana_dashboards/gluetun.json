@@ -59,9 +59,14 @@
       "gridPos": {"x": 8, "y": 1, "w": 4, "h": 4},
       "targets": [{"expr": "gluetun_vpn_infos{juju_model=\"$juju_model\", juju_application=\"$juju_application\", juju_unit=~\"$juju_unit\"}", "format": "table", "instant": true, "refId": "A"}],
       "transformations": [
-        {"id": "labelsToFields", "options": {"valueLabel": "country"}}
+        {"id": "labelsToFields", "options": {}}
       ],
-      "options": {"colorMode": "value", "graphMode": "none", "textMode": "name"}
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {"fields": "/^country$/", "calcs": ["lastNotNull"]}
+      }
     },
     {
       "id": 5, "type": "stat", "title": "Forwarded ports",
