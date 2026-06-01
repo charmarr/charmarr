@@ -50,7 +50,7 @@ resources:
   flaresolverr-image:
     type: oci-image
     description: FlareSolverr container image
-    upstream-source: ghcr.io/flaresolverr/flaresolverr:v3.4.6
+    upstream-source: ghcr.io/flaresolverr/flaresolverr:v3.5.0
 
 provides:
   flaresolverr:
