@@ -95,7 +95,7 @@ nav:
       - Secrets: security/secrets.md
   - Observability:
       - observability/index.md
-      - Enable: observability/enable.md
+      - Setup: observability/setup.md
       - Dashboards: observability/dashboards.md
       - Crowsnest: observability/crowsnest.md
   - Backup:

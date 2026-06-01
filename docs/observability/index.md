@@ -17,13 +17,13 @@ Charmarr plugs into all five via standard Juju relations.
 
 <div class="grid cards" markdown>
 
--   **Enable**
+-   **Setup**
 
     ---
 
     One Terraform variable, or a handful of `juju integrate` commands.
 
-    [:octicons-arrow-right-24: Read more](enable.md)
+    [:octicons-arrow-right-24: Read more](setup.md)
 
 -   **Dashboards**
 
