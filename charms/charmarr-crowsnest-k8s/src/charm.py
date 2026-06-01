@@ -62,6 +62,7 @@ POLL_TIMEOUT = 2.0
 _EDGE_LINE_RE = re.compile(r"^charmarr_relation_edge\{([^}]*)\} 1")
 _BOUND_LINE_RE = re.compile(r"^charmarr_relation_bound\{([^}]*)\} (\d+)")
 _LABEL_RE = re.compile(r'(\w+)="([^"]*)"')
+_REMOTE_PROXY_RE = re.compile(r"^remote-[0-9a-f]{32}$")
 
 GRAFANA_DATASOURCE_TYPE = "hamedkarbasi93-nodegraphapi-datasource"
 
@@ -241,6 +242,30 @@ class CharmarrCrowsnestCharm(ops.CharmBase):
                         else:
                             bound_by_node[member_id]["opt_unbound"] += 1
                             missing_by_node[member_id]["optional"].append(relation_name)
+
+        # Drop ghost edges from CMR'd peers that also speak crowsnest. A
+        # local charm sees its remote CMR peer as `remote-<32hex>` (Juju's
+        # SAAS proxy name) and emits topology edges with that name. If the
+        # peer publishes itself via crowsnest under its real name, both
+        # sides record the same logical relation - the local one gets
+        # synthesized into a ghost `remote-<hex>` node. Drop a
+        # `remote-<hex>` edge if any other edge in the set covers the same
+        # `(relation, other_endpoint)` pair from a non-remote side.
+        real_sources: dict[tuple[str, str], set[str]] = defaultdict(set)
+        real_targets: dict[tuple[str, str], set[str]] = defaultdict(set)
+        for _, from_app, relation, to_app in edges_set:
+            if not _REMOTE_PROXY_RE.match(from_app):
+                real_sources[(relation, to_app)].add(from_app)
+            if not _REMOTE_PROXY_RE.match(to_app):
+                real_targets[(relation, from_app)].add(to_app)
+
+        def _is_ghost_remote_edge(edge: tuple[str, str, str, str]) -> bool:
+            _, from_app, relation, to_app = edge
+            if _REMOTE_PROXY_RE.match(from_app) and real_sources[(relation, to_app)]:
+                return True
+            return bool(_REMOTE_PROXY_RE.match(to_app) and real_targets[(relation, from_app)])
+
+        edges_set = {e for e in edges_set if not _is_ghost_remote_edge(e)}
 
         def _resolve(app: str, source_model: str) -> str:
             """Map a bare app name from a metric file to a composite node id.

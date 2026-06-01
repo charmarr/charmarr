@@ -114,6 +114,75 @@ def test_aggregate_graph_handles_offline_pods(ctx, monkeypatch):
         assert node["arc__optional"] == 0.0
 
 
+def test_aggregate_graph_dedupes_cmr_ghost_node(ctx, monkeypatch):
+    """A CMR'd peer that also publishes crowsnest does not produce a ghost.
+
+    Local arrs see their CMR peer as `remote-<32hex>` (Juju SAAS proxy
+    name) and emit edges using that name. The peer's own topology
+    publishes the same relations under its real app name. Both end up in
+    the aggregated edge set; the `remote-<hex>` ones must be dropped so
+    no ghost node gets synthesized.
+    """
+    radarr_metrics = """\
+# TYPE charmarr_relation_edge gauge
+charmarr_relation_edge{relation="media-manager",from_app="remote-544ffced2a034c8e8f43edda783ffa53",to_app="radarr-anime"} 1
+"""
+    seerr_metrics = """\
+# TYPE charmarr_relation_edge gauge
+charmarr_relation_edge{relation="media-manager",from_app="seerr",to_app="radarr-anime"} 1
+"""
+
+    def _response(url: str) -> MagicMock:
+        text = seerr_metrics if "pietro" in url else radarr_metrics
+        resp = MagicMock(spec=httpx.Response, text=text)
+        resp.raise_for_status = MagicMock()
+        return resp
+
+    client = MagicMock()
+    client.get = MagicMock(side_effect=_response)
+    client.__enter__ = MagicMock(return_value=client)
+    client.__exit__ = MagicMock(return_value=False)
+    monkeypatch.setattr("charm.httpx.Client", MagicMock(return_value=client))
+
+    relations = [
+        Relation(
+            endpoint="crowsnest",
+            interface="crowsnest",
+            remote_app_name="radarr-anime",
+            remote_app_data={
+                "config": CrowsnestProviderData(
+                    topology_url="http://radarr-anime.charmarr.svc.cluster.local:9099/metrics",
+                    app_name="radarr-anime",
+                    model_name="charmarr",
+                ).model_dump_json()
+            },
+        ),
+        Relation(
+            endpoint="crowsnest",
+            interface="crowsnest",
+            remote_app_name="seerr",
+            remote_app_data={
+                "config": CrowsnestProviderData(
+                    topology_url="http://seerr.charmarr-pietro.svc.cluster.local:9099/metrics",
+                    app_name="seerr",
+                    model_name="charmarr-pietro",
+                ).model_dump_json()
+            },
+        ),
+    ]
+
+    with ctx(ctx.on.update_status(), State(leader=True, relations=relations)) as mgr:
+        graph = mgr.charm._build_aggregate_graph()
+        mgr.run()
+
+    node_ids = {n["id"] for n in graph["nodes"]}
+    assert not any("remote-" in nid for nid in node_ids), (
+        f"ghost remote-<hex> node leaked into graph: {node_ids}"
+    )
+    edge_sources = {e["source"] for e in graph["edges"]}
+    assert not any("remote-" in src for src in edge_sources)
+
+
 def test_aggregate_graph_empty_without_fleet_members(ctx):
     """No related members -> empty graph, no polling attempted."""
     with ctx(ctx.on.update_status(), State(leader=True)) as mgr:
