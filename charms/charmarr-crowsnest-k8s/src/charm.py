@@ -153,37 +153,70 @@ class CharmarrCrowsnestCharm(ops.CharmBase):
         """Poll each fleet member's topology endpoint and aggregate.
 
         Fleet members are discovered dynamically via the `crowsnest`
-        relation; each provider publishes its in-cluster topology URL.
-        Failures to reach any individual member are logged and skipped -
-        the graph reflects what's reachable now.
+        relation; each provider publishes its in-cluster topology URL plus
+        the publishing charm's app name and model name. Node identity in
+        the rendered graph is composite (model/app) so same-named apps in
+        different models (e.g. a local `plex` and a cross-model `plex`)
+        do not collide. Failures to reach any individual member are
+        logged and skipped - the graph reflects what's reachable now.
+
+        Edges from a polled member's metric file reference peers by their
+        bare juju-local name only. We resolve that name to a composite
+        node id by preferring a peer in the same model as the polling
+        member, falling back to any model that contains a node with that
+        name, and falling back again to a placeholder under the source's
+        own model so cross-model peers that don't publish to crowsnest
+        still show up in the graph.
 
         Returns nodes + edges in the `nodegraph-api` plugin's expected
         format.
         """
-        edges_set: set[tuple[str, str, str]] = set()
-        bound_by_app: dict[str, dict[str, int]] = defaultdict(
+        edges_set: set[tuple[str, str, str, str]] = set()
+        bound_by_node: dict[str, dict[str, int]] = defaultdict(
             lambda: {"bound": 0, "req_unbound": 0, "opt_unbound": 0}
         )
-        missing_by_app: dict[str, dict[str, list[str]]] = defaultdict(
+        missing_by_node: dict[str, dict[str, list[str]]] = defaultdict(
             lambda: {"required": [], "optional": []}
         )
-        reachable_apps: set[str] = set()
+        reachable_nodes: set[str] = set()
+        # Display-side metadata for each composite node id: (app, model).
+        node_meta: dict[str, tuple[str, str]] = {}
+        # Reverse index of bare app name -> set of composite node ids,
+        # used when resolving edge endpoints.
+        ids_by_app: dict[str, set[str]] = defaultdict(set)
+
+        def _node_id(app: str, model: str) -> str:
+            return f"{model}/{app}" if model else app
 
         members = self._fleet.get_providers()
 
         with httpx.Client(timeout=POLL_TIMEOUT) as client:
             for member in members:
                 url = member.topology_url
-                app = url.split("//", 1)[-1].split(".", 1)[0]
+                # Provider data carries app_name/model_name as of
+                # charmarr-lib-core 0.18; tolerate older providers (and
+                # older locked test fixtures) by reading via getattr and
+                # falling back to URL-parsing for app, leaving model blank.
+                # Single-model fleet behaves identically to before in that
+                # case.
+                member_app = (
+                    getattr(member, "app_name", "") or url.split("//", 1)[-1].split(".", 1)[0]
+                )
+                member_model = getattr(member, "model_name", "")
+                member_id = _node_id(member_app, member_model)
+
+                node_meta[member_id] = (member_app, member_model)
+                ids_by_app[member_app].add(member_id)
+
                 try:
                     response = client.get(url)
                     response.raise_for_status()
                     payload = response.text
                 except httpx.HTTPError as e:
-                    logger.debug("topology poll for %s (%s) failed: %s", app, url, e)
+                    logger.debug("topology poll for %s (%s) failed: %s", member_id, url, e)
                     continue
 
-                reachable_apps.add(app)
+                reachable_nodes.add(member_id)
                 for line in payload.splitlines():
                     if edge_match := _EDGE_LINE_RE.match(line):
                         labels = dict(_LABEL_RE.findall(edge_match.group(1)))
@@ -191,22 +224,59 @@ class CharmarrCrowsnestCharm(ops.CharmBase):
                         to_app = labels.get("to_app", "")
                         relation = labels.get("relation", "")
                         if from_app and to_app and relation:
-                            edges_set.add((from_app, relation, to_app))
+                            # Defer endpoint resolution until every member's
+                            # metadata is collected; store the source model
+                            # alongside the raw labels.
+                            edges_set.add((member_model, from_app, relation, to_app))
                     elif bound_match := _BOUND_LINE_RE.match(line):
                         labels = dict(_LABEL_RE.findall(bound_match.group(1)))
                         required = labels.get("required") == "true"
                         bound = bound_match.group(2) == "1"
                         relation_name = labels.get("relation", "")
                         if bound:
-                            bound_by_app[app]["bound"] += 1
+                            bound_by_node[member_id]["bound"] += 1
                         elif required:
-                            bound_by_app[app]["req_unbound"] += 1
-                            missing_by_app[app]["required"].append(relation_name)
+                            bound_by_node[member_id]["req_unbound"] += 1
+                            missing_by_node[member_id]["required"].append(relation_name)
                         else:
-                            bound_by_app[app]["opt_unbound"] += 1
-                            missing_by_app[app]["optional"].append(relation_name)
+                            bound_by_node[member_id]["opt_unbound"] += 1
+                            missing_by_node[member_id]["optional"].append(relation_name)
 
-        all_apps = reachable_apps | {a for edge in edges_set for a in (edge[0], edge[2])}
+        def _resolve(app: str, source_model: str) -> str:
+            """Map a bare app name from a metric file to a composite node id.
+
+            Prefer a same-model peer when one exists, otherwise any known
+            node with that app name, otherwise synthesize a placeholder id
+            attributed to the polling member's model so the edge still
+            renders.
+            """
+            candidates = ids_by_app.get(app, set())
+            same_model = _node_id(app, source_model)
+            if same_model in candidates:
+                return same_model
+            if candidates:
+                return next(iter(sorted(candidates)))
+            placeholder = _node_id(app, source_model)
+            node_meta.setdefault(placeholder, (app, source_model))
+            ids_by_app[app].add(placeholder)
+            return placeholder
+
+        resolved_edges: set[tuple[str, str, str]] = set()
+        for source_model, from_app, relation, to_app in edges_set:
+            resolved_edges.add(
+                (
+                    _resolve(from_app, source_model),
+                    relation,
+                    _resolve(to_app, source_model),
+                )
+            )
+
+        all_node_ids = set(node_meta) | {n for e in resolved_edges for n in (e[0], e[2])}
+        # Multi-model fleets benefit from a model hint under each node;
+        # single-model deployments don't, so keep the title blank when
+        # there's only one model in play.
+        distinct_models = {model for _, model in node_meta.values() if model}
+        show_model_title = len(distinct_models) > 1
 
         # arc__* values must sum to 1 per Grafana node graph docs - raw
         # counts cause the panel to silently drop all but the first arc.
@@ -214,10 +284,10 @@ class CharmarrCrowsnestCharm(ops.CharmBase):
         #   green  = required relations that are wired
         #   red    = required relations declared but unbound (real breakage)
         #   yellow = optional relations declared but unbound (informational)
-        def _arcs(app: str) -> tuple[float, float, float]:
-            if app not in reachable_apps:
+        def _arcs(node_id: str) -> tuple[float, float, float]:
+            if node_id not in reachable_nodes:
                 return (0.0, 1.0, 0.0)
-            counts = bound_by_app[app]
+            counts = bound_by_node[node_id]
             total = counts["bound"] + counts["req_unbound"] + counts["opt_unbound"]
             if total == 0:
                 return (1.0, 0.0, 0.0)
@@ -228,18 +298,24 @@ class CharmarrCrowsnestCharm(ops.CharmBase):
             )
 
         nodes = []
-        for app in sorted(all_apps):
-            bound_arc, missing_arc, optional_arc = _arcs(app)
-            req_missing = sorted(missing_by_app[app]["required"])
-            opt_missing = sorted(missing_by_app[app]["optional"])
+        for node_id in sorted(all_node_ids):
+            app, model = node_meta.get(node_id, (node_id, ""))
+            bound_arc, missing_arc, optional_arc = _arcs(node_id)
+            req_missing = sorted(missing_by_node[node_id]["required"])
+            opt_missing = sorted(missing_by_node[node_id]["optional"])
+            if node_id in reachable_nodes:
+                title = model if show_model_title else ""
+            else:
+                title = "offline"
             nodes.append(
                 {
-                    "id": app,
+                    "id": node_id,
                     "mainstat": app,
-                    "title": "" if app in reachable_apps else "unreachable",
+                    "title": title,
                     "arc__bound": bound_arc,
                     "arc__missing": missing_arc,
                     "arc__optional": optional_arc,
+                    "detail__model": model,
                     "detail__missing_required": ", ".join(req_missing),
                     "detail__missing_optional": ", ".join(opt_missing),
                 }
@@ -247,12 +323,12 @@ class CharmarrCrowsnestCharm(ops.CharmBase):
 
         edges = [
             {
-                "id": f"{from_app}->{relation}->{to_app}",
-                "source": from_app,
-                "target": to_app,
+                "id": f"{from_id}->{relation}->{to_id}",
+                "source": from_id,
+                "target": to_id,
                 "mainstat": relation,
             }
-            for from_app, relation, to_app in sorted(edges_set)
+            for from_id, relation, to_id in sorted(resolved_edges)
         ]
 
         return {"nodes": nodes, "edges": edges}

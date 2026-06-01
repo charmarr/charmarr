@@ -89,7 +89,7 @@ groups:
         annotations:
           summary: >30% of charmarr apps are down
           description: |
-            More than 30% of the charmarr stack is unreachable for >10m.
+            More than 30% of the charmarr stack is offline for >10m.
             Indicates a shared infrastructure problem - mesh policy
             propagation issue, otelcol failure, controller restart, or
             namespace-level issue. Inspect with

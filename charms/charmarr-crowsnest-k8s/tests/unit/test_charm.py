@@ -87,8 +87,13 @@ def test_aggregate_graph_builds_nodes_and_edges(ctx, monkeypatch):
     assert {"radarr", "qbittorrent", "storage"}.issubset(node_ids)
 
 
-def test_aggregate_graph_handles_unreachable_pods(ctx, monkeypatch):
-    """When every poll fails, the result is an empty graph - not a crash."""
+def test_aggregate_graph_handles_offline_pods(ctx, monkeypatch):
+    """Offline members still get a node with the `offline` title.
+
+    Previously a failed poll silently dropped the member from the graph,
+    which masked the breakage. Surfacing them as red offline nodes is
+    more honest signal.
+    """
     client = MagicMock()
     client.get = MagicMock(side_effect=httpx.ConnectError("no route"))
     client.__enter__ = MagicMock(return_value=client)
@@ -100,7 +105,13 @@ def test_aggregate_graph_handles_unreachable_pods(ctx, monkeypatch):
         graph = mgr.charm._build_aggregate_graph()
         mgr.run()
 
-    assert graph == {"nodes": [], "edges": []}
+    assert graph["edges"] == []
+    titles = {n["mainstat"]: n["title"] for n in graph["nodes"]}
+    assert titles == {"radarr": "offline", "qbittorrent": "offline"}
+    for node in graph["nodes"]:
+        assert node["arc__missing"] == 1.0
+        assert node["arc__bound"] == 0.0
+        assert node["arc__optional"] == 0.0
 
 
 def test_aggregate_graph_empty_without_fleet_members(ctx):

@@ -39,6 +39,11 @@ FIELDS = {
         {"field_name": "arc__missing", "type": "number", "color": "red"},
         {"field_name": "arc__optional", "type": "number", "color": "yellow"},
         {
+            "field_name": "detail__model",
+            "type": "string",
+            "displayName": "Model",
+        },
+        {
             "field_name": "detail__missing_required",
             "type": "string",
             "displayName": "Missing required",
