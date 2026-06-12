@@ -27,6 +27,7 @@ from charms.istio_ingress_k8s.v0.istio_ingress_route import (
 )
 from charms.loki_k8s.v1.loki_push_api import LogForwarder
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
+from charms.traefik_k8s.v2.ingress import IngressPerAppRequirer
 from charms.velero_libs.v0.velero_backup_config import VeleroBackupProvider, VeleroBackupSpec
 
 from _plex import (
@@ -133,7 +134,8 @@ class PlexCharm(ops.CharmBase):
                 ),
             ],
         )
-        self._ingress = IstioIngressRouteRequirer(self, relation_name="istio-ingress-route")
+        self._ingress = IngressPerAppRequirer(self, port=WEBUI_PORT)
+        self._istio_ingress = IstioIngressRouteRequirer(self, relation_name="istio-ingress-route")
         self._velero_backup = VeleroBackupProvider(
             self,
             relation_name="velero-backup-config",
@@ -150,6 +152,8 @@ class PlexCharm(ops.CharmBase):
         framework.observe(self._media_manager.on.changed, self._reconcile)
         framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
         framework.observe(self.on.force_reclaim_action, self._on_force_reclaim_action)
+        framework.observe(self._ingress.on.ready, self._reconcile)
+        framework.observe(self._ingress.on.revoked, self._reconcile)
 
     @property
     def k8s(self) -> K8sResourceManager:
@@ -396,7 +400,7 @@ class PlexCharm(ops.CharmBase):
                 ),
             ],
         )
-        self._ingress.submit_config(config)
+        self._istio_ingress.submit_config(config)
         logger.info("Submitted ingress route config for Plex")
 
     def _build_exporter_layer(self, online_token: str) -> ops.pebble.LayerDict:

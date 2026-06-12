@@ -28,6 +28,7 @@ from charms.istio_ingress_k8s.v0.istio_ingress_route import (
     ProtocolType,
 )
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
+from charms.traefik_k8s.v2.ingress import IngressPerAppRequirer
 from charms.velero_libs.v0.velero_backup_config import VeleroBackupProvider, VeleroBackupSpec
 
 from _seerr import (
@@ -104,7 +105,8 @@ class SeerrCharm(ops.CharmBase):
                 ),
             ],
         )
-        self._ingress = IstioIngressRouteRequirer(self, relation_name="istio-ingress-route")
+        self._ingress = IngressPerAppRequirer(self, port=WEBUI_PORT)
+        self._istio_ingress = IstioIngressRouteRequirer(self, relation_name="istio-ingress-route")
         self._velero_backup = VeleroBackupProvider(
             self,
             relation_name="velero-backup-config",
@@ -122,6 +124,8 @@ class SeerrCharm(ops.CharmBase):
         framework.observe(self.on.secret_rotate, self._on_secret_rotate)
         framework.observe(self.on.rotate_api_key_action, self._on_rotate_api_key_action)
         framework.observe(self.on.import_config_action, self._on_import_config_action)
+        framework.observe(self._ingress.on.ready, self._reconcile)
+        framework.observe(self._ingress.on.revoked, self._reconcile)
 
     def _get_api_key(self) -> str | None:
         """Read API key from settings.json."""
@@ -475,7 +479,7 @@ class SeerrCharm(ops.CharmBase):
                 ),
             ],
         )
-        self._ingress.submit_config(config)
+        self._istio_ingress.submit_config(config)
         logger.info("Submitted ingress route config for Seerr")
 
     def _build_request_gauges(self) -> list[MetricFamily]:

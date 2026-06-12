@@ -132,6 +132,11 @@ requires:
     limit: 1
     optional: true
     description: Ingress routing via Istio gateway
+  ingress:
+    interface: ingress
+    limit: 1
+    optional: true
+    description: Generic ingress routing
   logging:
     interface: loki_push_api
     limit: 1

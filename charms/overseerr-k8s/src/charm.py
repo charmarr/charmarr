@@ -22,6 +22,7 @@ from charms.istio_ingress_k8s.v0.istio_ingress_route import (
     Listener,
     ProtocolType,
 )
+from charms.traefik_k8s.v2.ingress import IngressPerAppRequirer
 from charms.velero_libs.v0.velero_backup_config import VeleroBackupProvider, VeleroBackupSpec
 
 from _overseerr import (
@@ -70,7 +71,8 @@ class OverseerrCharm(ops.CharmBase):
         self._media_manager = MediaManagerRequirer(self, "media-manager")
         self._media_server = MediaServerRequirer(self, "media-server")
         self._service_mesh = ServiceMeshConsumer(self)
-        self._ingress = IstioIngressRouteRequirer(self, relation_name="istio-ingress-route")
+        self._ingress = IngressPerAppRequirer(self, port=WEBUI_PORT)
+        self._istio_ingress = IstioIngressRouteRequirer(self, relation_name="istio-ingress-route")
         self._velero_backup = VeleroBackupProvider(
             self,
             relation_name="velero-backup-config",
@@ -88,6 +90,8 @@ class OverseerrCharm(ops.CharmBase):
         framework.observe(self.on.secret_rotate, self._on_secret_rotate)
         framework.observe(self.on.rotate_api_key_action, self._on_rotate_api_key_action)
         framework.observe(self.on.export_config_action, self._on_export_config_action)
+        framework.observe(self._ingress.on.ready, self._reconcile)
+        framework.observe(self._ingress.on.revoked, self._reconcile)
 
     def _get_api_key(self) -> str | None:
         """Read API key from settings.json."""
@@ -453,7 +457,7 @@ class OverseerrCharm(ops.CharmBase):
                 ),
             ],
         )
-        self._ingress.submit_config(config)
+        self._istio_ingress.submit_config(config)
         logger.info("Submitted ingress route config for Overseerr")
 
     def _reconcile(self, _: ops.EventBase) -> None:

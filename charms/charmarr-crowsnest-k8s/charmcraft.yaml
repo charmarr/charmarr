@@ -131,3 +131,8 @@ requires:
       the published external host is reused by outbound integrations
       (e.g. `grafana-source`) so consumers reach this charm via the
       ingress rather than the in-cluster Service FQDN.
+  ingress:
+    interface: ingress
+    limit: 1
+    optional: true
+    description: Generic ingress routing
