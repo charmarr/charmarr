@@ -162,7 +162,7 @@ class QBittorrentCharm(ops.CharmBase):
                 ttl="720h",
             ),
         )
-        self._ingress = IngressPerAppRequirer(self, port=WEBUI_PORT)
+        self._ingress = IngressPerAppRequirer(self, port=WEBUI_PORT, strip_prefix=True)
         self._istio_ingress = IstioIngressRouteRequirer(self, relation_name="istio-ingress-route")
 
         observe_events(self, reconcilable_events_k8s, self._reconcile)
