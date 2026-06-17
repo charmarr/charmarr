@@ -100,11 +100,6 @@ requires:
     limit: 1
     optional: true
     description: Ingress routing via Istio gateway
-  ingress:
-    interface: ingress
-    limit: 1
-    optional: true
-    description: Generic ingress routing
 
 config:
   options:
