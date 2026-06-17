@@ -105,7 +105,7 @@ class SeerrCharm(ops.CharmBase):
                 ),
             ],
         )
-        self._ingress = IngressPerAppRequirer(self, port=WEBUI_PORT)
+        self._ingress = IngressPerAppRequirer(self, port=WEBUI_PORT, strip_prefix=True)
         self._istio_ingress = IstioIngressRouteRequirer(self, relation_name="istio-ingress-route")
         self._velero_backup = VeleroBackupProvider(
             self,
