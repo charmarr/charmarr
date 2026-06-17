@@ -27,6 +27,7 @@ from charms.istio_ingress_k8s.v0.istio_ingress_route import (
 )
 from charms.loki_k8s.v1.loki_push_api import LogForwarder
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
+from charms.traefik_k8s.v2.ingress import IngressPerAppRequirer
 from charms.velero_libs.v0.velero_backup_config import VeleroBackupProvider, VeleroBackupSpec
 
 from _radarr import (
@@ -161,7 +162,8 @@ class RadarrCharm(ops.CharmBase):
                 ttl="720h",
             ),
         )
-        self._ingress = IstioIngressRouteRequirer(self, relation_name="istio-ingress-route")
+        self._ingress = IngressPerAppRequirer(self, port=WEBUI_PORT)
+        self._istio_ingress = IstioIngressRouteRequirer(self, relation_name="istio-ingress-route")
 
         observe_events(self, reconcilable_events_k8s, self._reconcile)
         framework.observe(self._vpn_gateway.on.changed, self._reconcile)
@@ -172,6 +174,8 @@ class RadarrCharm(ops.CharmBase):
         framework.observe(self.on.secret_rotate, self._on_secret_rotate)
         framework.observe(self.on.rotate_api_key_action, self._on_rotate_api_key_action)
         framework.observe(self.on.sync_trash_profiles_action, self._on_sync_trash_profiles_action)
+        framework.observe(self._ingress.on.ready, self._reconcile)
+        framework.observe(self._ingress.on.revoked, self._reconcile)
 
     @property
     def k8s(self) -> K8sResourceManager:
@@ -559,7 +563,7 @@ class RadarrCharm(ops.CharmBase):
                 ),
             ],
         )
-        self._ingress.submit_config(config)
+        self._istio_ingress.submit_config(config)
         logger.info("Submitted ingress route config for path %s", path)
 
     def _on_secret_rotate(self, event: ops.SecretRotateEvent) -> None:

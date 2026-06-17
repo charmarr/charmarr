@@ -37,6 +37,7 @@ from charms.istio_ingress_k8s.v0.istio_ingress_route import (
 )
 from charms.loki_k8s.v1.loki_push_api import LogForwarder
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
+from charms.traefik_k8s.v2.ingress import IngressPerAppRequirer
 
 from charmarr_lib.core import (
     CharmarrTopology,
@@ -88,7 +89,8 @@ class CharmarrCrowsnestCharm(ops.CharmBase):
         self._charm_tracing = ops.tracing.Tracing(self, tracing_relation_name="charm-tracing")
         self._sloth = SlothProvider(self)
         self._fleet = CrowsnestRequirer(self, "crowsnest")
-        self._ingress = IstioIngressRouteRequirer(self, relation_name="istio-ingress-route")
+        self._ingress = IngressPerAppRequirer(self, port=GRAPH_PORT)
+        self._istio_ingress = IstioIngressRouteRequirer(self, relation_name="istio-ingress-route")
         # The nodegraph-api plugin uses a hardcoded proxy route `/nodegraphds`
         # in its plugin.json that templates from `jsonData.url`. Without that
         # field populated, Grafana renders the route URL as empty and the
@@ -120,17 +122,21 @@ class CharmarrCrowsnestCharm(ops.CharmBase):
 
         observe_events(self, reconcilable_events_k8s_workloadless, self._reconcile)
         framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
+        framework.observe(self._ingress.on.ready, self._reconcile)
+        framework.observe(self._ingress.on.revoked, self._reconcile)
 
     def _source_url(self) -> str:
         """Pick the most-external URL where this charm's HTTP endpoints are reachable.
 
-        Prefer the istio-ingress-published external host when wired (it's
-        addressable from outside the cluster). Otherwise fall back to the
-        in-cluster Service FQDN, which works for same-cluster consumers.
+        Prefer the generic ingress URL (e.g. Tailscale) when available, then
+        the istio-ingress-published external host, then fall back to the
+        in-cluster Service FQDN.
         """
-        if self._ingress.external_host:
-            scheme = "https" if self._ingress.tls_enabled else "http"
-            return f"{scheme}://{self._ingress.external_host}/{self.app.name}"
+        if self._ingress.url:
+            return self._ingress.url
+        if self._istio_ingress.external_host:
+            scheme = "https" if self._istio_ingress.tls_enabled else "http"
+            return f"{scheme}://{self._istio_ingress.external_host}/{self.app.name}"
         return f"http://{self.app.name}.{self.model.name}.svc.cluster.local:{GRAPH_PORT}"
 
     def _load_slo_catalog(self) -> str | None:
@@ -427,7 +433,7 @@ class CharmarrCrowsnestCharm(ops.CharmBase):
                 ),
             ],
         )
-        self._ingress.submit_config(config)
+        self._istio_ingress.submit_config(config)
 
     def _reconcile(self, _: ops.EventBase) -> None:
         """Refresh topology, graph aggregator, ingress, and SLO catalog."""
