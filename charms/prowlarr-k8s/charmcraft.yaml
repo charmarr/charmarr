@@ -68,7 +68,7 @@ resources:
   prowlarr-image:
     type: oci-image
     description: OCI image for Prowlarr (LinuxServer)
-    upstream-source: lscr.io/linuxserver/prowlarr:2.3.5.5327-ls141
+    upstream-source: lscr.io/linuxserver/prowlarr:2.4.0.5397-ls153
   scraparr-image:
     type: oci-image
     description: OCI image for scraparr (Prometheus exporter for *arr apps)
