@@ -65,7 +65,7 @@ resources:
   plex-image:
     type: oci-image
     description: OCI image for Plex Media Server (LinuxServer)
-    upstream-source: lscr.io/linuxserver/plex:1.43.1.10611-1e34174b1-ls301
+    upstream-source: lscr.io/linuxserver/plex:1.43.3.10828-00f62d37d-ls315
   plex-exporter-image:
     type: oci-image
     description: OCI image for axsuul/plex-media-server-exporter (Prometheus exporter for Plex)
