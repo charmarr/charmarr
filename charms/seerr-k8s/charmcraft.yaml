@@ -69,7 +69,7 @@ resources:
   seerr-image:
     type: oci-image
     description: OCI image for Seerr (official seerr-team)
-    upstream-source: ghcr.io/seerr-team/seerr:v3.2.0
+    upstream-source: ghcr.io/seerr-team/seerr:v3.3.0
 
 storage:
   config:
