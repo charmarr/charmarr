@@ -64,7 +64,7 @@ resources:
   sabnzbd-image:
     type: oci-image
     description: OCI image for SABnzbd (LinuxServer)
-    upstream-source: lscr.io/linuxserver/sabnzbd:4.5.5-ls240
+    upstream-source: lscr.io/linuxserver/sabnzbd:5.0.4-ls263
   sabnzbd-exporter-image:
     type: oci-image
     description: OCI image for msroest/sabnzbd_exporter (Prometheus exporter for SABnzbd)
