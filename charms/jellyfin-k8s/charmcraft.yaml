@@ -1,0 +1,174 @@
+name: jellyfin-k8s
+type: charm
+title: Jellyfin Media Server
+summary: Media streaming server for Charmarr
+description: |
+  Jellyfin is a free software media system that streams your media to
+  devices anywhere.
+
+  This charm provides automated deployment on Kubernetes with:
+  - Automatic media storage integration via relation
+  - Native Prometheus metrics endpoint for observability
+  - Optional hardware transcoding (Intel QuickSync)
+  - Ingress integration for remote access
+
+  After deployment, complete the initial setup wizard in the web UI to
+  create the first administrator account and add libraries.
+
+  Requires --trust for RBAC permissions.
+
+links:
+  documentation: https://github.com/charmarr/charmarr
+  source: https://github.com/charmarr/charmarr
+  issues: https://github.com/charmarr/charmarr/issues
+
+assumes:
+  - k8s-api
+  - juju >= 3.6
+
+base: ubuntu@24.04
+platforms:
+  amd64:
+
+parts:
+  charm:
+    source: .
+    plugin: uv
+    build-packages: [git]
+    build-snaps: [astral-uv]
+
+charm-libs:
+  - lib: istio_beacon_k8s.service_mesh
+    version: "0"
+  - lib: istio_ingress_k8s.istio_ingress_route
+    version: "0"
+  - lib: prometheus_k8s.prometheus_scrape
+    version: "0"
+  - lib: loki_k8s.loki_push_api
+    version: "1"
+  - lib: grafana_k8s.grafana_dashboard
+    version: "0"
+  - lib: tempo_coordinator_k8s.tracing
+    version: "0"
+  # FIXME: velero_libs.velero_backup_config not yet on Charmhub.
+  # Check with Kubeflow team when it's published, then fetch via charmcraft fetch-libs.
+  # Currently vendored from https://github.com/canonical/velero-operator
+  # - lib: velero_libs.velero_backup_config
+  #   version: "0"
+
+containers:
+  jellyfin:
+    resource: jellyfin-image
+    mounts:
+      - storage: config
+        location: /config
+
+resources:
+  jellyfin-image:
+    type: oci-image
+    description: OCI image for Jellyfin Media Server (LinuxServer)
+    upstream-source: lscr.io/linuxserver/jellyfin:10.11.11ubu2604-ls43
+
+storage:
+  config:
+    type: filesystem
+    location: /config
+    minimum-size: 10G
+    description: |
+      Jellyfin configuration, database, and metadata.
+      Recommend 10GB+ for large libraries (thumbnails, metadata).
+
+provides:
+  provide-cmr-mesh:
+    interface: cross_model_mesh
+    optional: true
+    description: Access cross-model applications via service mesh
+  crowsnest:
+    interface: crowsnest
+    optional: true
+    description: |
+      Opt this charm into the charmarr-crowsnest-k8s fleet view. The
+      provider publishes its topology endpoint URL; crowsnest aggregates
+      across all related peers for the fleet graph and SLO catalog.
+  media-server:
+    interface: media-server
+    description: Publish Jellyfin API endpoint for request managers (Seerr)
+  velero-backup-config:
+    interface: velero_backup_config
+    limit: 1
+    optional: true
+    description: Configure Velero backups for config storage
+  metrics-endpoint:
+    interface: prometheus_scrape
+    optional: true
+    description: Prometheus scrape target for the native Jellyfin metrics endpoint
+  grafana-dashboard:
+    interface: grafana_dashboard
+    optional: true
+    description: Ships charm-bundled Grafana dashboards to a related Grafana
+
+requires:
+  require-cmr-mesh:
+    interface: cross_model_mesh
+    optional: true
+    description: Allow cross-model access via service mesh
+  media-storage:
+    interface: media-storage
+    limit: 1
+  service-mesh:
+    interface: service_mesh
+    limit: 1
+    optional: true
+    description: Subscribe this charm into a service mesh
+  istio-ingress-route:
+    interface: istio_ingress_route
+    limit: 1
+    optional: true
+    description: Ingress routing via Istio gateway
+  ingress:
+    interface: ingress
+    limit: 1
+    optional: true
+    description: Generic ingress routing
+  logging:
+    interface: loki_push_api
+    limit: 1
+    optional: true
+    description: Forwards Pebble service logs to Loki
+  charm-tracing:
+    interface: tracing
+    limit: 1
+    optional: true
+    description: Charm hook execution traces to Tempo via ops[tracing]
+
+config:
+  options:
+    hardware-transcoding:
+      type: boolean
+      default: false
+      description: |
+        Enable hardware transcoding using Intel QuickSync.
+
+        Requires:
+        - Intel CPU with integrated graphics (most non-F SKUs)
+        - Node must have /dev/dri available
+        - Charm deployed with --trust flag
+
+        When enabled, the charm mounts /dev/dri into the container.
+
+    ingress-port:
+      type: int
+      default: 80
+      description: Port for the Istio ingress gateway listener.
+    timezone:
+      type: string
+      default: "Etc/UTC"
+      description: IANA timezone (e.g., America/New_York, Europe/London)
+    extended-alert-rules:
+      type: boolean
+      default: false
+      description: |
+        Ship the extended Prometheus alert rule set on the metrics-endpoint
+        relation in addition to the always-on baseline.
+
+        See src/prometheus_alert_rules_extended/jellyfin-extended.rules.yaml.

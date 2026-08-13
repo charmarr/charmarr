@@ -1,0 +1,29 @@
+groups:
+  - name: jellyfin.reliability.extended
+    rules:
+      - alert: JellyfinScrapeFlapping
+        expr: changes(up{juju_charm="jellyfin-k8s"}[1h]) > 6
+        labels:
+          severity: warning
+          component: jellyfin
+        annotations:
+          summary: Jellyfin scrape state flapped >6 times in 1h on {{ $labels.juju_unit }}
+          description: |
+            The workload's scrape state toggled more than 6 times in the last
+            hour. Indicates an unstable workload or networking issue. Check the
+            Pebble service restart history.
+
+  - name: jellyfin.runtime.extended
+    rules:
+      - alert: JellyfinHighMemory
+        expr: process_resident_memory_bytes{juju_charm="jellyfin-k8s"} > 2e9
+        for: 30m
+        labels:
+          severity: warning
+          component: jellyfin
+        annotations:
+          summary: Jellyfin resident memory above 2GB for 30m on {{ $labels.juju_unit }}
+          description: |
+            Sustained high resident memory on the Jellyfin process. Likely heavy
+            transcoding or library scanning. Consider enabling hardware
+            transcoding or raising pod memory limits.

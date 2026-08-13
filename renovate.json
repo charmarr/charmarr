@@ -32,6 +32,11 @@
       "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)\\.(?<build>\\d+)-[a-f0-9]+-ls(?<revision>\\d+)$"
     },
     {
+      "description": "LinuxServer jellyfin (has ubuXXXX suffix in tag)",
+      "matchPackageNames": ["lscr.io/linuxserver/jellyfin"],
+      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)ubu(?<build>\\d+)-ls(?<revision>\\d+)$"
+    },
+    {
       "description": "LinuxServer qbittorrent (has -r# in tag)",
       "matchPackageNames": ["lscr.io/linuxserver/qbittorrent"],
       "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)-r(?<build>\\d+)-ls(?<revision>\\d+)$"

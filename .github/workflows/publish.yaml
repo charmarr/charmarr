@@ -22,6 +22,7 @@ on:
           - radarr
           - sonarr
           - plex
+          - jellyfin
           - overseerr
           - seerr
           - crowsnest
@@ -50,6 +51,7 @@ jobs:
       radarr: ${{ steps.check.outputs.radarr }}
       sonarr: ${{ steps.check.outputs.sonarr }}
       plex: ${{ steps.check.outputs.plex }}
+      jellyfin: ${{ steps.check.outputs.jellyfin }}
       overseerr: ${{ steps.check.outputs.overseerr }}
       seerr: ${{ steps.check.outputs.seerr }}
       crowsnest: ${{ steps.check.outputs.crowsnest }}
@@ -92,6 +94,9 @@ jobs:
           fi
           if [[ "$CHARM_INPUT" == "plex" || "$CHARM_INPUT" == "all" ]]; then
             echo "plex=true" >> "$GITHUB_OUTPUT"
+          fi
+          if [[ "$CHARM_INPUT" == "jellyfin" || "$CHARM_INPUT" == "all" ]]; then
+            echo "jellyfin=true" >> "$GITHUB_OUTPUT"
           fi
           if [[ "$CHARM_INPUT" == "overseerr" || "$CHARM_INPUT" == "all" ]]; then
             echo "overseerr=true" >> "$GITHUB_OUTPUT"
@@ -136,6 +141,9 @@ jobs:
             fi
             if echo "$changed" | grep "^charms/plex-k8s/" | grep -qv "^charms/plex-k8s/terraform/"; then
               echo "plex=true" >> "$GITHUB_OUTPUT"
+            fi
+            if echo "$changed" | grep "^charms/jellyfin-k8s/" | grep -qv "^charms/jellyfin-k8s/terraform/"; then
+              echo "jellyfin=true" >> "$GITHUB_OUTPUT"
             fi
             if echo "$changed" | grep "^charms/overseerr-k8s/" | grep -qv "^charms/overseerr-k8s/terraform/"; then
               echo "overseerr=true" >> "$GITHUB_OUTPUT"
@@ -234,6 +242,15 @@ jobs:
     needs: detect
     if: needs.detect.outputs.plex == 'true'
     uses: ./.github/workflows/_plex-k8s-publish.yaml
+    with:
+      dry-run: ${{ inputs.dry-run || false }}
+    secrets: inherit
+
+  jellyfin:
+    name: Jellyfin
+    needs: detect
+    if: needs.detect.outputs.jellyfin == 'true'
+    uses: ./.github/workflows/_jellyfin-k8s-publish.yaml
     with:
       dry-run: ${{ inputs.dry-run || false }}
     secrets: inherit
