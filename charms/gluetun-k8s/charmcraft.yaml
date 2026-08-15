@@ -61,7 +61,7 @@ resources:
   gluetun-image:
     type: oci-image
     description: Gluetun VPN client container
-    upstream-source: ghcr.io/qdm12/gluetun:v3.41.1
+    upstream-source: ghcr.io/qdm12/gluetun:v3.41.3
   gluetun-exporter-image:
     type: oci-image
     description: thecfu/gluetun-exporter (standalone — polls gluetun's control API)
