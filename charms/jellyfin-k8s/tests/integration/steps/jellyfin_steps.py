@@ -17,25 +17,6 @@ def jellyfin_is_deployed(jellyfin_deployed: None) -> None:
     """Ensure jellyfin is deployed."""
 
 
-@given("jellyfin startup wizard is completed")
-def complete_startup_wizard(juju: jubilant.Juju) -> None:
-    """Complete the Jellyfin startup wizard via API.
-
-    Jellyfin starts with an incomplete startup wizard, leaving the charm in
-    'waiting' status. Complete it via the API so the charm can reach 'active'.
-    """
-    status = juju.status()
-    unit = status.apps["jellyfin"].units.get("jellyfin/0")
-    if unit and unit.workload_status.current == "active":
-        return
-
-    juju.exec(
-        "curl", "-s", "-X", "POST",
-        f"http://localhost:{WEBUI_PORT}/Startup/Complete",
-        unit="jellyfin/0",
-    )
-
-
 @then("jellyfin public info endpoint should respond")
 def jellyfin_public_info_responds(juju: jubilant.Juju) -> None:
     """Verify jellyfin /System/Info/Public endpoint responds."""
