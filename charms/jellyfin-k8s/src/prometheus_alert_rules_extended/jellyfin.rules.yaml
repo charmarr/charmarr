@@ -1,0 +1,15 @@
+groups:
+  - name: jellyfin.health
+    rules:
+      - alert: JellyfinDown
+        expr: up{juju_charm="jellyfin-k8s"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: jellyfin
+        annotations:
+          summary: Jellyfin metrics scrape failing on {{ $labels.juju_unit }}
+          description: |
+            Prometheus cannot scrape Jellyfin's native `/metrics` endpoint.
+            Either the workload container is dead, or metrics are disabled in
+            system.xml. Check `kubectl logs -c jellyfin <pod>`.
