@@ -67,7 +67,7 @@ resources:
   jellyfin-image:
     type: oci-image
     description: OCI image for Jellyfin Media Server (LinuxServer)
-    upstream-source: lscr.io/linuxserver/jellyfin:10.11.11ubu2604-ls43
+    upstream-source: lscr.io/linuxserver/jellyfin:10.11.11ubu2604-ls44
 
 storage:
   config:
