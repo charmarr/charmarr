@@ -32,6 +32,10 @@ on:
         description: Skip actual publish (for testing)
         type: boolean
         default: false
+      force-publish:
+        description: Skip integration tests and publish directly
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -172,6 +176,7 @@ jobs:
     uses: ./.github/workflows/_storage-k8s-publish.yaml
     with:
       dry-run: ${{ inputs.dry-run || false }}
+      force-publish: ${{ inputs.force-publish || false }}
     secrets: inherit
 
   gluetun:
@@ -181,6 +186,7 @@ jobs:
     uses: ./.github/workflows/_gluetun-k8s-publish.yaml
     with:
       dry-run: ${{ inputs.dry-run || false }}
+      force-publish: ${{ inputs.force-publish || false }}
     secrets: inherit
 
   qbittorrent:
@@ -190,6 +196,7 @@ jobs:
     uses: ./.github/workflows/_qbittorrent-k8s-publish.yaml
     with:
       dry-run: ${{ inputs.dry-run || false }}
+      force-publish: ${{ inputs.force-publish || false }}
     secrets: inherit
 
   sabnzbd:
@@ -199,6 +206,7 @@ jobs:
     uses: ./.github/workflows/_sabnzbd-k8s-publish.yaml
     with:
       dry-run: ${{ inputs.dry-run || false }}
+      force-publish: ${{ inputs.force-publish || false }}
     secrets: inherit
 
   flaresolverr:
@@ -208,6 +216,7 @@ jobs:
     uses: ./.github/workflows/_flaresolverr-k8s-publish.yaml
     with:
       dry-run: ${{ inputs.dry-run || false }}
+      force-publish: ${{ inputs.force-publish || false }}
     secrets: inherit
 
   prowlarr:
@@ -217,6 +226,7 @@ jobs:
     uses: ./.github/workflows/_prowlarr-k8s-publish.yaml
     with:
       dry-run: ${{ inputs.dry-run || false }}
+      force-publish: ${{ inputs.force-publish || false }}
     secrets: inherit
 
   radarr:
@@ -226,6 +236,7 @@ jobs:
     uses: ./.github/workflows/_radarr-k8s-publish.yaml
     with:
       dry-run: ${{ inputs.dry-run || false }}
+      force-publish: ${{ inputs.force-publish || false }}
     secrets: inherit
 
   sonarr:
@@ -235,6 +246,7 @@ jobs:
     uses: ./.github/workflows/_sonarr-k8s-publish.yaml
     with:
       dry-run: ${{ inputs.dry-run || false }}
+      force-publish: ${{ inputs.force-publish || false }}
     secrets: inherit
 
   plex:
@@ -244,6 +256,7 @@ jobs:
     uses: ./.github/workflows/_plex-k8s-publish.yaml
     with:
       dry-run: ${{ inputs.dry-run || false }}
+      force-publish: ${{ inputs.force-publish || false }}
     secrets: inherit
 
   jellyfin:
@@ -253,6 +266,7 @@ jobs:
     uses: ./.github/workflows/_jellyfin-k8s-publish.yaml
     with:
       dry-run: ${{ inputs.dry-run || false }}
+      force-publish: ${{ inputs.force-publish || false }}
     secrets: inherit
 
   overseerr:
@@ -262,6 +276,7 @@ jobs:
     uses: ./.github/workflows/_overseerr-k8s-publish.yaml
     with:
       dry-run: ${{ inputs.dry-run || false }}
+      force-publish: ${{ inputs.force-publish || false }}
     secrets: inherit
 
   seerr:
@@ -271,6 +286,7 @@ jobs:
     uses: ./.github/workflows/_seerr-k8s-publish.yaml
     with:
       dry-run: ${{ inputs.dry-run || false }}
+      force-publish: ${{ inputs.force-publish || false }}
     secrets: inherit
 
   crowsnest:
@@ -280,4 +296,5 @@ jobs:
     uses: ./.github/workflows/_crowsnest-k8s-publish.yaml
     with:
       dry-run: ${{ inputs.dry-run || false }}
+      force-publish: ${{ inputs.force-publish || false }}
     secrets: inherit

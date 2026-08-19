@@ -6,6 +6,9 @@ on:
       dry-run:
         type: boolean
         default: false
+      force-publish:
+        type: boolean
+        default: false
 
 jobs:
   quality:
@@ -20,5 +23,6 @@ jobs:
       charm-path: charms/flaresolverr-k8s
       channel: latest/edge
       dry-run: ${{ inputs.dry-run || false }}
+      run-integration: ${{ !inputs.force-publish }}
     secrets:
       CHARMHUB_TOKEN: ${{ secrets.CHARMHUB_TOKEN }}
