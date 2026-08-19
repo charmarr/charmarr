@@ -30,6 +30,7 @@ output "requires" {
   value = {
     require_cmr_mesh    = "require-cmr-mesh"
     media_storage       = "media-storage"
+    media_manager       = "media-manager"
     service_mesh        = "service-mesh"
     istio_ingress_route = "istio-ingress-route"
     ingress             = "ingress"
