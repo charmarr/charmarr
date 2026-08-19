@@ -31,4 +31,5 @@ def deploy_jellyfin_charm(juju: jubilant.Juju, charm_path: Path) -> None:
     resources = get_oci_resources(CHARM_DIR)
     juju.deploy(charm_path, app="jellyfin", trust=True, resources=resources)
     juju.integrate("jellyfin:media-storage", "charmarr-storage:media-storage")
-    wait_for_app_status(juju, "jellyfin", "waiting", message_contains="setup")
+    # The charm bootstraps itself: wizard, admin user, API key. No manual step.
+    wait_for_app_status(juju, "jellyfin", "active")

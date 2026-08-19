@@ -8,12 +8,14 @@ description: |
 
   This charm provides automated deployment on Kubernetes with:
   - Automatic media storage integration via relation
+  - Automatic library creation from related Radarr/Sonarr instances
   - Native Prometheus metrics endpoint for observability
   - Optional hardware transcoding (Intel QuickSync)
   - Ingress integration for remote access
 
-  After deployment, complete the initial setup wizard in the web UI to
-  create the first administrator account and add libraries.
+  The charm completes the startup wizard on first run and creates the
+  administrator account. Retrieve its credentials with
+  `juju show-secret --reveal admin-credentials`.
 
   Requires --trust for RBAC permissions.
 
@@ -115,6 +117,12 @@ requires:
   media-storage:
     interface: media-storage
     limit: 1
+  media-manager:
+    interface: media-manager
+    optional: true
+    description: |
+      Receive media manager info from Radarr/Sonarr for automatic library creation.
+      Libraries are created based on each media manager's root folders.
   service-mesh:
     interface: service_mesh
     limit: 1

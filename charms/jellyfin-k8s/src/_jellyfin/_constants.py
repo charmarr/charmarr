@@ -18,3 +18,10 @@ SYSTEM_XML = "/config/system.xml"
 # Binary path in LinuxServer.io image (bypassing s6-overlay).
 JELLYFIN_BINARY = "/usr/bin/jellyfin"
 FFMPEG_PATH = "/usr/lib/jellyfin-ffmpeg/ffmpeg"
+
+# First-run bootstrap: the charm completes the startup wizard, then mints a
+# server-wide API key registered under this app name.
+API_KEY_APP_NAME = "charmarr"
+API_KEY_SECRET_LABEL = "api-key"
+ADMIN_SECRET_LABEL = "admin-credentials"
+ADMIN_USERNAME = "charmarr"

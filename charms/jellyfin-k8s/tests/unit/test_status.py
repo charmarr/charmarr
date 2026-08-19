@@ -6,7 +6,7 @@
 from unittest.mock import patch
 
 import ops
-from ops.testing import Container, Relation, State
+from ops.testing import Container, Relation, Secret, State
 
 from charmarr_lib.core.interfaces import MediaStorageProviderData
 
@@ -63,26 +63,24 @@ def test_status_waiting_for_workload(ctx, mock_k8s):
     assert state.unit_status == ops.WaitingStatus("Waiting for workload")
 
 
-def test_status_active_when_setup_complete(ctx, mock_k8s):
-    """Status is active when workload running and setup wizard completed."""
-    with (
-        patch("charm.JellyfinCharm._is_service_running", return_value=True),
-        patch("charm.JellyfinCharm._is_setup_complete", return_value=True),
-    ):
+def test_status_active_when_bootstrapped(ctx, mock_k8s):
+    """Status is active once the charm holds an API key."""
+    with patch("charm.JellyfinCharm._is_service_running", return_value=True):
         state = ctx.run(
             ctx.on.collect_unit_status(),
             State(
                 leader=True,
                 containers=[JELLYFIN_CONTAINER],
                 relations=[_make_storage_relation()],
+                secrets=[Secret({"api-key": "key"}, label="api-key", owner="app")],
             ),
         )
 
     assert state.unit_status == ops.ActiveStatus()
 
 
-def test_status_waiting_setup_incomplete(ctx, mock_k8s):
-    """Status waiting when workload running but setup wizard not completed."""
+def test_status_waiting_while_bootstrapping(ctx, mock_k8s):
+    """Status waits while the workload runs but bootstrap has not finished."""
     with (
         patch("charm.JellyfinCharm._is_service_running", return_value=True),
         patch("charm.JellyfinCharm._is_setup_complete", return_value=False),
@@ -96,7 +94,25 @@ def test_status_waiting_setup_incomplete(ctx, mock_k8s):
             ),
         )
 
-    assert state.unit_status == ops.WaitingStatus("Complete setup in web UI")
+    assert state.unit_status == ops.WaitingStatus("Bootstrapping Jellyfin")
+
+
+def test_status_blocked_when_set_up_externally(ctx, mock_k8s):
+    """Status is blocked when the wizard was completed outside the charm."""
+    with (
+        patch("charm.JellyfinCharm._is_service_running", return_value=True),
+        patch("charm.JellyfinCharm._is_setup_complete", return_value=True),
+    ):
+        state = ctx.run(
+            ctx.on.collect_unit_status(),
+            State(
+                leader=True,
+                containers=[JELLYFIN_CONTAINER],
+                relations=[_make_storage_relation()],
+            ),
+        )
+
+    assert state.unit_status == ops.BlockedStatus("Jellyfin was set up outside the charm")
 
 
 def test_status_non_leader_standby(ctx, mock_k8s):

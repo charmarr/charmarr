@@ -3,10 +3,11 @@
 
 """Step definitions for jellyfin-k8s integration tests."""
 
+import json
 import subprocess
 
 import jubilant
-from pytest_bdd import given, then, when
+from pytest_bdd import given, parsers, then, when
 
 from _jellyfin import WEBUI_PORT
 from charmarr_lib.testing import get_ingress_ip, http_from_unit
@@ -26,15 +27,23 @@ def jellyfin_public_info_responds(juju: jubilant.Juju) -> None:
     assert "Version" in response.body
 
 
-@then("jellyfin should show setup-incomplete status")
-def jellyfin_setup_incomplete_status(juju: jubilant.Juju) -> None:
-    """Verify jellyfin shows setup-incomplete status message."""
-    status = juju.status()
-    jellyfin_status = status.apps["jellyfin"]
-    unit = jellyfin_status.units.get("jellyfin/0")
-    assert unit is not None, "jellyfin/0 unit not found"
-    assert unit.workload_status.current == "waiting"
-    assert "setup" in unit.workload_status.message.lower()
+@then("jellyfin should report the startup wizard as completed")
+def jellyfin_wizard_completed(juju: jubilant.Juju) -> None:
+    """Verify the charm ran the startup wizard without operator involvement."""
+    url = f"http://jellyfin:{WEBUI_PORT}/System/Info/Public"
+    response = http_from_unit(juju, "jellyfin/0", url)
+    assert response.status_code == 200
+    assert json.loads(response.body)["StartupWizardCompleted"] is True
+
+
+@then(parsers.parse("an {label} secret should exist for {app}"))
+def secret_exists(juju: jubilant.Juju, label: str, app: str) -> None:
+    """Assert the charm created a secret with the given label."""
+    secrets = json.loads(juju.cli("list-secrets", "--format=json"))
+    found = any(
+        info.get("owner") == app and info.get("label") == label for info in secrets.values()
+    )
+    assert found, f"No '{label}' secret found for {app}"
 
 
 @then("jellyfin should be accessible via ingress")

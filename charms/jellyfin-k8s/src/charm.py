@@ -5,6 +5,7 @@
 """Jellyfin Media Server Charm."""
 
 import logging
+import secrets
 
 import ops
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
@@ -31,6 +32,10 @@ from charms.traefik_k8s.v2.ingress import IngressPerAppRequirer
 from charms.velero_libs.v0.velero_backup_config import VeleroBackupProvider, VeleroBackupSpec
 
 from _jellyfin import (
+    ADMIN_SECRET_LABEL,
+    ADMIN_USERNAME,
+    API_KEY_APP_NAME,
+    API_KEY_SECRET_LABEL,
     CACHE_DIR,
     CONFIG_DIR,
     CONTAINER_NAME,
@@ -44,8 +49,12 @@ from _jellyfin import (
     SYSTEM_XML,
     WEB_DIR,
     WEBUI_PORT,
+    JellyfinApi,
+    JellyfinApiError,
+    collection_type,
     enable_metrics,
     is_startup_wizard_completed,
+    library_name,
 )
 from charmarr_lib.core import (
     CharmarrTopology,
@@ -60,6 +69,7 @@ from charmarr_lib.core import (
 from charmarr_lib.core.interfaces import (
     CrowsnestProvider,
     CrowsnestProviderData,
+    MediaManagerRequirer,
     MediaServerProvider,
     MediaServerProviderData,
     MediaStorageRequirer,
@@ -80,6 +90,7 @@ class JellyfinCharm(ops.CharmBase):
             self,
             relations=[
                 CharmarrTopologyRelation("media-storage", role="requires", required=True),
+                CharmarrTopologyRelation("media-manager", role="requires", required=False),
                 CharmarrTopologyRelation("media-server", role="provides", required=False),
             ],
         )
@@ -104,6 +115,7 @@ class JellyfinCharm(ops.CharmBase):
         self._charm_tracing = ops.tracing.Tracing(self, tracing_relation_name="charm-tracing")
 
         self._media_storage = MediaStorageRequirer(self, "media-storage")
+        self._media_manager = MediaManagerRequirer(self, "media-manager")
         self._media_server = MediaServerProvider(self, "media-server")
         self._crowsnest = CrowsnestProvider(self, "crowsnest")
         self._service_mesh = ServiceMeshConsumer(
@@ -138,6 +150,7 @@ class JellyfinCharm(ops.CharmBase):
 
         observe_events(self, reconcilable_events_k8s, self._reconcile)
         framework.observe(self._media_storage.on.changed, self._reconcile)
+        framework.observe(self._media_manager.on.changed, self._reconcile)
         framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
         framework.observe(self._ingress.on.ready, self._reconcile)
         framework.observe(self._ingress.on.revoked, self._reconcile)
@@ -171,6 +184,94 @@ class JellyfinCharm(ops.CharmBase):
     def _internal_url(self) -> str:
         """Internal K8s service URL for Jellyfin."""
         return f"http://{self.app.name}.{self.model.name}.svc.cluster.local:{WEBUI_PORT}"
+
+    @property
+    def _localhost_url(self) -> str:
+        """Loopback URL used for charm-to-workload API calls."""
+        return f"http://localhost:{WEBUI_PORT}"
+
+    def _get_secret_content(self, label: str) -> dict[str, str] | None:
+        """Read a charm-owned secret by label, or None if it does not exist."""
+        try:
+            return self.model.get_secret(label=label).get_content(refresh=True)
+        except ops.SecretNotFoundError:
+            return None
+
+    def _get_api_key(self) -> str | None:
+        """Get the Jellyfin API key minted during bootstrap."""
+        content = self._get_secret_content(API_KEY_SECRET_LABEL)
+        return content["api-key"] if content else None
+
+    def _store_api_key(self, api_key: str) -> None:
+        """Persist the minted API key in a charm-owned secret."""
+        self.app.add_secret({"api-key": api_key}, label=API_KEY_SECRET_LABEL)
+
+    def _create_admin_credentials(self) -> dict[str, str]:
+        """Generate and persist the admin credentials used to bootstrap Jellyfin."""
+        credentials = {"username": ADMIN_USERNAME, "password": secrets.token_urlsafe(24)}
+        self.app.add_secret(credentials, label=ADMIN_SECRET_LABEL)
+        logger.info("Generated Jellyfin admin credentials for %s", ADMIN_USERNAME)
+        return credentials
+
+    def _reconcile_setup(self) -> None:
+        """Complete the startup wizard and mint an API key.
+
+        Jellyfin's API key is server-wide and survives password changes, so
+        this only ever needs to run once. Credentials are persisted before the
+        wizard runs so an interrupted bootstrap can still authenticate on the
+        next pass.
+        """
+        if self._get_api_key():
+            return
+
+        try:
+            with JellyfinApi(self._localhost_url) as api:
+                if not api.is_ready():
+                    return
+
+                wizard_completed = api.is_setup_complete()
+                credentials = self._get_secret_content(ADMIN_SECRET_LABEL)
+                if wizard_completed and not credentials:
+                    logger.warning(
+                        "Jellyfin was set up outside the charm - cannot mint an API key, "
+                        "so libraries will not be managed"
+                    )
+                    return
+
+                if not credentials:
+                    credentials = self._create_admin_credentials()
+                if not wizard_completed:
+                    api.complete_setup_wizard(credentials["username"], credentials["password"])
+
+                token = api.authenticate(credentials["username"], credentials["password"])
+                self._store_api_key(api.ensure_api_key(API_KEY_APP_NAME, token))
+        except JellyfinApiError as e:
+            logger.warning("Failed to bootstrap Jellyfin: %s", e)
+
+    def _reconcile_libraries(self, api_key: str) -> None:
+        """Create Jellyfin libraries for root folders published by Radarr/Sonarr."""
+        providers = self._media_manager.get_providers()
+        if not providers:
+            return
+
+        try:
+            with JellyfinApi(self._localhost_url, token=api_key) as api:
+                existing = {
+                    loc for folder in api.get_virtual_folders() for loc in folder.locations
+                }
+
+                for provider in providers:
+                    for root_folder in provider.root_folders:
+                        if root_folder in existing:
+                            continue
+                        api.create_virtual_folder(
+                            name=library_name(provider.manager, provider.variant),
+                            collection_type=collection_type(provider.manager),
+                            path=root_folder,
+                        )
+                        existing.add(root_folder)
+        except JellyfinApiError as e:
+            logger.warning("Failed to reconcile Jellyfin libraries: %s", e)
 
     def _build_readiness_check(self) -> dict:
         """Build Pebble readiness check using the /health endpoint."""
@@ -223,7 +324,7 @@ class JellyfinCharm(ops.CharmBase):
             enabled=enabled,
         )
 
-    def _reconcile_metrics(self) -> None:
+    def _reconcile_metrics(self, puid: int, pgid: int) -> None:
         """Enable Jellyfin's native Prometheus endpoint in system.xml.
 
         Jellyfin seeds system.xml on first start with metrics disabled. Flip the
@@ -237,7 +338,9 @@ class JellyfinCharm(ops.CharmBase):
 
         updated = enable_metrics(content)
         if updated != content:
-            self._container.push(SYSTEM_XML, updated)
+            # Pebble writes as root unless told otherwise; Jellyfin must keep
+            # ownership of system.xml or it fails startup with a write error.
+            self._container.push(SYSTEM_XML, updated, user_id=puid, group_id=pgid)
             logger.info("Enabled Jellyfin native metrics endpoint")
             if self._is_service_running():
                 self._container.restart(SERVICE_NAME)
@@ -285,6 +388,7 @@ class JellyfinCharm(ops.CharmBase):
         6. Configure Pebble layer and start workload
         7. Enable native metrics endpoint
         8. Publish media-server data for request managers (Seerr)
+        9. Bootstrap admin + API key, then create libraries from media-manager
         """
         self._topology.reconcile()
         # The topology endpoint is a cluster-internal concern - crowsnest polls
@@ -357,7 +461,7 @@ class JellyfinCharm(ops.CharmBase):
         self._container.replan()
 
         # Enable native metrics endpoint (edits system.xml, restarts if changed)
-        self._reconcile_metrics()
+        self._reconcile_metrics(storage.puid, storage.pgid)
 
         self.unit.set_ports(WEBUI_PORT, self._topology.port)
 
@@ -368,6 +472,12 @@ class JellyfinCharm(ops.CharmBase):
                 api_url=self._internal_url,
             )
         )
+
+        # Complete the startup wizard and mint an API key, then create libraries
+        # for whatever Radarr/Sonarr instances are related.
+        self._reconcile_setup()
+        if api_key := self._get_api_key():
+            self._reconcile_libraries(api_key)
 
     def _on_collect_unit_status(self, event: ops.CollectStatusEvent) -> None:
         """Collect all unit statuses. Framework picks the worst."""
@@ -400,7 +510,7 @@ class JellyfinCharm(ops.CharmBase):
             event.add_status(ops.BlockedStatus("Waiting for media-storage relation"))
 
     def _collect_workload_status(self, event: ops.CollectStatusEvent) -> None:
-        """Report workload status including startup wizard state."""
+        """Report workload status including bootstrap state."""
         if not self.unit.is_leader():
             return
         if not self._container.can_connect():
@@ -412,10 +522,12 @@ class JellyfinCharm(ops.CharmBase):
             event.add_status(ops.WaitingStatus("Waiting for workload"))
             return
 
-        if self._is_setup_complete():
+        if self._get_api_key():
             event.add_status(ops.ActiveStatus())
+        elif self._is_setup_complete() and not self._get_secret_content(ADMIN_SECRET_LABEL):
+            event.add_status(ops.BlockedStatus("Jellyfin was set up outside the charm"))
         else:
-            event.add_status(ops.WaitingStatus("Complete setup in web UI"))
+            event.add_status(ops.WaitingStatus("Bootstrapping Jellyfin"))
 
 
 if __name__ == "__main__":

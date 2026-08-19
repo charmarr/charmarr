@@ -7,6 +7,7 @@ Feature: Jellyfin charm deployment
     Given jellyfin is deployed
     Then jellyfin public info endpoint should respond
 
-  Scenario: Jellyfin shows setup-incomplete status before the wizard is done
+  Scenario: Jellyfin completes its own startup wizard
     Given jellyfin is deployed
-    Then jellyfin should show setup-incomplete status
+    Then jellyfin should report the startup wizard as completed
+    And an api-key secret should exist for jellyfin
