@@ -17,4 +17,7 @@ jobs:
     with:
       charm-path: charms/jellyfin-k8s
       use-parrot: false
+      substrate: k8s
+      substrate-channel: "1.32-classic/stable"
+      configure-cni-for-istio: true
     secrets: inherit

@@ -20,6 +20,9 @@ jobs:
       charm-path: charms/jellyfin-k8s
       channel: latest/edge
       dry-run: ${{ inputs.dry-run || false }}
+      substrate: k8s
+      substrate-channel: "1.32-classic/stable"
+      configure-cni-for-istio: true
     secrets:
       CHARMHUB_TOKEN: ${{ secrets.CHARMHUB_TOKEN }}
       WIREGUARD_PRIVATE_KEY: ${{ secrets.WIREGUARD_PRIVATE_KEY }}
