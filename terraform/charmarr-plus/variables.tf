@@ -15,27 +15,37 @@ variable "channel" {
   default     = "latest/edge"
 }
 
+variable "traefik_channel" {
+  description = "Channel for traefik-k8s, the default ingress provider (used when enable_istio = false)"
+  type        = string
+  default     = "latest/stable"
+}
+
 variable "istio_channel" {
-  description = "Channel for Istio charms (istio-k8s, istio-ingress-k8s, istio-beacon-k8s)"
+  description = <<-EOT
+    Channel for the Istio charms this module deploys (istio-ingress-k8s,
+    istio-beacon-k8s). Set this to the same track as the istio-k8s control
+    plane you deployed yourself; mismatched tracks are not supported.
+
+    See https://github.com/canonical/service-mesh for the current release.
+  EOT
   type        = string
   default     = "dev/edge"
 }
 
 variable "enable_istio" {
-  description = "Enable Istio for ingress"
+  description = <<-EOT
+    Swap traefik-k8s for the Istio stack: istio-ingress-k8s for ingress plus
+    istio-beacon-k8s enrolling every application in the ambient mesh.
+
+    This module never installs the Istio control plane. Deploy an ambient
+    control plane (e.g. the istio-k8s charm) yourself first. Setting this to
+    true makes the plan probe the cluster for that control plane and fail if
+    it is absent. Reading the cluster requires working kubeconfig credentials
+    for the hashicorp/kubernetes provider; leaving this false requires none.
+  EOT
   type        = bool
   default     = false
-}
-
-variable "enable_mesh" {
-  description = "Enable service mesh hardening (requires enable_istio = true)"
-  type        = bool
-  default     = false
-
-  validation {
-    condition     = var.enable_mesh == false || var.enable_istio == true
-    error_message = "enable_mesh = true requires enable_istio = true"
-  }
 }
 
 # -----------------------------------------------------------------------------
@@ -83,6 +93,17 @@ variable "storage_class" {
   description = "Kubernetes StorageClass name (required for storage_backend=storage-class)"
   type        = string
   default     = ""
+}
+
+variable "access_mode" {
+  description = "PVC access mode: 'ReadWriteMany' or 'ReadWriteOnce'"
+  type        = string
+  default     = "ReadWriteMany"
+
+  validation {
+    condition     = contains(["ReadWriteMany", "ReadWriteOnce"], var.access_mode)
+    error_message = "access_mode must be 'ReadWriteMany' or 'ReadWriteOnce'"
+  }
 }
 
 variable "nfs_server" {
@@ -309,13 +330,43 @@ variable "sonarr_anime" {
 # Media Server & Request Management
 # -----------------------------------------------------------------------------
 
+# -----------------------------------------------------------------------------
+# Media Server Selection
+#
+# Plex and Jellyfin are alternatives but not mutually exclusive, and both may be
+# disabled if you only want the arrs. Each gets its own ingress because both are
+# root-only, so they cannot share one under traefik's default path routing.
+# -----------------------------------------------------------------------------
+
+variable "media_server" {
+  description = "Media server to deploy: 'plex', 'jellyfin', or 'none'"
+  type        = string
+  default     = "plex"
+
+  validation {
+    condition     = contains(["plex", "jellyfin", "none"], var.media_server)
+    error_message = "media_server must be 'plex', 'jellyfin', or 'none'"
+  }
+}
+
 variable "plex" {
-  description = "Override configuration for plex charm"
+  description = "Override configuration for plex charm (used when media_server = 'plex')"
   type = object({
     constraints          = optional(string, "arch=amd64")
     revision             = optional(number, null)
     config               = optional(map(string), {})
     claim_token          = optional(string, "")
+    hardware_transcoding = optional(bool, false)
+  })
+  default = {}
+}
+
+variable "jellyfin" {
+  description = "Override configuration for jellyfin charm (used when media_server = 'jellyfin')"
+  type = object({
+    constraints          = optional(string, "arch=amd64")
+    revision             = optional(number, null)
+    config               = optional(map(string), {})
     hardware_transcoding = optional(bool, false)
   })
   default = {}
@@ -412,18 +463,11 @@ variable "crowsnest" {
 }
 
 # -----------------------------------------------------------------------------
-# Istio Charm Overrides (Optional)
+# Ingress and Mesh Charm Overrides (Optional)
+#
+# The ingress overrides apply to whichever provider is active, so revision and
+# config must match the provider selected by enable_istio.
 # -----------------------------------------------------------------------------
-
-variable "istio" {
-  description = "Override configuration for istio charm"
-  type = object({
-    constraints = optional(string, "arch=amd64")
-    revision    = optional(number, null)
-    config      = optional(map(string), {})
-  })
-  default = {}
-}
 
 variable "beacon" {
   description = "Override configuration for istio-beacon charm"
@@ -446,7 +490,7 @@ variable "arr_ingress" {
 }
 
 variable "plex_ingress" {
-  description = "Override configuration for plex-ingress charm"
+  description = "Override configuration for plex-ingress charm (used when media_server = 'plex')"
   type = object({
     constraints = optional(string, "arch=amd64")
     revision    = optional(number, null)
@@ -455,8 +499,8 @@ variable "plex_ingress" {
   default = {}
 }
 
-variable "overseerr_ingress" {
-  description = "Override configuration for overseerr-ingress charm (used when enable_overseerr = true and enable_istio = true)"
+variable "jellyfin_ingress" {
+  description = "Override configuration for jellyfin-ingress charm (used when media_server = 'jellyfin')"
   type = object({
     constraints = optional(string, "arch=amd64")
     revision    = optional(number, null)
@@ -466,7 +510,7 @@ variable "overseerr_ingress" {
 }
 
 variable "seerr_ingress" {
-  description = "Override configuration for seerr-ingress charm (used when enable_seerr = true and enable_istio = true)"
+  description = "Override configuration for seerr-ingress charm (used when enable_seerr = true)"
   type = object({
     constraints = optional(string, "arch=amd64")
     revision    = optional(number, null)
