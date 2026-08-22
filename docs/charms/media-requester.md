@@ -11,12 +11,36 @@ The charm talks to other charms to figure out how to set up Seerr. The order in 
 | Connects To | Interface | What It Learns |
 |-------------|-----------|----------------|
 | **Radarr/Sonarr** | `media-manager` | API URL, quality profiles, root folders. Configures them automatically in Seerr. |
-| **Plex** | `media-server` | Allows Seerr to talk to Plex |
-| **Ingress** | `istio_ingress_route` | Enables external access to Seerr |
+| **Plex/Jellyfin** | `media-server` | Which server it is, its URL, and for Jellyfin the administrator credentials. Allows Seerr to talk to the media server. |
+| **Ingress** | `ingress` or `istio_ingress_route` | Enables external access to Seerr |
 
 The charm aggressively reconciles Radarr/Sonarr servers. If you manually add a server in Seerr that isn't a Juju relation, it gets deleted. Charms are declarative and Charmarr is designed to ✨just work✨.
 
 ### Lifecycle
+
+With Jellyfin, the charm runs the setup wizard itself and no user step is left:
+
+```mermaid
+sequenceDiagram
+    participant SC as Seerr Charm
+    participant Seerr as Seerr App
+    participant JF as Jellyfin Charm
+    participant RC as Radarr/Sonarr
+
+    SC->>Seerr: Start
+    Seerr-->>SC: API key
+
+    JF-->>SC: Server URL + admin credentials
+    SC->>Seerr: Sign in to Jellyfin, creating the admin account
+    SC->>Seerr: Enable every Jellyfin library for sync
+    SC->>Seerr: Finalise setup
+    Seerr-->>SC: Ready
+
+    RC-->>SC: API URLs, profiles, folders
+    SC->>Seerr: Configure Radarr/Sonarr servers
+```
+
+With Plex, the wizard is still yours to run:
 
 ```mermaid
 sequenceDiagram
@@ -37,7 +61,9 @@ sequenceDiagram
 ```
 
 !!! note
-    The web UI setup cannot be automated. The charm waits for the user to complete it before configuring Radarr/Sonarr. See [Post-Deploy](../setup/post-deploy.md#2-seerr-setup) for details.
+    Plex setup cannot be automated: the OAuth login is what creates the Seerr admin account, so the charm waits for you to complete it before configuring Radarr/Sonarr. Jellyfin has no such constraint, because Seerr accepts a plain username and password. See [Post-Deploy](../setup/post-deploy.md#3-seerr-setup) for details.
+
+The bootstrap is idempotent and resumable. If Seerr is unreachable or Jellyfin has no libraries yet, the charm retries on the next event and picks up wherever it stopped.
 
 ### Configuration
 

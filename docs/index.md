@@ -97,11 +97,11 @@ And you're done. Charmarr begins autonomously wiring up the apps for you.
 
 <div class="grid cards feature-cards" markdown>
 
--   :material-key-remove: **No more copy-paste API keys**
+-   :material-auto-fix: **Zero-configuration setup**
 
     ---
 
-    Apps find each other and configure themselves through [relations](https://documentation.ubuntu.com/juju/3.6/reference/relation/). No more manual copy-pasting of API keys or URLs. Charmarr butlers it all for you.
+    No setup wizards, no copy-pasting API keys. Apps find each other through [relations](https://documentation.ubuntu.com/juju/3.6/reference/relation/), and Jellyfin and Seerr bootstrap themselves down to the accounts and libraries. Charmarr butlers it all for you.
 
 -   :material-star-shooting: **TRaSH Guides, built-in**
 
@@ -148,6 +148,7 @@ And you're done. Charmarr begins autonomously wiring up the apps for you.
   <a href="https://www.qbittorrent.org"><img src="assets/logos/qbittorrent.png" alt="qBittorrent"></a>
   <a href="https://sabnzbd.org"><img src="assets/logos/sabnzbd.png" alt="SABnzbd"></a>
   <a href="https://www.plex.tv"><img src="assets/logos/plex.png" alt="Plex"></a>
+  <a href="https://jellyfin.org"><img src="assets/logos/jellyfin.png" alt="Jellyfin"></a>
   <a href="https://overseerr.dev"><img src="assets/logos/overseerr.png" alt="Overseerr"></a>
   <a href="https://github.com/FlareSolverr/FlareSolverr"><img src="assets/logos/flaresolverr.png" alt="FlareSolverr"></a>
   <a href="https://recyclarr.dev"><img src="assets/logos/recyclarr.png" alt="Recyclarr"></a>

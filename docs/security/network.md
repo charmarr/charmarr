@@ -2,12 +2,14 @@
 
 Charmarr secures network traffic at multiple [OSI layers](https://en.wikipedia.org/wiki/OSI_model). Each layer addresses a different concern, and together they provide defense in depth.
 
-| Layer | Technology | Purpose |
-|-------|------------|---------|
-| **L2** | VXLAN overlay | External traffic anonymization through VPN |
-| **L4** | Istio ztunnel | Internal encrypted transport, L4 authorization |
-| **L7** | Istio ingress gateway | External client ingress and routing |
-| **L4/L7** | Istio waypoint | Internal L4/L7 authorization |
+| Layer | Technology | Purpose | Applies |
+|-------|------------|---------|---------|
+| **L2** | VXLAN overlay | External traffic anonymization through VPN | Always |
+| **L7** | Ingress gateway | External client ingress and routing | Always |
+| **L4** | Istio ztunnel | Internal encrypted transport, L4 authorization | With Istio |
+| **L4/L7** | Istio waypoint | Internal L4/L7 authorization | With Istio |
+
+Charmarr can be deployed with Istio, which adds the L4 and L4/L7 layers and replaces the L7 gateway with Istio's own. Without it you get Traefik at L7 and the VPN overlay at L2, and internal pod-to-pod traffic is plain and unrestricted, which is the normal Kubernetes default. See [Enabling Istio](#enabling-istio).
 
 ## L2: VXLAN Overlay
 
@@ -99,6 +101,99 @@ See [VPN Gateway](../charms/vpn-gateway.md) for how the `gluetun-k8s` charm work
 East-west traffic (intra-cluster) flows through [Istio ambient mesh](https://istio.io/latest/docs/ambient/overview/). Unlike the VXLAN layer which anonymizes north-south traffic (external), the service mesh encrypts and authorizes internal pod-to-pod communication.
 
 Charmarr uses the [Charmed Istio](https://canonical-service-mesh-documentation.readthedocs-hosted.com/en/latest/) distribution (which I co-maintain for Canonical, shameless plug). The charmed service mesh automatically enrolls Charmarr pods into the mesh and configures authorization policies based on charm topology and policies defined in charm code.
+
+### Enabling Istio
+
+Istio is off by default. Turning it on is one flag, but the control plane is yours to run: Charmarr deploys `istio-ingress-k8s` and `istio-beacon-k8s`, never `istio-k8s` itself.
+
+**1. Check your cluster can take it**
+
+- [x] No Istiod already running on the cluster (if you don't know, it's probably not)
+- [x] Not using K3s or k3d (read the warning below)
+- [x] Not using Cilium CNI (or willing to [configure it](https://istio.io/latest/docs/ambient/install/platform-prerequisites/#cilium))
+- [x] LoadBalancer has an address free for each ingress gateway
+
+Not all checked? Stay on Traefik. See [Istio platform prerequisites](https://istio.io/latest/docs/ambient/install/platform-prerequisites/) for details.
+
+!!! warning
+    K3s and k3d use non-standard CNI paths that can conflict with Istio Ambient. Adding Istio may disrupt the CNI chain and cause hard-to-debug networking issues. It can work with careful configuration: [K3s docs](https://istio.io/latest/docs/ambient/install/platform-prerequisites/#k3s), [k3d docs](https://istio.io/latest/docs/ambient/install/platform-prerequisites/#k3d). So if you want to use it with Istio Ambient, do it at your own discretion.
+
+**2. Deploy the control plane**
+
+```bash
+juju add-model istio-system
+juju deploy istio-k8s --channel=dev/edge --trust
+```
+
+!!! note "Pick your channel"
+    `dev/edge` tracks the in-development release. Check [canonical/service-mesh](https://github.com/canonical/service-mesh) for the current stable track and use that instead if one suits you better.
+
+**3. Switch Charmarr over**
+
+With Terraform, set the flag:
+
+```hcl
+module "charmarr" {
+  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
+
+  # ... your other config ...
+
+  enable_istio = true
+  istio_channel = "dev/edge"  # match your control plane
+}
+```
+
+This swaps every Traefik gateway for an Istio one and enrolls every application in the mesh. There is no halfway setting. `istio_channel` applies to every Istio charm Charmarr deploys, and should match the track you used for `istio-k8s`.
+
+!!! note
+    Terraform reads the cluster to confirm the control plane is there before it changes anything, so it needs a working kubeconfig at `~/.kube/config` (or `KUBE_CONFIG_PATH` pointing at one). If the control plane is missing, the plan fails saying so. Staying on Traefik needs no kubeconfig at all.
+
+Each application also takes an `ingress_path` and `ingress_port`. Traefik owns its own routing, so those values only take effect here.
+
+#### Manual Deployment
+
+If you followed [Manual Deploy](../setup/manual.md) instead, swap the Traefik gateways for Istio ones and add the beacon yourself.
+
+```bash
+juju deploy istio-ingress-k8s --trust --channel=dev/edge arr-ingress
+juju deploy istio-ingress-k8s --trust --channel=dev/edge plex-ingress
+juju deploy istio-ingress-k8s --trust --channel=dev/edge seerr-ingress
+juju deploy istio-beacon-k8s --trust --channel=dev/edge beacon
+```
+
+Route each application through its gateway over `istio-ingress-route` instead of `ingress`:
+
+```bash
+juju integrate radarr:istio-ingress-route arr-ingress:istio-ingress-route
+juju integrate sonarr:istio-ingress-route arr-ingress:istio-ingress-route
+juju integrate prowlarr:istio-ingress-route arr-ingress:istio-ingress-route
+juju integrate qbittorrent:istio-ingress-route arr-ingress:istio-ingress-route
+juju integrate sabnzbd:istio-ingress-route arr-ingress:istio-ingress-route
+
+juju integrate plex:istio-ingress-route plex-ingress:istio-ingress-route
+juju integrate seerr:istio-ingress-route seerr-ingress:istio-ingress-route
+```
+
+Enroll every application in the mesh:
+
+```bash
+juju integrate radarr:service-mesh beacon:service-mesh
+juju integrate sonarr:service-mesh beacon:service-mesh
+juju integrate prowlarr:service-mesh beacon:service-mesh
+juju integrate qbittorrent:service-mesh beacon:service-mesh
+juju integrate sabnzbd:service-mesh beacon:service-mesh
+juju integrate plex:service-mesh beacon:service-mesh
+juju integrate seerr:service-mesh beacon:service-mesh
+```
+
+Under Istio the routing is yours to set, via `ingress-path` and `ingress-port`. Each defaults to the application name and port 80, so apps sharing a gateway already land on distinct prefixes. Override when you want something else:
+
+```bash
+juju config radarr ingress-path=/movies
+juju config radarr ingress-port=8080
+```
+
+These two settings do nothing over the generic `ingress` relation, where Traefik owns the path prefix.
 
 ### How Cluster Internal Traffic Flows
 

@@ -289,97 +289,42 @@ juju integrate seerr:media-server plex:media-server
 
 ---
 
-## 4. Istio (Optional)
+## 4. Ingress
 
-Istio provides ingress and service mesh security. Check the [Compatibility Checklist](prerequisites.md#compatibility-checklist) before enabling. If you skip Istio, handle ingress yourself (e.g., Nginx Ingress, Traefik, or NodePorts).
-
-**Path Prefixes**
-
-Path prefixes default to the Juju app name (e.g., deploying as `radarr` gives path `/radarr`):
-
-| App Name | Default Path |
-|----------|--------------|
-| radarr | `/radarr` |
-| sonarr | `/sonarr` |
-| prowlarr | `/prowlarr` |
-| qbittorrent | `/qbittorrent` |
-| sabnzbd | `/sabnzbd` |
-
-With Istio ingress, these paths are automatically configured. If you're using your own ingress controller, configure it to route these paths to the respective services.
-
-To use different paths, or set `/` to serve at root (no path prefix):
+Deploy one gateway per group. The arrs share one under distinct path prefixes; Plex and Seerr each need the root of a gateway, so they get their own.
 
 ```bash
-juju config radarr ingress-path=/movies
-juju config qbittorrent ingress-path=/
+juju deploy traefik-k8s --trust --channel=latest/stable arr-ingress
+juju deploy traefik-k8s --trust --channel=latest/stable plex-ingress
+juju deploy traefik-k8s --trust --channel=latest/stable seerr-ingress
 ```
 
-The ingress listener port defaults to 80. To change it:
-
-```bash
-juju config radarr ingress-port=8080
-```
-
-### Deploy Istio
-
-**Control Plane:**
-
-```bash
-juju deploy istio-k8s --trust --channel=dev/edge istio
-```
-
-!!! warning
-    Skip istio-k8s if your cluster already has an Istiod control plane. If you are unsure, you don't have one.
-
-**Ingress Gateways:**
-
-```bash
-juju deploy istio-ingress-k8s --trust --channel=dev/edge arr-ingress
-juju deploy istio-ingress-k8s --trust --channel=dev/edge plex-ingress
-juju deploy istio-ingress-k8s --trust --channel=dev/edge seerr-ingress
-```
-
-**Beacon (for service mesh):**
-
-Required only for mTLS and authorization policies. See [Networking](../security/network.md) for details.
-
-```bash
-juju deploy istio-beacon-k8s --trust --channel=dev/edge beacon
-```
-
-### Connect Ingress
-
-Expose app UIs via LoadBalancer IPs.
+Connect them:
 
 ```bash
 # Arr apps and download clients
-juju integrate radarr:istio-ingress-route arr-ingress:istio-ingress-route
-juju integrate sonarr:istio-ingress-route arr-ingress:istio-ingress-route
-juju integrate prowlarr:istio-ingress-route arr-ingress:istio-ingress-route
-juju integrate qbittorrent:istio-ingress-route arr-ingress:istio-ingress-route
-juju integrate sabnzbd:istio-ingress-route arr-ingress:istio-ingress-route
+juju integrate radarr:ingress arr-ingress:ingress
+juju integrate sonarr:ingress arr-ingress:ingress
+juju integrate prowlarr:ingress arr-ingress:ingress
+juju integrate qbittorrent:ingress arr-ingress:ingress
+juju integrate sabnzbd:ingress arr-ingress:ingress
 
 # Plex
-juju integrate plex:istio-ingress-route plex-ingress:istio-ingress-route
+juju integrate plex:ingress plex-ingress:ingress
 
 # Seerr
-juju integrate seerr:istio-ingress-route seerr-ingress:istio-ingress-route
+juju integrate seerr:ingress seerr-ingress:ingress
 ```
 
-### Connect Service Mesh
+Traefik picks the path prefix, in the form `/{model}-{app}`. In a model named `charmarr`, Radarr lands on `/charmarr-radarr`. The charms read that prefix off the relation and reconfigure themselves, so links and assets resolve without further configuration.
 
-Requires Beacon. Enables mTLS and authorization policies.
+Find the addresses:
 
 ```bash
-juju integrate radarr:service-mesh beacon:service-mesh
-juju integrate sonarr:service-mesh beacon:service-mesh
-juju integrate prowlarr:service-mesh beacon:service-mesh
-juju integrate plex:service-mesh beacon:service-mesh
-juju integrate seerr:service-mesh beacon:service-mesh
-juju integrate qbittorrent:service-mesh beacon:service-mesh
-juju integrate sabnzbd:service-mesh beacon:service-mesh
-juju integrate flaresolverr:service-mesh beacon:service-mesh
+juju status arr-ingress
 ```
+
+To run on Istio instead, see [Enabling Istio](../security/network.md#enabling-istio).
 
 ---
 

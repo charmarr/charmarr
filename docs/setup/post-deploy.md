@@ -1,9 +1,9 @@
 # Post-Deploy
 
-Charmarr handles the backend wiring for all the cross-application configurations, but Plex and Seerr need one-time web UI user setup.
+Charmarr handles the backend wiring for all the cross-application configurations, but Plex and Seerr need one-time web UI user setup. Jellyfin needs neither, only a login.
 
 !!! important
-    This page assumes you deployed with Istio ingress. If you used a different ingress setup, find the ingress URLs based on your configuration.
+    The URLs below assume the default Traefik gateways. On a different ingress setup, read the addresses out of `juju status` for your own gateway applications.
 
 ## Watch the Deployment
 
@@ -84,12 +84,73 @@ http://192.168.0.134
 
 ---
 
-## 2. Seerr Setup
+## 2. Jellyfin Setup
 
-!!! note
-    Seerr supports Plex, Jellyfin, and Emby. Charmarr currently only
-    automates Plex integration - this guide documents the Plex flow.
-    Jellyfin / Emby work but you'll need to configure them manually.
+Skip this if you deployed Plex instead. Jellyfin is far less work: there is no claim token and no wizard, because the charm completes the startup wizard itself and creates the administrator account for you. Jellyfin never sits in `waiting`.
+
+### Get the Initial Credentials
+
+The charm stores them in a secret labelled `admin-credentials`:
+
+```bash
+juju show-secret --reveal admin-credentials
+```
+
+```yaml
+da2qukfmp25c77r4nfeg:
+  revision: 1
+  owner: jellyfin
+  description: Initial Jellyfin administrator credentials, ...
+  label: admin-credentials
+  content:
+    password: <the generated password>
+    username: charmarr
+```
+
+The charm owns a second secret labelled `api-key`, which holds the key it uses to manage libraries. You never need it.
+
+### Open Jellyfin UI
+
+Get the Jellyfin ingress IP from the `jellyfin-ingress` message in `juju status`:
+
+```
+jellyfin-ingress/0*    active    idle    10.1.239.104    Serving at 192.168.0.133
+```
+
+Open it in a browser and log in with those credentials. Your libraries are already there, created from your Radarr and Sonarr instances, so there is nothing left to configure.
+
+!!! tip
+    These are first-login credentials, not a live mirror of the account. Rename the account or change its password whenever you like: the charm authenticates with a server-wide API key that is not tied to the account, so library management and key rotation keep working. The secret keeps the original value, so note your new password somewhere.
+
+---
+
+## 3. Seerr Setup
+
+How much work this is depends on which media server you deployed.
+
+=== "Jellyfin"
+
+    Nothing to do. The charm completes Seerr's setup wizard for you as soon as
+    the two are related: it signs Seerr in to Jellyfin using the administrator
+    account, enables every Jellyfin library for sync, and finalises the setup.
+    Seerr comes up already configured.
+
+    [Open the Seerr UI](#open-seerr-ui) and log in with the same Jellyfin
+    credentials from [Jellyfin Setup](#2-jellyfin-setup), then skip ahead to
+    [Verify Everything](#4-verify-everything).
+
+    Your Seerr admin account is your Jellyfin admin account. Seerr does not
+    store the password: it forwards each login to Jellyfin and matches you on
+    your Jellyfin user ID. Change the password in Jellyfin and the new one
+    works in Seerr immediately.
+
+=== "Plex"
+
+    Plex needs the wizard run by hand. The OAuth login is what creates your
+    Seerr admin account, so the charm cannot do it for you, but Plex fills in
+    the server details itself once you have signed in.
+
+    Follow the steps below.
 
 !!! info
     The `overseerr-k8s` charm is deprecated. If you deployed with
@@ -112,7 +173,9 @@ Open in browser:
 http://192.168.0.132
 ```
 
-### Complete Seerr Setup
+### Complete Seerr Setup (Plex only)
+
+Skip this whole section if you deployed Jellyfin. The charm has already run it.
 
 **Step 1:** Click **Configure Plex** to start the setup wizard.
 
@@ -141,7 +204,7 @@ http://192.168.0.132
 
 ---
 
-## 3. Verify Everything
+## 4. Verify Everything
 
 Wait 5 minutes, then check `juju status`. All apps should be `active`:
 
@@ -159,13 +222,15 @@ Radarr(s) and Sonarr(s) should automatically appear. Charmarr added them for you
 
 ---
 
-## 4. Add Indexers
+## 5. Add Indexers
 
 Get the arr ingress IP from `juju status` and open Prowlarr:
 
 ```
-http://ARR_INGRESS_IP/prowlarr
+http://ARR_INGRESS_IP/charmarr-prowlarr
 ```
+
+Traefik serves each application under `/{model}-{app}`, so replace `charmarr` with your model name.
 
 Add your indexers. The more the merrier.
 
@@ -174,7 +239,7 @@ Add your indexers. The more the merrier.
 If using usenet indexers, configure SABnzbd:
 
 ```
-http://ARR_INGRESS_IP/sabnzbd
+http://ARR_INGRESS_IP/charmarr-sabnzbd
 ```
 
 Add a usenet server like [Frugal Usenet](https://frugalusenet.com/) or [Eweka](https://www.eweka.nl/).
@@ -184,7 +249,7 @@ Add a usenet server like [Frugal Usenet](https://frugalusenet.com/) or [Eweka](h
 There's no mandatory need to access qBittorrent, but if you want to customize settings:
 
 ```
-http://ARR_INGRESS_IP/qbittorrent
+http://ARR_INGRESS_IP/charmarr-qbittorrent
 ```
 
 Credentials are pre-configured by Charmarr. To retrieve them:
