@@ -3,67 +3,16 @@
 
 """Step definitions for seerr-k8s integration tests."""
 
-import os
-
 import jubilant
-from pytest_bdd import given, parsers, then
+from pytest_bdd import given, then
 
 from _seerr import WEBUI_PORT
-from charmarr_lib.testing import get_ingress_ip, http_from_unit
-
-# FIXME: Shared istio steps from charmarr_lib.testing.steps.mesh use wait_for_active_idle
-# which waits for ALL apps to be active. Seerr stays in "waiting" status because
-# it requires Plex OAuth to initialize. Custom steps below only wait for istio apps.
-
-ISTIO_CHANNEL = os.environ.get("CHARMARR_ISTIO_CHANNEL", "2/edge")
-
-
-def _app_active(app_name: str):
-    """Return a matcher that checks if a specific app is active."""
-
-    def matcher(status: jubilant.Status) -> bool:
-        app = status.apps.get(app_name)
-        if not app:
-            return False
-        return app.app_status.current == "active"
-
-    return matcher
+from charmarr_lib.testing import get_ingress_url, http_from_unit
 
 
 @given("seerr is deployed", target_fixture="seerr_deployed")
 def seerr_is_deployed(seerr_deployed: None) -> None:
     """Ensure seerr is deployed."""
-
-
-@given("istio-k8s is deployed")
-def deploy_istio(juju: jubilant.Juju) -> None:
-    """Deploy istio-k8s from Charmhub."""
-    status = juju.status()
-    if "istio-k8s" in status.apps:
-        return
-    juju.deploy("istio-k8s", app="istio-k8s", channel=ISTIO_CHANNEL, trust=True)
-    juju.wait(_app_active("istio-k8s"), delay=5, timeout=60 * 10)
-
-
-@given("istio-ingress is deployed")
-def deploy_istio_ingress(juju: jubilant.Juju) -> None:
-    """Deploy istio-ingress-k8s from Charmhub."""
-    status = juju.status()
-    if "istio-ingress" in status.apps:
-        return
-    juju.deploy("istio-ingress-k8s", app="istio-ingress", channel=ISTIO_CHANNEL, trust=True)
-    juju.wait(_app_active("istio-ingress"), delay=5, timeout=60 * 10)
-
-
-@given(parsers.parse("{app} is related to istio-ingress via istio-ingress-route"))
-def relate_app_to_ingress(juju: jubilant.Juju, app: str) -> None:
-    """Integrate an app with istio-ingress via istio-ingress-route relation."""
-    status = juju.status()
-    app_status = status.apps.get(app)
-    if app_status and "istio-ingress-route" in app_status.relations:
-        return
-    juju.integrate(f"{app}:istio-ingress-route", "istio-ingress:istio-ingress-route")
-    juju.wait(_app_active("istio-ingress"), delay=5, timeout=60 * 5)
 
 
 @then("seerr should be waiting for setup")
@@ -90,9 +39,8 @@ def seerr_status_api_accessible(juju: jubilant.Juju) -> None:
 @then("seerr should be accessible via ingress")
 def seerr_accessible_via_ingress(juju: jubilant.Juju) -> None:
     """Verify seerr is accessible via ingress."""
-    ingress_ip = get_ingress_ip(juju, "istio-ingress")
-    assert ingress_ip is not None, "Could not get ingress IP"
+    base_url = get_ingress_url(juju, "seerr")
+    assert base_url is not None, "Ingress provider published no URL for seerr"
 
-    url = f"http://{ingress_ip}:80/api/v1/status"
-    response = http_from_unit(juju, "seerr/0", url)
+    response = http_from_unit(juju, "seerr/0", f"{base_url}/api/v1/status")
     assert response.status_code == 200

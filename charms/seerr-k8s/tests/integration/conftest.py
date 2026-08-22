@@ -13,6 +13,7 @@ from tests.integration.helpers import deploy_seerr_charm, pack_seerr_charm
 
 pytest_plugins = [
     "charmarr_lib.testing.steps.arr",
+    "charmarr_lib.testing.steps.ingress",
     "tests.integration.steps.seerr_steps",
 ]
 

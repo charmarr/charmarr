@@ -30,5 +30,6 @@ output "requires" {
     media_server        = "media-server"
     service_mesh        = "service-mesh"
     istio_ingress_route = "istio-ingress-route"
+    ingress             = "ingress"
   }
 }

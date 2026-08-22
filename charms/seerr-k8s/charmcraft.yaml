@@ -114,7 +114,13 @@ requires:
     description: Connection to media managers (Radarr, Sonarr)
   media-server:
     interface: media-server
-    description: Connection to media servers (Plex, Jellyfin) for service mesh
+    limit: 1
+    description: |
+      Receive the media server's API endpoint so requests can be matched
+      against what is already in the library. A Jellyfin provider also hands
+      over its administrator credentials, which completes Seerr's first-run
+      setup without the web UI wizard. Plex still requires the wizard, since
+      its OAuth handshake cannot be driven by the charm.
   service-mesh:
     interface: service_mesh
     limit: 1
@@ -142,7 +148,9 @@ config:
     ingress-port:
       type: int
       default: 80
-      description: Port for the Istio ingress gateway listener.
+      description: |
+        Listener port requested on the Istio ingress gateway.
+        Applies only to the istio-ingress-route relation.
     api-key-rotation:
       type: string
       default: "disabled"
