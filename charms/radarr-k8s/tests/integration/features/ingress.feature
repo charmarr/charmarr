@@ -5,7 +5,6 @@ Feature: Radarr ingress integration
 
   Scenario: Radarr is accessible via ingress
     Given radarr is deployed
-    And istio-k8s is deployed
-    And istio-ingress is deployed
-    And radarr is related to istio-ingress via istio-ingress-route
+    And traefik is deployed
+    And radarr is related to traefik via ingress
     Then radarr should be accessible via ingress

@@ -368,6 +368,13 @@ class QBittorrentCharm(ops.CharmBase):
         """Submit ingress route config to istio-ingress gateway."""
         if not self.unit.is_leader():
             return
+
+        if self._ingress.url and str(self.config["ingress-path"]):
+            logger.warning(
+                "Ignoring ingress-path: the ingress relation owns the path prefix and strips it "
+                "before requests reach qBittorrent"
+            )
+
         if not self.model.get_relation("istio-ingress-route"):
             return
 

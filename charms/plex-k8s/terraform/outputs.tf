@@ -32,6 +32,7 @@ output "requires" {
     media_manager       = "media-manager"
     service_mesh        = "service-mesh"
     istio_ingress_route = "istio-ingress-route"
+    ingress             = "ingress"
     logging             = "logging"
     charm_tracing       = "charm-tracing"
   }

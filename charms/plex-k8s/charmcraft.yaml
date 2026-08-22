@@ -179,7 +179,9 @@ config:
     ingress-port:
       type: int
       default: 80
-      description: Port for the Istio ingress gateway listener.
+      description: |
+        Listener port requested on the Istio ingress gateway.
+        Applies only to the istio-ingress-route relation.
     timezone:
       type: string
       default: "Etc/UTC"

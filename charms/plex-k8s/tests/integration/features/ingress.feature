@@ -5,7 +5,6 @@ Feature: Plex ingress integration
 
   Scenario: Plex is accessible via ingress
     Given plex is deployed
-    And istio-k8s is deployed
-    And istio-ingress is deployed
-    And plex is related to istio-ingress via istio-ingress-route
+    And traefik is deployed
+    And plex is related to traefik via ingress
     Then plex should be accessible via ingress

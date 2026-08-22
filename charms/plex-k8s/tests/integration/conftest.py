@@ -14,7 +14,7 @@ from tests.integration.helpers import deploy_plex_charm, pack_plex_charm
 
 pytest_plugins = [
     "charmarr_lib.testing.steps.storage",
-    "charmarr_lib.testing.steps.mesh",
+    "charmarr_lib.testing.steps.ingress",
     "tests.integration.steps.plex_steps",
 ]
 

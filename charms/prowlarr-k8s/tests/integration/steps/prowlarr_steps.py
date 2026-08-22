@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 import jubilant
 from pytest_bdd import given, then
 
-from charmarr_lib.testing import ArrCredentials, get_ingress_ip, http_from_unit
+from charmarr_lib.testing import ArrCredentials, get_ingress_url, http_from_unit
 
 
 def _local_url(credentials: ArrCredentials, path: str) -> str:
@@ -66,16 +66,13 @@ def radarr_registered(juju: jubilant.Juju, credentials: ArrCredentials) -> None:
 @then("prowlarr should be accessible via ingress")
 def prowlarr_accessible_via_ingress(juju: jubilant.Juju, credentials: ArrCredentials) -> None:
     """Verify prowlarr is accessible via ingress."""
-    ingress_ip = get_ingress_ip(juju, "istio-ingress")
-    assert ingress_ip is not None, "Could not get ingress IP"
+    base_url = get_ingress_url(juju, "prowlarr")
+    assert base_url is not None, "Ingress provider published no URL for prowlarr"
 
-    parsed = urlparse(credentials.base_url)
-    url_base = parsed.path.rstrip("/")
-    url = f"http://{ingress_ip}:80{url_base}/api/v1/system/status"
     response = http_from_unit(
         juju,
         "prowlarr/0",
-        url,
+        f"{base_url}/api/v1/system/status",
         headers={"X-Api-Key": credentials.api_key},
     )
     assert response.status_code == 200

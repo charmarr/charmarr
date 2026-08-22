@@ -3,14 +3,12 @@
 
 """Step definitions for sonarr-k8s integration tests."""
 
-from urllib.parse import urlparse
-
 import jubilant
 from pytest_bdd import given, parsers, then
 
 from charmarr_lib.testing import (
     ArrCredentials,
-    get_ingress_ip,
+    get_ingress_url,
     http_from_unit,
     wait_for_active_idle,
 )
@@ -31,16 +29,13 @@ def configure_trash_profiles(juju: jubilant.Juju, profiles: str) -> None:
 @then("sonarr should be accessible via ingress")
 def sonarr_accessible_via_ingress(juju: jubilant.Juju, credentials: ArrCredentials) -> None:
     """Verify sonarr is accessible via ingress."""
-    ingress_ip = get_ingress_ip(juju, "istio-ingress")
-    assert ingress_ip is not None, "Could not get ingress IP"
+    base_url = get_ingress_url(juju, "sonarr")
+    assert base_url is not None, "Ingress provider published no URL for sonarr"
 
-    parsed = urlparse(credentials.base_url)
-    url_base = parsed.path.rstrip("/")
-    url = f"http://{ingress_ip}:80{url_base}/api/v3/system/status"
     response = http_from_unit(
         juju,
         "sonarr/0",
-        url,
+        f"{base_url}/api/v3/system/status",
         headers={"X-Api-Key": credentials.api_key},
     )
     assert response.status_code == 200

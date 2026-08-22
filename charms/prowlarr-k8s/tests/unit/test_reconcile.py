@@ -3,6 +3,7 @@
 
 """Unit tests for ProwlarrCharm reconciliation."""
 
+import json
 from unittest.mock import MagicMock, patch
 
 from ops.testing import Container, Exec, Mount, Relation, Secret, State
@@ -16,6 +17,103 @@ from .conftest import PROWLARR_CONTAINER, SCRAPARR_CONTAINER
 
 CHOWN_EXEC = Exec(["chown", "-R", "1000:1000", "/config"])
 TEST_API_KEY = "testkey123456789012345678901234"
+
+
+def _make_traefik_ingress_relation(url: str = "http://10.0.0.1/charmarr-prowlarr") -> Relation:
+    """Create a generic ingress relation carrying a traefik-published URL."""
+    return Relation(
+        endpoint="ingress",
+        interface="ingress",
+        remote_app_data={"ingress": json.dumps({"url": url})},
+    )
+
+
+def test_url_base_defaults_to_app_name(ctx, mock_k8s, tmp_path):
+    """Without an ingress relation the url base falls back to the app name."""
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+
+    container = Container(
+        name="prowlarr",
+        can_connect=True,
+        mounts={"config": Mount(location="/config", source=config_dir)},
+        execs={CHOWN_EXEC},
+    )
+
+    with (
+        patch("charm.ProwlarrCharm._is_workload_ready", return_value=False),
+        patch("charm.ensure_pebble_user"),
+        patch("charm.reconcile_gateway_client"),
+        patch("charm.generate_api_key", return_value=TEST_API_KEY),
+    ):
+        ctx.run(
+            ctx.on.config_changed(),
+            State(leader=True, containers=[container, SCRAPARR_CONTAINER]),
+        )
+
+    assert "<UrlBase>/prowlarr-k8s</UrlBase>" in (config_dir / "config.xml").read_text()
+
+
+def test_url_base_follows_traefik_ingress(ctx, mock_k8s, tmp_path):
+    """The generic ingress relation path becomes the url base."""
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+
+    container = Container(
+        name="prowlarr",
+        can_connect=True,
+        mounts={"config": Mount(location="/config", source=config_dir)},
+        execs={CHOWN_EXEC},
+    )
+
+    with (
+        patch("charm.ProwlarrCharm._is_workload_ready", return_value=False),
+        patch("charm.ensure_pebble_user"),
+        patch("charm.reconcile_gateway_client"),
+        patch("charm.generate_api_key", return_value=TEST_API_KEY),
+    ):
+        ctx.run(
+            ctx.on.config_changed(),
+            State(
+                leader=True,
+                containers=[container, SCRAPARR_CONTAINER],
+                relations=[_make_traefik_ingress_relation()],
+            ),
+        )
+
+    assert "<UrlBase>/charmarr-prowlarr</UrlBase>" in (config_dir / "config.xml").read_text()
+
+
+def test_url_base_ignores_ingress_path_under_traefik(ctx, mock_k8s, tmp_path, caplog):
+    """ingress-path is istio-only, so traefik's path wins and the conflict is logged."""
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+
+    container = Container(
+        name="prowlarr",
+        can_connect=True,
+        mounts={"config": Mount(location="/config", source=config_dir)},
+        execs={CHOWN_EXEC},
+    )
+
+    with (
+        patch("charm.ProwlarrCharm._is_workload_ready", return_value=False),
+        patch("charm.ensure_pebble_user"),
+        patch("charm.reconcile_gateway_client"),
+        patch("charm.generate_api_key", return_value=TEST_API_KEY),
+    ):
+        ctx.run(
+            ctx.on.config_changed(),
+            State(
+                leader=True,
+                containers=[container, SCRAPARR_CONTAINER],
+                config={"ingress-path": "/custom"},
+                relations=[_make_traefik_ingress_relation()],
+            ),
+        )
+
+    assert "<UrlBase>/charmarr-prowlarr</UrlBase>" in (config_dir / "config.xml").read_text()
+    assert "Ignoring ingress-path" in caplog.text
 
 
 def test_reconcile_creates_api_key_secret(ctx, mock_k8s, tmp_path):
