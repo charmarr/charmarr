@@ -17,7 +17,7 @@ jobs:
     with:
       charm-path: charms/charmarr-storage-k8s
       use-parrot: false
-      substrate-channel: "1.32/stable"
+      substrate: k8s
+      substrate-channel: "1.32-classic/stable"
       load-nfs-modules: true
-      classic-microk8s-suites: '["test_native_nfs_backend.py"]'
     secrets: inherit

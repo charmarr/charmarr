@@ -17,4 +17,6 @@ jobs:
     with:
       charm-path: charms/overseerr-k8s
       use-parrot: false
+      substrate: k8s
+      substrate-channel: "1.32-classic/stable"
     secrets: inherit
