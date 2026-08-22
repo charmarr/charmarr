@@ -5,7 +5,6 @@ Feature: Sonarr ingress integration
 
   Scenario: Sonarr is accessible via ingress
     Given sonarr is deployed
-    And istio-k8s is deployed
-    And istio-ingress is deployed
-    And sonarr is related to istio-ingress via istio-ingress-route
+    And traefik is deployed
+    And sonarr is related to traefik via ingress
     Then sonarr should be accessible via ingress

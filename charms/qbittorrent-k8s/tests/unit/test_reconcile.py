@@ -3,6 +3,7 @@
 
 """Unit tests for QBittorrentCharm reconciliation."""
 
+import json
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
@@ -13,6 +14,63 @@ from charmarr_lib.core.interfaces import MediaStorageProviderData
 from charmarr_lib.vpn.interfaces import VPNGatewayProviderData
 
 from .conftest import QBITTORRENT_CONTAINER, QBITTORRENT_EXPORTER_CONTAINER
+
+
+def _make_storage_relation() -> Relation:
+    """Create a media-storage relation with valid provider data."""
+    data = MediaStorageProviderData(pvc_name="charmarr-shared")
+    return Relation(
+        endpoint="media-storage",
+        interface="media-storage",
+        remote_app_data={"config": data.model_dump_json()},
+    )
+
+
+def _make_traefik_ingress_relation(url: str = "http://10.0.0.1/charmarr-qbittorrent") -> Relation:
+    """Create a generic ingress relation carrying a traefik-published URL."""
+    return Relation(
+        endpoint="ingress",
+        interface="ingress",
+        remote_app_data={"ingress": json.dumps({"url": url})},
+    )
+
+
+def test_ingress_path_warns_under_traefik(ctx, mock_k8s, caplog):
+    """ingress-path is istio-only, so setting it alongside the ingress relation is logged."""
+    with (
+        patch("charm.QBittorrentCharm._is_workload_ready", return_value=False),
+        patch("charm.ensure_pebble_user"),
+    ):
+        ctx.run(
+            ctx.on.config_changed(),
+            State(
+                leader=True,
+                containers=[QBITTORRENT_CONTAINER, QBITTORRENT_EXPORTER_CONTAINER],
+                relations=[_make_storage_relation(), _make_traefik_ingress_relation()],
+                config={"unsafe-mode": True, "ingress-path": "/custom"},
+            ),
+        )
+
+    assert "Ignoring ingress-path" in caplog.text
+
+
+def test_ingress_path_silent_without_traefik(ctx, mock_k8s, caplog):
+    """No conflict warning when only the istio-ingress-route path is in play."""
+    with (
+        patch("charm.QBittorrentCharm._is_workload_ready", return_value=False),
+        patch("charm.ensure_pebble_user"),
+    ):
+        ctx.run(
+            ctx.on.config_changed(),
+            State(
+                leader=True,
+                containers=[QBITTORRENT_CONTAINER, QBITTORRENT_EXPORTER_CONTAINER],
+                relations=[_make_storage_relation()],
+                config={"unsafe-mode": True, "ingress-path": "/custom"},
+            ),
+        )
+
+    assert "Ignoring ingress-path" not in caplog.text
 
 
 def test_reconcile_creates_credentials_secret(ctx, mock_k8s):

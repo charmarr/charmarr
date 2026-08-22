@@ -33,6 +33,7 @@ output "requires" {
     service_mesh         = "service-mesh"
     velero_backup_config = "velero-backup-config"
     istio_ingress_route  = "istio-ingress-route"
+    ingress              = "ingress"
     logging              = "logging"
     charm_tracing        = "charm-tracing"
   }

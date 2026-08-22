@@ -3,6 +3,7 @@
 
 """Unit tests for SABnzbdCharm reconciliation."""
 
+import json
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
@@ -13,6 +14,89 @@ from charmarr_lib.core.interfaces import MediaStorageProviderData
 from charmarr_lib.vpn.interfaces import VPNGatewayProviderData
 
 from .conftest import SABNZBD_CONTAINER, SABNZBD_EXPORTER_CONTAINER
+
+
+def _make_storage_relation() -> Relation:
+    """Create a media-storage relation with valid provider data."""
+    data = MediaStorageProviderData(pvc_name="charmarr-shared")
+    return Relation(
+        endpoint="media-storage",
+        interface="media-storage",
+        remote_app_data={"config": data.model_dump_json()},
+    )
+
+
+def _make_traefik_ingress_relation(url: str = "http://10.0.0.1/charmarr-sabnzbd") -> Relation:
+    """Create a generic ingress relation carrying a traefik-published URL."""
+    return Relation(
+        endpoint="ingress",
+        interface="ingress",
+        remote_app_data={"ingress": json.dumps({"url": url})},
+    )
+
+
+def _url_base_of(state) -> str:
+    """Read the resolved url base back off the rendered Pebble layer."""
+    layer = state.get_container("sabnzbd").layers["sabnzbd"]
+    return layer.services["sabnzbd"].environment["__CHARM_URL_BASE"]
+
+
+def test_url_base_defaults_to_app_name(ctx, mock_k8s):
+    """Without an ingress relation the url base falls back to the app name."""
+    with (
+        patch("charm.SABnzbdCharm._is_workload_ready", return_value=False),
+        patch("charm.ensure_pebble_user"),
+    ):
+        state = ctx.run(
+            ctx.on.config_changed(),
+            State(
+                leader=True,
+                containers=[SABNZBD_CONTAINER, SABNZBD_EXPORTER_CONTAINER],
+                relations=[_make_storage_relation()],
+                config={"unsafe-mode": True},
+            ),
+        )
+
+    assert _url_base_of(state) == "/sabnzbd-k8s"
+
+
+def test_url_base_follows_traefik_ingress(ctx, mock_k8s):
+    """The generic ingress relation path becomes the url base."""
+    with (
+        patch("charm.SABnzbdCharm._is_workload_ready", return_value=False),
+        patch("charm.ensure_pebble_user"),
+    ):
+        state = ctx.run(
+            ctx.on.config_changed(),
+            State(
+                leader=True,
+                containers=[SABNZBD_CONTAINER, SABNZBD_EXPORTER_CONTAINER],
+                relations=[_make_storage_relation(), _make_traefik_ingress_relation()],
+                config={"unsafe-mode": True},
+            ),
+        )
+
+    assert _url_base_of(state) == "/charmarr-sabnzbd"
+
+
+def test_url_base_ignores_ingress_path_under_traefik(ctx, mock_k8s, caplog):
+    """ingress-path is istio-only, so traefik's path wins and the conflict is logged."""
+    with (
+        patch("charm.SABnzbdCharm._is_workload_ready", return_value=False),
+        patch("charm.ensure_pebble_user"),
+    ):
+        state = ctx.run(
+            ctx.on.config_changed(),
+            State(
+                leader=True,
+                containers=[SABNZBD_CONTAINER, SABNZBD_EXPORTER_CONTAINER],
+                relations=[_make_storage_relation(), _make_traefik_ingress_relation()],
+                config={"unsafe-mode": True, "ingress-path": "/custom"},
+            ),
+        )
+
+    assert _url_base_of(state) == "/charmarr-sabnzbd"
+    assert "Ignoring ingress-path" in caplog.text
 
 
 def test_reconcile_creates_api_key_secret(ctx, mock_k8s):

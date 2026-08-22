@@ -20,7 +20,7 @@ from tests.integration.helpers import (
 pytest_plugins = [
     "charmarr_lib.testing.steps.storage",
     "charmarr_lib.testing.steps.arr",
-    "charmarr_lib.testing.steps.mesh",
+    "charmarr_lib.testing.steps.ingress",
     "tests.integration.steps.sonarr_steps",
 ]
 

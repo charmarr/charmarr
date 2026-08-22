@@ -60,6 +60,7 @@ from charmarr_lib.core import (
     ContentVariant,
     K8sResourceManager,
     MediaManager,
+    MediaServer,
     ensure_pebble_user,
     observe_events,
     reconcilable_events_k8s,
@@ -546,6 +547,7 @@ class PlexCharm(ops.CharmBase):
             MediaServerProviderData(
                 name=self.app.name,
                 api_url=self._internal_url,
+                server=MediaServer.PLEX,
             )
         )
 

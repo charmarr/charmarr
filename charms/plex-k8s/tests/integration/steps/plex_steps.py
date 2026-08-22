@@ -9,7 +9,7 @@ import jubilant
 from pytest_bdd import given, then, when
 
 from _plex import WEBUI_PORT
-from charmarr_lib.testing import get_ingress_ip, http_from_unit
+from charmarr_lib.testing import get_ingress_url, http_from_unit
 
 
 @given("plex is deployed", target_fixture="plex_deployed")
@@ -40,11 +40,10 @@ def plex_unclaimed_status(juju: jubilant.Juju) -> None:
 @then("plex should be accessible via ingress")
 def plex_accessible_via_ingress(juju: jubilant.Juju) -> None:
     """Verify plex is accessible via ingress."""
-    ingress_ip = get_ingress_ip(juju, "istio-ingress")
-    assert ingress_ip is not None, "Could not get ingress IP"
+    base_url = get_ingress_url(juju, "plex")
+    assert base_url is not None, "Ingress provider published no URL for plex"
 
-    url = f"http://{ingress_ip}:80/identity"
-    response = http_from_unit(juju, "plex/0", url)
+    response = http_from_unit(juju, "plex/0", f"{base_url}/identity")
     assert response.status_code == 200
 
 

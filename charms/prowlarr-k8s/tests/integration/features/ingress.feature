@@ -5,7 +5,6 @@ Feature: Prowlarr ingress integration
 
   Scenario: Prowlarr is accessible via ingress
     Given prowlarr is deployed
-    And istio-k8s is deployed
-    And istio-ingress is deployed
-    And prowlarr is related to istio-ingress via istio-ingress-route
+    And traefik is deployed
+    And prowlarr is related to traefik via ingress
     Then prowlarr should be accessible via ingress

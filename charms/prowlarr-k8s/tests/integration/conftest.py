@@ -26,7 +26,7 @@ FLARESOLVERR_CHANNEL = os.environ.get("CHARMARR_FLARESOLVERR_CHANNEL", "latest/e
 pytest_plugins = [
     "charmarr_lib.testing.steps.storage",
     "charmarr_lib.testing.steps.gluetun",
-    "charmarr_lib.testing.steps.mesh",
+    "charmarr_lib.testing.steps.ingress",
     "charmarr_lib.testing.steps.arr",
     "tests.integration.steps.prowlarr_steps",
 ]

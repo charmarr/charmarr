@@ -68,7 +68,7 @@ def webui_authenticates(juju: jubilant.Juju, credentials: Credentials) -> None:
 @then("the qbittorrent WebUI should be accessible via ingress")
 def webui_accessible_via_ingress(juju: jubilant.Juju, credentials: Credentials) -> None:
     """Assert WebUI is accessible via istio-ingress."""
-    ingress_ip = get_ingress_ip(juju)
+    ingress_ip = get_ingress_ip(juju, "istio-ingress")
     assert ingress_ip, "Could not get istio-ingress IP"
 
     base_url = f"http://{ingress_ip}:80/qbittorrent"

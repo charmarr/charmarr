@@ -5,6 +5,7 @@
 """Sonarr Charm."""
 
 import logging
+from urllib.parse import urlparse
 
 import ops
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
@@ -191,8 +192,15 @@ class SonarrCharm(ops.CharmBase):
         return secret.get_info().id
 
     def _get_url_base(self) -> str | None:
-        """Get URL base path from config, or None if root/empty."""
-        url_base = str(self.config["ingress-path"]) or f"/{self.app.name}"
+        """Get URL base path, or None if root/empty.
+
+        Traefik owns the path prefix it routes on, so when the generic ingress
+        relation is up its path wins. `ingress-path` only steers istio-ingress.
+        """
+        if self._ingress.url:
+            url_base = urlparse(self._ingress.url).path.rstrip("/")
+        else:
+            url_base = str(self.config["ingress-path"]) or f"/{self.app.name}"
         return url_base if url_base and url_base != "/" else None
 
     @property
@@ -538,6 +546,13 @@ class SonarrCharm(ops.CharmBase):
         """Submit ingress route config to istio-ingress gateway."""
         if not self.unit.is_leader():
             return
+
+        if self._ingress.url and str(self.config["ingress-path"]):
+            logger.warning(
+                "Ignoring ingress-path: the ingress relation sets the path prefix to %s",
+                self._get_url_base(),
+            )
+
         if not self.model.get_relation("istio-ingress-route"):
             return
 

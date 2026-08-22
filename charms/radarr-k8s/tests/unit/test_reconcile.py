@@ -3,6 +3,7 @@
 
 """Unit tests for RadarrCharm reconciliation."""
 
+import json
 from unittest.mock import patch
 
 from ops.testing import Container, Exec, Mount, Relation, Secret, State
@@ -22,6 +23,15 @@ def _make_storage_relation() -> Relation:
         endpoint="media-storage",
         interface="media-storage",
         remote_app_data={"config": data.model_dump_json()},
+    )
+
+
+def _make_traefik_ingress_relation(url: str = "http://10.0.0.1/charmarr-radarr") -> Relation:
+    """Create a generic ingress relation carrying a traefik-published URL."""
+    return Relation(
+        endpoint="ingress",
+        interface="ingress",
+        remote_app_data={"ingress": json.dumps({"url": url})},
     )
 
 
@@ -430,6 +440,98 @@ def test_configure_ingress_submits_route(ctx, mock_k8s, tmp_path):
             ),
         )
     assert state is not None
+
+
+def test_url_base_defaults_to_app_name(ctx, mock_k8s, tmp_path):
+    """Without an ingress relation the url base falls back to the app name."""
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+
+    container = Container(
+        name="radarr",
+        can_connect=True,
+        mounts={"config": Mount(location="/config", source=config_dir)},
+        execs={CHOWN_EXEC},
+    )
+
+    with (
+        patch("charm.RadarrCharm._is_workload_ready", return_value=False),
+        patch("charm.ensure_pebble_user"),
+        patch("charm.reconcile_gateway_client"),
+        patch("charm.generate_api_key", return_value=TEST_API_KEY),
+    ):
+        ctx.run(
+            ctx.on.config_changed(),
+            State(
+                leader=True,
+                containers=[container, SCRAPARR_CONTAINER],
+                relations=[_make_storage_relation()],
+            ),
+        )
+
+    assert "<UrlBase>/radarr-k8s</UrlBase>" in (config_dir / "config.xml").read_text()
+
+
+def test_url_base_follows_traefik_ingress(ctx, mock_k8s, tmp_path):
+    """The generic ingress relation path becomes the url base."""
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+
+    container = Container(
+        name="radarr",
+        can_connect=True,
+        mounts={"config": Mount(location="/config", source=config_dir)},
+        execs={CHOWN_EXEC},
+    )
+
+    with (
+        patch("charm.RadarrCharm._is_workload_ready", return_value=False),
+        patch("charm.ensure_pebble_user"),
+        patch("charm.reconcile_gateway_client"),
+        patch("charm.generate_api_key", return_value=TEST_API_KEY),
+    ):
+        ctx.run(
+            ctx.on.config_changed(),
+            State(
+                leader=True,
+                containers=[container, SCRAPARR_CONTAINER],
+                relations=[_make_storage_relation(), _make_traefik_ingress_relation()],
+            ),
+        )
+
+    assert "<UrlBase>/charmarr-radarr</UrlBase>" in (config_dir / "config.xml").read_text()
+
+
+def test_url_base_ignores_ingress_path_under_traefik(ctx, mock_k8s, tmp_path, caplog):
+    """ingress-path is istio-only, so traefik's path wins and the conflict is logged."""
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+
+    container = Container(
+        name="radarr",
+        can_connect=True,
+        mounts={"config": Mount(location="/config", source=config_dir)},
+        execs={CHOWN_EXEC},
+    )
+
+    with (
+        patch("charm.RadarrCharm._is_workload_ready", return_value=False),
+        patch("charm.ensure_pebble_user"),
+        patch("charm.reconcile_gateway_client"),
+        patch("charm.generate_api_key", return_value=TEST_API_KEY),
+    ):
+        ctx.run(
+            ctx.on.config_changed(),
+            State(
+                leader=True,
+                containers=[container, SCRAPARR_CONTAINER],
+                config={"ingress-path": "/custom"},
+                relations=[_make_storage_relation(), _make_traefik_ingress_relation()],
+            ),
+        )
+
+    assert "<UrlBase>/charmarr-radarr</UrlBase>" in (config_dir / "config.xml").read_text()
+    assert "Ignoring ingress-path" in caplog.text
 
 
 def test_reconcile_publishes_media_indexer_requirer(ctx, mock_k8s, tmp_path):
