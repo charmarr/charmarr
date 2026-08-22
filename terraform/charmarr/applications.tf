@@ -7,6 +7,58 @@ data "juju_model" "model" {
   owner = var.owner
 }
 
+# Istio is never deployed by this module — the operator installs the control
+# plane themselves. These two data sources are a guard: they fail the plan if
+# enable_istio is set but the cluster has no ambient control plane to attach to.
+#
+# The probe is two hops because kubernetes_resources errors outright on a kind
+# the API server does not know. CustomResourceDefinition is always registered,
+# so hop 1 safely establishes whether GatewayClass exists before hop 2 reads it.
+# The signal itself is the istio-waypoint GatewayClass: cluster-scoped (so no
+# guessing which namespace istiod landed in), only created by a running istiod,
+# and ambient-only.
+data "kubernetes_resources" "crds" {
+  count       = var.enable_istio ? 1 : 0
+  api_version = "apiextensions.k8s.io/v1"
+  kind        = "CustomResourceDefinition"
+
+  lifecycle {
+    postcondition {
+      condition = contains(
+        [for o in self.objects : o.metadata.name],
+        "gatewayclasses.gateway.networking.k8s.io"
+      )
+      error_message = "enable_istio = true but the Gateway API CRDs are not installed. Deploy an Istio ambient control plane (e.g. the istio-k8s charm) first, or set enable_istio = false to use traefik."
+    }
+  }
+}
+
+locals {
+  enable_plex     = var.media_server == "plex"
+  enable_jellyfin = var.media_server == "jellyfin"
+
+  gateway_api = var.enable_istio ? contains(
+    [for o in data.kubernetes_resources.crds[0].objects : o.metadata.name],
+    "gatewayclasses.gateway.networking.k8s.io"
+  ) : false
+}
+
+data "kubernetes_resources" "gateway_classes" {
+  count       = local.gateway_api ? 1 : 0
+  api_version = "gateway.networking.k8s.io/v1"
+  kind        = "GatewayClass"
+
+  lifecycle {
+    postcondition {
+      condition = contains(
+        [for o in self.objects : o.metadata.name],
+        "istio-waypoint"
+      )
+      error_message = "enable_istio = true but no Istio ambient control plane was found (the istio-waypoint GatewayClass is missing). Deploy an Istio ambient control plane first, or set enable_istio = false to use traefik."
+    }
+  }
+}
+
 # -----------------------------------------------------------------------------
 # Juju Secret for WireGuard Private Key
 # -----------------------------------------------------------------------------
@@ -68,6 +120,7 @@ module "storage" {
   config            = var.storage.config
   backend_type      = var.storage_backend
   storage_class     = var.storage_class
+  access_mode       = var.access_mode
   nfs_server        = var.nfs_server
   nfs_path          = var.nfs_path
   hostpath          = var.hostpath
@@ -186,6 +239,7 @@ module "sonarr" {
 }
 
 module "plex" {
+  count  = local.enable_plex ? 1 : 0
   source = "git::https://github.com/charmarr/charmarr//charms/plex-k8s/terraform?ref=main"
 
   model                = var.model
@@ -197,6 +251,20 @@ module "plex" {
   config               = var.plex.config
   claim_token          = var.plex.claim_token
   hardware_transcoding = var.plex.hardware_transcoding
+}
+
+module "jellyfin" {
+  count  = local.enable_jellyfin ? 1 : 0
+  source = "git::https://github.com/charmarr/charmarr//charms/jellyfin-k8s/terraform?ref=main"
+
+  model                = var.model
+  owner                = var.owner
+  app_name             = "jellyfin"
+  channel              = var.channel
+  constraints          = var.jellyfin.constraints
+  revision             = var.jellyfin.revision
+  config               = var.jellyfin.config
+  hardware_transcoding = var.jellyfin.hardware_transcoding
 }
 
 module "overseerr" {
@@ -286,23 +354,15 @@ data "juju_offer" "cos_tempo_tracing" {
 }
 
 # -----------------------------------------------------------------------------
-# Istio Charms
+# Ingress Charms
+#
+# Terraform does not allow a dynamic module source, so each ingress instance is
+# a pair of mutually exclusive module blocks. local.*_ingress_app in
+# integrations.tf collapses the pair back to a single application name.
 # -----------------------------------------------------------------------------
 
-module "istio" {
-  count  = var.enable_istio ? 1 : 0
-  source = "git::https://github.com/canonical/istio-k8s-operator//terraform?ref=main"
-
-  model_uuid  = data.juju_model.model.uuid
-  app_name    = "istio"
-  channel     = var.istio_channel
-  constraints = var.istio.constraints
-  revision    = var.istio.revision
-  config      = var.istio.config
-}
-
 module "beacon" {
-  count  = var.enable_mesh ? 1 : 0
+  count  = var.enable_istio ? 1 : 0
   source = "git::https://github.com/canonical/istio-beacon-k8s-operator//terraform?ref=main"
 
   model_uuid  = data.juju_model.model.uuid
@@ -325,8 +385,20 @@ module "arr_ingress" {
   config      = var.arr_ingress.config
 }
 
+module "arr_ingress_traefik" {
+  count  = var.enable_istio ? 0 : 1
+  source = "git::https://github.com/canonical/traefik-k8s-operator//terraform?ref=main"
+
+  model_uuid  = data.juju_model.model.uuid
+  app_name    = "arr-ingress"
+  channel     = var.traefik_channel
+  constraints = var.arr_ingress.constraints
+  revision    = var.arr_ingress.revision
+  config      = var.arr_ingress.config
+}
+
 module "plex_ingress" {
-  count  = var.enable_istio ? 1 : 0
+  count  = var.enable_istio && local.enable_plex ? 1 : 0
   source = "git::https://github.com/canonical/istio-ingress-k8s-operator//terraform?ref=main"
 
   model_uuid  = data.juju_model.model.uuid
@@ -337,16 +409,40 @@ module "plex_ingress" {
   config      = var.plex_ingress.config
 }
 
-module "overseerr_ingress" {
-  count  = var.enable_istio && var.enable_overseerr ? 1 : 0
+module "plex_ingress_traefik" {
+  count  = !var.enable_istio && local.enable_plex ? 1 : 0
+  source = "git::https://github.com/canonical/traefik-k8s-operator//terraform?ref=main"
+
+  model_uuid  = data.juju_model.model.uuid
+  app_name    = "plex-ingress"
+  channel     = var.traefik_channel
+  constraints = var.plex_ingress.constraints
+  revision    = var.plex_ingress.revision
+  config      = var.plex_ingress.config
+}
+
+module "jellyfin_ingress" {
+  count  = var.enable_istio && local.enable_jellyfin ? 1 : 0
   source = "git::https://github.com/canonical/istio-ingress-k8s-operator//terraform?ref=main"
 
   model_uuid  = data.juju_model.model.uuid
-  app_name    = "overseerr-ingress"
+  app_name    = "jellyfin-ingress"
   channel     = var.istio_channel
-  constraints = var.overseerr_ingress.constraints
-  revision    = var.overseerr_ingress.revision
-  config      = var.overseerr_ingress.config
+  constraints = var.jellyfin_ingress.constraints
+  revision    = var.jellyfin_ingress.revision
+  config      = var.jellyfin_ingress.config
+}
+
+module "jellyfin_ingress_traefik" {
+  count  = !var.enable_istio && local.enable_jellyfin ? 1 : 0
+  source = "git::https://github.com/canonical/traefik-k8s-operator//terraform?ref=main"
+
+  model_uuid  = data.juju_model.model.uuid
+  app_name    = "jellyfin-ingress"
+  channel     = var.traefik_channel
+  constraints = var.jellyfin_ingress.constraints
+  revision    = var.jellyfin_ingress.revision
+  config      = var.jellyfin_ingress.config
 }
 
 module "seerr_ingress" {
@@ -356,6 +452,18 @@ module "seerr_ingress" {
   model_uuid  = data.juju_model.model.uuid
   app_name    = "seerr-ingress"
   channel     = var.istio_channel
+  constraints = var.seerr_ingress.constraints
+  revision    = var.seerr_ingress.revision
+  config      = var.seerr_ingress.config
+}
+
+module "seerr_ingress_traefik" {
+  count  = !var.enable_istio && var.enable_seerr ? 1 : 0
+  source = "git::https://github.com/canonical/traefik-k8s-operator//terraform?ref=main"
+
+  model_uuid  = data.juju_model.model.uuid
+  app_name    = "seerr-ingress"
+  channel     = var.traefik_channel
   constraints = var.seerr_ingress.constraints
   revision    = var.seerr_ingress.revision
   config      = var.seerr_ingress.config

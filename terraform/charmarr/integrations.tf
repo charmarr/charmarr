@@ -17,11 +17,6 @@ locals {
         provides = module.flaresolverr.provides
         requires = module.flaresolverr.requires
       }
-      plex = {
-        name     = module.plex.app_name
-        provides = module.plex.provides
-        requires = module.plex.requires
-      }
       prowlarr = {
         name     = module.prowlarr.app_name
         provides = module.prowlarr.provides
@@ -55,6 +50,20 @@ locals {
         requires = module.gluetun[0].requires
       }
     } : {},
+    local.enable_plex ? {
+      plex = {
+        name     = module.plex[0].app_name
+        provides = module.plex[0].provides
+        requires = module.plex[0].requires
+      }
+    } : {},
+    local.enable_jellyfin ? {
+      jellyfin = {
+        name     = module.jellyfin[0].app_name
+        provides = module.jellyfin[0].provides
+        requires = module.jellyfin[0].requires
+      }
+    } : {},
     var.enable_seerr ? {
       seerr = {
         name     = module.seerr[0].app_name
@@ -81,12 +90,18 @@ locals {
   # Tracked separately because overseerr lacks the full o11y endpoint set
   # and isn't included in local.fleet.
   media_consumers = merge(
-    {
+    local.enable_plex ? {
       plex = {
-        name     = module.plex.app_name
-        requires = module.plex.requires
+        name     = module.plex[0].app_name
+        requires = module.plex[0].requires
       }
-    },
+    } : {},
+    local.enable_jellyfin ? {
+      jellyfin = {
+        name     = module.jellyfin[0].app_name
+        requires = module.jellyfin[0].requires
+      }
+    } : {},
     var.enable_overseerr ? {
       overseerr = {
         name     = module.overseerr[0].app_name
@@ -120,6 +135,44 @@ locals {
       "${arr_k}_${con_k}" => { arr = arr_v, consumer = con_v }
     }
   ]...)
+
+  # The one media server that provides media-server, or none.
+  media_servers = merge(
+    local.enable_plex ? {
+      plex = {
+        name     = module.plex[0].app_name
+        provides = module.plex[0].provides
+      }
+    } : {},
+    local.enable_jellyfin ? {
+      jellyfin = {
+        name     = module.jellyfin[0].app_name
+        provides = module.jellyfin[0].provides
+      }
+    } : {},
+  )
+
+  # media_server is a single choice, so this pairs the one server with every
+  # request charm. seerr's media-server endpoint is limit: 1, which a second
+  # server would violate. The leading {} keeps merge() valid when none is set.
+  media_server_pairs = merge(concat([{}], [
+    for srv_k, srv_v in local.media_servers : {
+      for con_k, con_v in local.media_consumers :
+      "${srv_k}_${con_k}" => { server = srv_v, consumer = con_v }
+      if contains(keys(con_v.requires), "media_server")
+    }
+  ])...)
+
+  # Collapse each istio/traefik module pair down to the one that was deployed.
+  arr_ingress_app      = one(concat(module.arr_ingress[*].app_name, module.arr_ingress_traefik[*].app_name))
+  plex_ingress_app     = one(concat(module.plex_ingress[*].app_name, module.plex_ingress_traefik[*].app_name))
+  jellyfin_ingress_app = one(concat(module.jellyfin_ingress[*].app_name, module.jellyfin_ingress_traefik[*].app_name))
+  seerr_ingress_app    = one(concat(module.seerr_ingress[*].app_name, module.seerr_ingress_traefik[*].app_name))
+
+  # The two providers speak different interfaces, so the endpoint names on both
+  # ends of every ingress integration switch together.
+  ingress_endpoint     = var.enable_istio ? "istio-ingress-route" : "ingress"
+  ingress_requirer_key = var.enable_istio ? "istio_ingress_route" : "ingress"
 }
 
 # =============================================================================
@@ -226,20 +279,17 @@ resource "juju_integration" "media_manager" {
 # =============================================================================
 
 resource "juju_integration" "media_server" {
-  for_each = {
-    for k, v in local.media_consumers :
-    k => v if contains(keys(v.requires), "media_server")
-  }
+  for_each   = local.media_server_pairs
   model_uuid = data.juju_model.model.uuid
 
   application {
-    name     = module.plex.app_name
-    endpoint = module.plex.provides.media_server
+    name     = each.value.server.name
+    endpoint = each.value.server.provides.media_server
   }
 
   application {
-    name     = each.value.name
-    endpoint = each.value.requires.media_server
+    name     = each.value.consumer.name
+    endpoint = each.value.consumer.requires.media_server
   }
 }
 
@@ -248,7 +298,7 @@ resource "juju_integration" "media_server" {
 # =============================================================================
 
 resource "juju_integration" "mesh" {
-  for_each   = var.enable_mesh ? local.fleet : {}
+  for_each   = var.enable_istio ? local.fleet : {}
   model_uuid = data.juju_model.model.uuid
 
   application {
@@ -263,7 +313,7 @@ resource "juju_integration" "mesh" {
 }
 
 resource "juju_integration" "mesh_overseerr" {
-  count      = var.enable_mesh && var.enable_overseerr ? 1 : 0
+  count      = var.enable_istio && var.enable_overseerr ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
@@ -278,7 +328,7 @@ resource "juju_integration" "mesh_overseerr" {
 }
 
 resource "juju_integration" "mesh_otelcol" {
-  count      = var.cos != null && var.enable_mesh ? 1 : 0
+  count      = var.cos != null && var.enable_istio ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
@@ -293,7 +343,7 @@ resource "juju_integration" "mesh_otelcol" {
 }
 
 resource "juju_integration" "mesh_crowsnest" {
-  count      = var.cos != null && var.enable_mesh ? 1 : 0
+  count      = var.cos != null && var.enable_istio ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
@@ -311,68 +361,68 @@ resource "juju_integration" "mesh_crowsnest" {
 # Ingress Integrations
 # =============================================================================
 
-# arr_ingress fronts every fleet charm that ingresses except plex (plex_ingress)
-# and seerr (seerr_ingress).
+# arr_ingress fronts every fleet charm that ingresses except the root-only ones,
+# which each get a dedicated instance below.
 resource "juju_integration" "arr_ingress" {
-  for_each = var.enable_istio ? {
+  for_each = {
     for k, v in local.fleet :
-    k => v if contains(keys(v.requires), "istio_ingress_route") && !contains(["plex", "seerr"], k)
-  } : {}
+    k => v if contains(keys(v.requires), local.ingress_requirer_key) && !contains(["plex", "jellyfin", "seerr"], k)
+  }
   model_uuid = data.juju_model.model.uuid
 
   application {
-    name     = module.arr_ingress[0].app_name
-    endpoint = "istio-ingress-route"
+    name     = local.arr_ingress_app
+    endpoint = local.ingress_endpoint
   }
 
   application {
     name     = each.value.name
-    endpoint = each.value.requires.istio_ingress_route
+    endpoint = each.value.requires[local.ingress_requirer_key]
   }
 }
 
 resource "juju_integration" "plex_ingress_plex" {
-  count      = var.enable_istio ? 1 : 0
+  count      = local.enable_plex ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
-    name     = module.plex_ingress[0].app_name
-    endpoint = "istio-ingress-route"
+    name     = local.plex_ingress_app
+    endpoint = local.ingress_endpoint
   }
 
   application {
-    name     = module.plex.app_name
-    endpoint = module.plex.requires.istio_ingress_route
+    name     = module.plex[0].app_name
+    endpoint = module.plex[0].requires[local.ingress_requirer_key]
   }
 }
 
-resource "juju_integration" "overseerr_ingress_overseerr" {
-  count      = var.enable_istio && var.enable_overseerr ? 1 : 0
+resource "juju_integration" "jellyfin_ingress_jellyfin" {
+  count      = local.enable_jellyfin ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
-    name     = module.overseerr_ingress[0].app_name
-    endpoint = "istio-ingress-route"
+    name     = local.jellyfin_ingress_app
+    endpoint = local.ingress_endpoint
   }
 
   application {
-    name     = module.overseerr[0].app_name
-    endpoint = module.overseerr[0].requires.istio_ingress_route
+    name     = module.jellyfin[0].app_name
+    endpoint = module.jellyfin[0].requires[local.ingress_requirer_key]
   }
 }
 
 resource "juju_integration" "seerr_ingress_seerr" {
-  count      = var.enable_istio && var.enable_seerr ? 1 : 0
+  count      = var.enable_seerr ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
-    name     = module.seerr_ingress[0].app_name
-    endpoint = "istio-ingress-route"
+    name     = local.seerr_ingress_app
+    endpoint = local.ingress_endpoint
   }
 
   application {
     name     = module.seerr[0].app_name
-    endpoint = module.seerr[0].requires.istio_ingress_route
+    endpoint = module.seerr[0].requires[local.ingress_requirer_key]
   }
 }
 
@@ -551,7 +601,7 @@ resource "juju_integration" "otelcol_receive_ca_cert" {
 # Cross-model mesh trust for the grafana SAAS — needed so istio's
 # AuthorizationPolicy permits grafana traffic into crowsnest.
 resource "juju_integration" "crowsnest_grafana_cmr_mesh" {
-  count      = var.cos != null && var.enable_mesh ? 1 : 0
+  count      = var.cos != null && var.enable_istio ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
