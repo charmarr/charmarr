@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import ops
-from ops.testing import Container, Exec, Mount, Relation, State
+from ops.testing import Container, Exec, Mount, Relation, Secret, State
 
 from charmarr_lib.core.interfaces import MediaStorageProviderData
 
@@ -247,3 +247,26 @@ def test_configure_ingress_submits_route_on_config_changed(ctx, mock_k8s):
 
     relation_out = next(r for r in state.relations if r.endpoint == "istio-ingress-route")
     assert "config" in relation_out.local_app_data
+
+
+def test_secret_rotate_replaces_api_key(ctx, mock_k8s):
+    """Secret rotation mints a replacement key using the current key as its own token.
+
+    No admin credentials are in state, so this also covers a Jellyfin password
+    changed outside the charm.
+    """
+    api_key_secret = Secret(label="api-key", tracked_content={"api-key": "old-key"}, owner="app")
+
+    with patch("charm.JellyfinApi") as mock_class:
+        api = mock_class.return_value.__enter__.return_value
+        api.rotate_api_key.return_value = "new-key"
+
+        state = ctx.run(
+            ctx.on.secret_rotate(api_key_secret),
+            State(leader=True, containers=[JELLYFIN_CONTAINER], secrets=[api_key_secret]),
+        )
+
+    api.authenticate.assert_not_called()
+    api.rotate_api_key.assert_called_once_with("charmarr", "old-key", token="old-key")
+    rotated = next(s for s in state.secrets if s.label == "api-key")
+    assert rotated.latest_content["api-key"] == "new-key"

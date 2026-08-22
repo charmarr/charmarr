@@ -60,11 +60,14 @@ from charmarr_lib.core import (
     CharmarrTopology,
     CharmarrTopologyRelation,
     K8sResourceManager,
+    MediaServer,
     ensure_pebble_user,
+    get_secret_rotation_policy,
     observe_events,
     reconcilable_events_k8s,
     reconcile_hardware_transcoding,
     reconcile_storage_volume,
+    sync_secret_rotation_policy,
 )
 from charmarr_lib.core.interfaces import (
     CrowsnestProvider,
@@ -154,6 +157,8 @@ class JellyfinCharm(ops.CharmBase):
         framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
         framework.observe(self._ingress.on.ready, self._reconcile)
         framework.observe(self._ingress.on.revoked, self._reconcile)
+        framework.observe(self.on.secret_rotate, self._on_secret_rotate)
+        framework.observe(self.on.rotate_api_key_action, self._on_rotate_api_key_action)
 
     @property
     def k8s(self) -> K8sResourceManager:
@@ -204,12 +209,66 @@ class JellyfinCharm(ops.CharmBase):
 
     def _store_api_key(self, api_key: str) -> None:
         """Persist the minted API key in a charm-owned secret."""
-        self.app.add_secret({"api-key": api_key}, label=API_KEY_SECRET_LABEL)
+        self.app.add_secret(
+            {"api-key": api_key},
+            label=API_KEY_SECRET_LABEL,
+            description="Jellyfin API key",
+            rotate=get_secret_rotation_policy(
+                str(self.config.get("api-key-rotation", "disabled"))
+            ),
+        )
+
+    def _rotate_api_key(self) -> str:
+        """Mint a replacement API key and revoke the old one.
+
+        The current key authorizes its own replacement, so rotation survives an
+        admin password changed outside the charm.
+        """
+        secret = self.model.get_secret(label=API_KEY_SECRET_LABEL)
+        current = secret.get_content(refresh=True)["api-key"]
+
+        with JellyfinApi(self._localhost_url) as api:
+            new_api_key = api.rotate_api_key(API_KEY_APP_NAME, current, token=current)
+
+        secret.set_content({"api-key": new_api_key})
+        return new_api_key
+
+    def _on_secret_rotate(self, event: ops.SecretRotateEvent) -> None:
+        """Rotate the API key when Juju's rotation policy fires."""
+        if event.secret.label != API_KEY_SECRET_LABEL or not self.unit.is_leader():
+            return
+
+        try:
+            self._rotate_api_key()
+        except JellyfinApiError as e:
+            logger.warning("Failed to rotate Jellyfin API key: %s", e)
+
+    def _on_rotate_api_key_action(self, event: ops.ActionEvent) -> None:
+        """Rotate the API key on demand."""
+        if not self.unit.is_leader():
+            event.fail("Must be run on the leader unit")
+            return
+
+        try:
+            self._rotate_api_key()
+        except (ops.SecretNotFoundError, JellyfinApiError) as e:
+            event.fail(f"Failed to rotate API key: {e}")
+            return
+
+        event.set_results({"result": "API key rotated"})
 
     def _create_admin_credentials(self) -> dict[str, str]:
         """Generate and persist the admin credentials used to bootstrap Jellyfin."""
         credentials = {"username": ADMIN_USERNAME, "password": secrets.token_urlsafe(24)}
-        self.app.add_secret(credentials, label=ADMIN_SECRET_LABEL)
+        self.app.add_secret(
+            credentials,
+            label=ADMIN_SECRET_LABEL,
+            description=(
+                "Initial Jellyfin administrator credentials, generated when the charm "
+                "runs the startup wizard. They are a first-login handover, not a live "
+                "mirror: changing the password in Jellyfin does not update this secret."
+            ),
+        )
         logger.info("Generated Jellyfin admin credentials for %s", ADMIN_USERNAME)
         return credentials
 
@@ -222,6 +281,10 @@ class JellyfinCharm(ops.CharmBase):
         next pass.
         """
         if self._get_api_key():
+            sync_secret_rotation_policy(
+                self.model.get_secret(label=API_KEY_SECRET_LABEL),
+                str(self.config.get("api-key-rotation", "disabled")),
+            )
             return
 
         try:
@@ -247,6 +310,32 @@ class JellyfinCharm(ops.CharmBase):
                 self._store_api_key(api.ensure_api_key(API_KEY_APP_NAME, token))
         except JellyfinApiError as e:
             logger.warning("Failed to bootstrap Jellyfin: %s", e)
+
+    def _publish_media_server(self) -> None:
+        """Publish media-server data and grant the admin credentials secret.
+
+        Seerr authenticates its own admin account against Jellyfin, so it needs
+        the credentials rather than the API key. They are only published once
+        the wizard has run and the secret exists.
+        """
+        credentials_secret_id: str | None = None
+        try:
+            secret = self.model.get_secret(label=ADMIN_SECRET_LABEL)
+        except ops.SecretNotFoundError:
+            pass
+        else:
+            for relation in self.model.relations.get("media-server", []):
+                secret.grant(relation)
+            credentials_secret_id = secret.id or secret.get_info().id
+
+        self._media_server.publish_data(
+            MediaServerProviderData(
+                name=self.app.name,
+                api_url=self._internal_url,
+                server=MediaServer.JELLYFIN,
+                credentials_secret_id=credentials_secret_id,
+            )
+        )
 
     def _reconcile_libraries(self, api_key: str) -> None:
         """Create Jellyfin libraries for root folders published by Radarr/Sonarr."""
@@ -387,8 +476,8 @@ class JellyfinCharm(ops.CharmBase):
         5. Mount shared storage PVC and reconcile hardware transcoding
         6. Configure Pebble layer and start workload
         7. Enable native metrics endpoint
-        8. Publish media-server data for request managers (Seerr)
-        9. Bootstrap admin + API key, then create libraries from media-manager
+        8. Bootstrap admin + API key, then create libraries from media-manager
+        9. Publish media-server data for request managers (Seerr)
         """
         self._topology.reconcile()
         # The topology endpoint is a cluster-internal concern - crowsnest polls
@@ -465,19 +554,14 @@ class JellyfinCharm(ops.CharmBase):
 
         self.unit.set_ports(WEBUI_PORT, self._topology.port)
 
-        # Publish media-server data for request managers (Seerr)
-        self._media_server.publish_data(
-            MediaServerProviderData(
-                name=self.app.name,
-                api_url=self._internal_url,
-            )
-        )
-
         # Complete the startup wizard and mint an API key, then create libraries
         # for whatever Radarr/Sonarr instances are related.
         self._reconcile_setup()
         if api_key := self._get_api_key():
             self._reconcile_libraries(api_key)
+
+        # Publish after the wizard so the admin credentials exist to hand over.
+        self._publish_media_server()
 
     def _on_collect_unit_status(self, event: ops.CollectStatusEvent) -> None:
         """Collect all unit statuses. Framework picks the worst."""

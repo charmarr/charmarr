@@ -151,13 +151,23 @@ class JellyfinApi:
             raise JellyfinApiResponseError("AuthenticateByName returned no AccessToken")
         return str(token)
 
+    def list_api_keys(self, app_name: str, token: str | None = None) -> list[str]:
+        """Return the access tokens of every API key registered under app_name."""
+        response = self._request("GET", "/Auth/Keys", token=token)
+        return [
+            str(item["AccessToken"])
+            for item in response.json().get("Items", [])
+            if item.get("AppName") == app_name
+        ]
+
     def get_api_key(self, app_name: str, token: str | None = None) -> str | None:
         """Return the access token of the API key registered under app_name."""
-        response = self._request("GET", "/Auth/Keys", token=token)
-        for item in response.json().get("Items", []):
-            if item.get("AppName") == app_name:
-                return str(item["AccessToken"])
-        return None
+        keys = self.list_api_keys(app_name, token=token)
+        return keys[0] if keys else None
+
+    def delete_api_key(self, api_key: str, token: str | None = None) -> None:
+        """Revoke an API key by its access token."""
+        self._request("DELETE", f"/Auth/Keys/{api_key}", token=token)
 
     def ensure_api_key(self, app_name: str, token: str | None = None) -> str:
         """Create the API key for app_name if absent, and return it.
@@ -174,6 +184,23 @@ class JellyfinApi:
             raise JellyfinApiResponseError(f"API key '{app_name}' missing after creation")
         logger.info("Created Jellyfin API key for %s", app_name)
         return api_key
+
+    def rotate_api_key(self, app_name: str, current: str, token: str | None = None) -> str:
+        """Mint a replacement key for app_name and revoke the current one.
+
+        The replacement is created before the old key is revoked, so a failure
+        partway through leaves the existing key working.
+        """
+        self._request("POST", "/Auth/Keys", token=token, params={"app": app_name})
+        replacement = next(
+            (key for key in self.list_api_keys(app_name, token=token) if key != current), None
+        )
+        if not replacement:
+            raise JellyfinApiResponseError(f"API key '{app_name}' missing after rotation")
+
+        self.delete_api_key(current, token=token)
+        logger.info("Rotated Jellyfin API key for %s", app_name)
+        return replacement
 
     def get_virtual_folders(self) -> list[VirtualFolder]:
         """Get all configured libraries."""

@@ -10,7 +10,7 @@ import jubilant
 from pytest_bdd import given, parsers, then, when
 
 from _jellyfin import WEBUI_PORT
-from charmarr_lib.testing import get_ingress_ip, http_from_unit
+from charmarr_lib.testing import get_ingress_url, http_from_unit
 
 
 @given("jellyfin is deployed", target_fixture="jellyfin_deployed")
@@ -49,11 +49,10 @@ def secret_exists(juju: jubilant.Juju, label: str, app: str) -> None:
 @then("jellyfin should be accessible via ingress")
 def jellyfin_accessible_via_ingress(juju: jubilant.Juju) -> None:
     """Verify jellyfin is accessible via ingress."""
-    ingress_ip = get_ingress_ip(juju, "istio-ingress")
-    assert ingress_ip is not None, "Could not get ingress IP"
+    base_url = get_ingress_url(juju, "jellyfin")
+    assert base_url is not None, "Ingress provider published no URL for jellyfin"
 
-    url = f"http://{ingress_ip}:80/System/Info/Public"
-    response = http_from_unit(juju, "jellyfin/0", url)
+    response = http_from_unit(juju, "jellyfin/0", f"{base_url}/System/Info/Public")
     assert response.status_code == 200
 
 

@@ -44,7 +44,7 @@ wheels = [
 
 [[package]]
 name = "charmarr-lib-core"
-version = "0.18.0"
+version = "0.19.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "charmarr-lib-krm" },
@@ -53,9 +53,9 @@ dependencies = [
     { name = "ops" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0e/b3/bcce848b712da8a7f31b7bc316a028a214f4ba2187fd2c4edc10d55c913e/charmarr_lib_core-0.18.0.tar.gz", hash = "sha256:88685199456a0de3e1aebdefada5c636ef5eb677a4480b05dcd33d4b8cdcd988", size = 49531, upload-time = "2026-06-01T21:08:45.236Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/03/94/adcd1f2d1c61f9314a341452e975d3ec68db11a4c9645efee120d5910122/charmarr_lib_core-0.19.0.tar.gz", hash = "sha256:1f172f4c66bd28443be6859835b0803cad9a5ad71b3ea7ee825184ab0b62862f", size = 50183, upload-time = "2026-08-21T20:09:45.478Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a8/c3/07c94763020211c03f9ddf2767c8756ec7f2f5bb3775c5887ff60104a757/charmarr_lib_core-0.18.0-py3-none-any.whl", hash = "sha256:5755855e4f43cfb4ee3d709653a4067511a5648c653ae2bc44addf25094503b6", size = 49217, upload-time = "2026-06-01T21:08:43.981Z" },
+    { url = "https://files.pythonhosted.org/packages/a2/d1/4358b6c3d07f168275bd7ea176eeaa5a313141c0c3048bfdf0960fd2ac0d/charmarr_lib_core-0.19.0-py3-none-any.whl", hash = "sha256:91ca52227c164c6d1f725eba3f2a9efd858190d4c48b04d4c592c8ce7f01e9a0", size = 49366, upload-time = "2026-08-21T20:09:44.153Z" },
 ]
 
 [[package]]
@@ -73,7 +73,7 @@ wheels = [
 
 [[package]]
 name = "charmarr-lib-testing"
-version = "0.7.5"
+version = "0.8.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jubilant" },
@@ -85,9 +85,9 @@ dependencies = [
     { name = "pyyaml" },
     { name = "tenacity" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4d/ad/78896e70ccd014643af0b871bbe05be2d523e7b73ebed30ac780305999a0/charmarr_lib_testing-0.7.5.tar.gz", hash = "sha256:c096b879a4460a2e4d6d61c30219f283867001270dbe40e1dca5d44e318ea557", size = 14161, upload-time = "2026-08-15T20:55:40.763Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7a/cb/2a3849981524ca79b6b2d90b1fc2fb9cf6e3d9bf8c85873b210d709be252/charmarr_lib_testing-0.8.1.tar.gz", hash = "sha256:e8019780498e3d555d2b6665a04ccd834244bc517ee83197997598f7141326de", size = 15526, upload-time = "2026-08-20T20:26:13.506Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6b/ed/b0f3c7ba178ddd00a1ce46bbb826e71f1d24f3cd2be539b8fe354d5b3098/charmarr_lib_testing-0.7.5-py3-none-any.whl", hash = "sha256:2005acae11aa7aaaf07627bd52f0a547f63833d832e24442cb5234c2b335208c", size = 17652, upload-time = "2026-08-15T20:55:39.424Z" },
+    { url = "https://files.pythonhosted.org/packages/cc/cd/cc838d5e2a448be4eef36869f2cbedc5dbf401976f621c767b2bddcdca52/charmarr_lib_testing-0.8.1-py3-none-any.whl", hash = "sha256:cfc53bb80ae78ac7b710a41aad5673dd75755ea6a9059ee4126f1d585e396865", size = 19195, upload-time = "2026-08-20T20:26:12.443Z" },
 ]
 
 [[package]]
@@ -444,7 +444,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "charmarr-lib-core", specifier = ">=0.18.0" },
+    { name = "charmarr-lib-core", specifier = ">=0.19.0" },
     { name = "charmarr-lib-testing", marker = "extra == 'integration'", specifier = ">=0.7.1" },
     { name = "charmed-service-mesh-helpers" },
     { name = "codespell", marker = "extra == 'dev'", specifier = ">=2.0" },

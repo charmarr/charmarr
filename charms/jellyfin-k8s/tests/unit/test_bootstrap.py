@@ -9,8 +9,12 @@ import pytest
 from ops.testing import Relation, Secret, State
 
 from _jellyfin import VirtualFolder
-from charmarr_lib.core import ContentVariant, MediaManager
-from charmarr_lib.core.interfaces import MediaManagerProviderData, MediaStorageProviderData
+from charmarr_lib.core import ContentVariant, MediaManager, MediaServer
+from charmarr_lib.core.interfaces import (
+    MediaManagerProviderData,
+    MediaServerProviderData,
+    MediaStorageProviderData,
+)
 
 from .conftest import JELLYFIN_CONTAINER
 
@@ -211,3 +215,43 @@ def test_libraries_noop_without_media_manager(ctx, mock_k8s, api, reconcile_patc
     )
 
     api.create_virtual_folder.assert_not_called()
+
+
+def test_media_server_published_with_credentials(ctx, mock_k8s, api, reconcile_patches):
+    """Seerr receives the server type and the admin credentials secret."""
+    media_server = Relation(endpoint="media-server", interface="media-server")
+    state = _run(
+        ctx,
+        State(
+            leader=True,
+            containers=[JELLYFIN_CONTAINER],
+            relations=[_storage_relation(), media_server],
+        ),
+    )
+
+    relation_out = state.get_relations("media-server")[0]
+    published = MediaServerProviderData.model_validate_json(relation_out.local_app_data["config"])
+    assert published.server == MediaServer.JELLYFIN
+    assert published.credentials_secret_id is not None
+
+
+def test_media_server_published_without_credentials_before_bootstrap(
+    ctx, mock_k8s, api, reconcile_patches
+):
+    """A server set up outside the charm has no credentials to hand over."""
+    api.is_setup_complete.return_value = True
+    media_server = Relation(endpoint="media-server", interface="media-server")
+
+    state = _run(
+        ctx,
+        State(
+            leader=True,
+            containers=[JELLYFIN_CONTAINER],
+            relations=[_storage_relation(), media_server],
+        ),
+    )
+
+    relation_out = state.get_relations("media-server")[0]
+    published = MediaServerProviderData.model_validate_json(relation_out.local_app_data["config"])
+    assert published.credentials_secret_id is None
+    assert published.api_url.startswith("http://")
