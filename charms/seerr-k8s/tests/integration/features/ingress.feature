@@ -8,7 +8,6 @@ Feature: Seerr ingress integration
 
   Scenario: Seerr is accessible via ingress
     Given seerr is deployed
-    And istio-k8s is deployed
-    And istio-ingress is deployed
-    And seerr is related to istio-ingress via istio-ingress-route
+    And traefik is deployed
+    And seerr is related to traefik via ingress
     Then seerr should be accessible via ingress

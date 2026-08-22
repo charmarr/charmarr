@@ -37,6 +37,9 @@ from _seerr import (
     CONTAINER_NAME,
     DEFAULT_PGID,
     DEFAULT_PUID,
+    MEDIA_SERVER_TYPE_JELLYFIN,
+    MEDIA_SERVER_TYPE_PLEX,
+    MEDIA_SERVER_TYPE_UNSET,
     SERVICE_NAME,
     SETTINGS_FILE,
     WEBUI_PORT,
@@ -48,6 +51,7 @@ from charmarr_lib.core import (
     CharmarrTopologyRelation,
     ContentVariant,
     MediaManager,
+    MediaServer,
     MetricFamily,
     MetricSample,
     RequestManager,
@@ -63,10 +67,16 @@ from charmarr_lib.core.interfaces import (
     MediaManagerProviderData,
     MediaManagerRequirer,
     MediaManagerRequirerData,
+    MediaServerProviderData,
     MediaServerRequirer,
 )
 
 logger = logging.getLogger(__name__)
+
+MEDIA_SERVER_TYPES: dict[MediaServer, int] = {
+    MediaServer.PLEX: MEDIA_SERVER_TYPE_PLEX,
+    MediaServer.JELLYFIN: MEDIA_SERVER_TYPE_JELLYFIN,
+}
 
 
 class SeerrCharm(ops.CharmBase):
@@ -127,17 +137,27 @@ class SeerrCharm(ops.CharmBase):
         framework.observe(self._ingress.on.ready, self._reconcile)
         framework.observe(self._ingress.on.revoked, self._reconcile)
 
-    def _get_api_key(self) -> str | None:
-        """Read API key from settings.json."""
+    def _read_settings(self) -> dict:
+        """Read Seerr's settings.json, or an empty dict if unreadable."""
         if not self._container.can_connect():
-            return None
+            return {}
 
         try:
-            content = self._container.pull(SETTINGS_FILE).read()
-            settings = json.loads(content)
-            return settings.get("main", {}).get("apiKey")
+            return json.loads(self._container.pull(SETTINGS_FILE).read())
         except (ops.pebble.PathError, json.JSONDecodeError):
-            return None
+            return {}
+
+    def _get_api_key(self) -> str | None:
+        """Read API key from settings.json."""
+        return self._read_settings().get("main", {}).get("apiKey")
+
+    def _get_media_server_type(self) -> int:
+        """Read which media server Seerr was set up against.
+
+        Seerr encodes this as 1=plex, 2=jellyfin, 3=emby, 4=unset.
+        """
+        main = self._read_settings().get("main", {})
+        return int(main.get("mediaServerType", MEDIA_SERVER_TYPE_UNSET))
 
     def _get_secret_id(self, secret: ops.Secret) -> str:
         """Get secret ID reliably (handles ops 2.x quirk with labeled secrets)."""
@@ -434,6 +454,78 @@ class SeerrCharm(ops.CharmBase):
         self._ensure_server_defaults("Radarr", api.get_radarr_servers, api.update_radarr_server)
         self._ensure_server_defaults("Sonarr", api.get_sonarr_servers, api.update_sonarr_server)
 
+    def _has_media_server_conflict(self) -> bool:
+        """Whether Seerr set up against a different server than the related one.
+
+        Seerr binds its administrator account to whichever media server
+        completed first-run setup, so the charm cannot re-point it.
+        """
+        provider = self._media_server.get_provider()
+        if provider is None or provider.server is None:
+            return False
+
+        configured = self._get_media_server_type()
+        if configured == MEDIA_SERVER_TYPE_UNSET:
+            return False
+
+        return configured != MEDIA_SERVER_TYPES[provider.server]
+
+    def _bootstrap_jellyfin(self, api: SeerrApi, provider: MediaServerProviderData) -> None:
+        """Complete Seerr's first-run setup against Jellyfin, headlessly.
+
+        Seerr does not hash a local password for a Jellyfin-backed admin;
+        every login proxies to Jellyfin. The Seerr administrator therefore is
+        the Jellyfin administrator, which is why this needs the credentials
+        rather than an API key.
+        """
+        if not provider.credentials_secret_id:
+            logger.info("Waiting for %s to publish its administrator credentials", provider.name)
+            return
+
+        try:
+            secret = self.model.get_secret(id=provider.credentials_secret_id)
+            credentials = secret.get_content(refresh=True)
+        except ops.SecretNotFoundError:
+            logger.warning("Administrator credentials from %s are not readable", provider.name)
+            return
+
+        hostname, port, use_ssl = self._parse_url(provider.api_url)
+
+        try:
+            if self._get_media_server_type() == MEDIA_SERVER_TYPE_UNSET:
+                api.jellyfin_setup(
+                    hostname=hostname,
+                    port=port,
+                    username=credentials["username"],
+                    password=credentials["password"],
+                    use_ssl=use_ssl,
+                )
+            libraries = api.sync_jellyfin_libraries()
+            if libraries:
+                api.enable_jellyfin_libraries([str(library["id"]) for library in libraries])
+            api.initialize()
+        except SeerrApiError as e:
+            logger.warning("Jellyfin setup failed, retrying on the next event: %s", e)
+            return
+
+        logger.info(
+            "Set Seerr up against %s with %d libraries enabled", provider.name, len(libraries)
+        )
+
+    def _reconcile_media_server(self, api: SeerrApi) -> None:
+        """Run first-run setup when the related media server allows it.
+
+        Plex needs an OAuth handshake against plex.tv that yields a
+        user-scoped token, so it stays with the operator's web-UI wizard.
+        """
+        provider = self._media_server.get_provider()
+        if provider is None or provider.server != MediaServer.JELLYFIN:
+            return
+        if api.is_initialized():
+            return
+
+        self._bootstrap_jellyfin(api, provider)
+
     def _publish_requirer_data(self) -> None:  # pragma: no cover
         """Publish requirer data to media-manager relations."""
         if not self.model.relations.get("media-manager"):
@@ -579,7 +671,18 @@ class SeerrCharm(ops.CharmBase):
         if not self._is_workload_ready(api_key):
             return
 
+        if self._has_media_server_conflict():
+            logger.error(
+                "Seerr completed first-run setup against a different media server than "
+                "the one it is now related to. Its administrator account is bound to "
+                "that server, so the charm cannot re-point it. Either relate the "
+                "original media server back, or remove seerr along with its config "
+                "storage and redeploy against the new one."
+            )
+            return
+
         with self._get_api_client(api_key) as api:
+            self._reconcile_media_server(api)
             if api.is_initialized():
                 self._reconcile_media_managers(api)
 
@@ -625,6 +728,12 @@ class SeerrCharm(ops.CharmBase):
 
         if not self._is_workload_ready(api_key):
             event.add_status(ops.WaitingStatus("Waiting for workload"))
+            return
+
+        if self._has_media_server_conflict():
+            event.add_status(
+                ops.BlockedStatus("Cannot switch media server after setup, check logs")
+            )
             return
 
         with self._get_api_client(api_key) as api:
