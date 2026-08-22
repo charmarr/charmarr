@@ -7,7 +7,7 @@
 default:
     @just --justfile {{justfile()}} --list
 
-# Setup charmarr infrastructure (MicroK8s + Juju)
+# Setup charmarr infrastructure (Canonical K8s + Juju)
 setup:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -15,39 +15,39 @@ setup:
     echo "Installing Juju..."
     sudo snap install juju --channel=3.6/stable
 
-    echo "Installing MicroK8s (classic)..."
-    sudo snap install microk8s --channel=1.32/stable --classic
-    sudo usermod -a -G microk8s $USER
+    echo "Installing Canonical K8s (classic)..."
+    sudo snap install k8s --channel=1.32-classic/stable --classic
 
-    echo "Waiting for MicroK8s to be ready..."
-    sudo microk8s status --wait-ready
+    echo "Bootstrapping the cluster..."
+    sudo k8s bootstrap
+    sudo k8s status --wait-ready
 
-    echo "Enabling addons..."
-    sudo microk8s enable dns
-    sudo microk8s enable hostpath-storage
+    echo "Enabling storage and an L2 load balancer pool..."
+    sudo k8s enable local-storage
     IPADDR=$(ip -4 -j route get 2.2.2.2 | jq -r '.[] | .prefsrc')
     IFS='.' read -r a b c d <<< "$IPADDR"
-    sudo microk8s enable metallb:$IPADDR-$a.$b.$c.$((d + 9))
+    sudo k8s set load-balancer.l2-mode=true load-balancer.cidrs="$IPADDR-$a.$b.$c.$((d + 9))"
+    sudo k8s enable load-balancer
 
-    echo "Waiting for addons to be ready..."
-    sudo microk8s kubectl rollout status deployment/coredns -n kube-system --timeout=300s
-    sudo microk8s kubectl rollout status deployment/hostpath-provisioner -n kube-system --timeout=300s
+    echo "Waiting for the cluster to settle..."
+    sudo k8s status --wait-ready
+
+    echo "Exporting kubeconfig..."
+    mkdir -p $HOME/.kube
+    sudo k8s config > $HOME/.kube/config
 
     echo "Bootstrapping Juju..."
-    sudo microk8s config | juju add-k8s mcrk8s --client
-    juju bootstrap mcrk8s mcrk8s
+    juju add-k8s ck8s --client
+    juju bootstrap ck8s ck8s
 
     echo "Creating charmarr model..."
     juju add-model --config logging-config="<root>=WARNING; unit=DEBUG" \
                    --config update-status-hook-interval="60m" charmarr
 
-    echo "Exporting kubeconfig..."
-    mkdir -p $HOME/.kube
-    sudo microk8s config > $HOME/.kube/config
-
     echo ""
     echo "Charmarr infrastructure ready!"
-    echo "  - MicroK8s (classic) with Juju bootstrapped"
+    echo "  - Canonical K8s (classic) with Juju bootstrapped"
+    echo "  - Default StorageClass: csi-rawfile-default (ReadWriteOnce)"
     echo "  - Model 'charmarr' created"
     echo ""
     echo "Verify with:"
@@ -59,10 +59,10 @@ nuke:
     #!/usr/bin/env bash
     set -euo pipefail
     echo "Destroying Juju controller..."
-    juju destroy-controller mcrk8s --destroy-all-models --destroy-storage --no-prompt || true
+    juju destroy-controller ck8s --destroy-all-models --destroy-storage --no-prompt || true
     echo "Removing snaps..."
     sudo snap remove --purge juju || true
-    sudo snap remove --purge microk8s || true
+    sudo snap remove --purge k8s || true
     echo "Cleaning up..."
     rm -rf ~/.local/share/juju ~/.cache/juju ~/.config/juju
     rm -f ~/.kube/config
