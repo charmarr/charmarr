@@ -11,7 +11,7 @@ Charmarr is composed of multiple charms that thinly wrap the operational layer o
 
     ---
 
-    Plex charm internals.
+    Plex & Jellyfin charm internals.
 
     [:octicons-arrow-right-24: Read more](media-server.md)
 

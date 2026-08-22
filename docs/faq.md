@@ -3,7 +3,7 @@
 ## Setup
 
 ??? question "What Kubernetes distros are supported?"
-    Depends on whether you enable Istio Ambient. See the [shopping list](setup/prerequisites.md#manual-setup) and [Ingress & Security](setup/prerequisites.md#ingress-security) in prerequisites.
+    Any conformant distro with a LoadBalancer and a default StorageClass. Canonical K8s is recommended. See the [shopping list](setup/prerequisites.md#manual-setup) in prerequisites. Istio Ambient narrows this further: see [Enabling Istio](security/network.md#enabling-istio).
 
 ??? question "What are the hardware requirements?"
     Charmarr has more overhead than a simple Docker Compose setup. Kubernetes and Juju add resource consumption. As someone smart once said, there's no free lunch. Charmarr's benefits come with a price to pay.
@@ -32,7 +32,7 @@
 ## Networking
 
 ??? question "Do I need a VPN subscription?"
-    Recommended, but not required. Charmarr works best with a WireGuard-compatible VPN for traffic anonymization. ProtonVPN is recommended. See [VPN Provider](setup/quickdeploy.md#vpn-provider) for supported providers.
+    Recommended, but not required. Charmarr works best with a WireGuard-compatible VPN for traffic anonymization. ProtonVPN is recommended. See [VPN](setup/quickdeploy.md#vpn) for supported providers.
 
     To run without a VPN, set `unsafe-mode` to `true` for qBittorrent and SABnzbd. This is intentionally made hard because it's discouraged.
 
@@ -67,7 +67,7 @@
 ??? question "Do I need the service mesh?"
     Probably not. It's enterprise-level network hardening made as simple as it can get for homelab use. Do I need it? Most likely not. But homelab is not a place where one does things one needs, it's a place where one does things one wants and can. Does Charmarr make service mesh accessible to any homelab user? Absolutely.
 
-    Istio is disabled by default. Enable with `enable_istio = true` and `enable_mesh = true` in Quick Deploy after checking the [Compatibility Checklist](setup/prerequisites.md#compatibility-checklist). Charmarr works fine without it at homelab level.
+    Istio is disabled by default and Charmarr ships with Traefik instead. Turning it on is a single `enable_istio = true`, but the cluster has to be able to take it: see [Enabling Istio](security/network.md#enabling-istio). Charmarr works fine without it at homelab level.
 
     Why include it? Partly to dogfood my own project from work, but also to expose it to a wider audience who are curious enough to try it. See [Networking](security/network.md) for what it does.
 
@@ -77,20 +77,18 @@
 ## Apps
 
 ??? question "How do I access the web UIs?"
-    With Istio ingress, each app is accessible via the ingress gateway. The URLs follow this pattern:
+    Each app is reachable through its ingress gateway. With the default Traefik gateways, the path is `/<model>-<app>`:
 
-    - Radarr: `http://<ARR_INGRESS_IP>/radarr`
-    - Sonarr: `http://<ARR_INGRESS_IP>/sonarr`
-    - Prowlarr: `http://<ARR_INGRESS_IP>/prowlarr`
-    - qBittorrent: `http://<ARR_INGRESS_IP>/qbittorrent`
+    - Radarr: `http://<ARR_INGRESS_IP>/charmarr-radarr`
+    - Sonarr: `http://<ARR_INGRESS_IP>/charmarr-sonarr`
+    - Prowlarr: `http://<ARR_INGRESS_IP>/charmarr-prowlarr`
+    - qBittorrent: `http://<ARR_INGRESS_IP>/charmarr-qbittorrent`
     - Plex: `http://<PLEX_INGRESS_IP>`
     - Seerr: `http://<SEERR_INGRESS_IP>`
 
-    The ingress port defaults to 80. If you changed it via `ingress-port`, append it to the URL (e.g., `http://<IP>:8080/radarr`).
+    Traefik owns those prefixes, so they change with your model and application names. Under Istio the prefix and port are yours instead, via the `ingress-path` and `ingress-port` config.
 
-    Path prefixes default to the Juju app name. If you deployed with a custom name (e.g., `radarr-4k`), the path is `/<app-name>`. Override with the `ingress-path` config.
-
-    See [Post-Deploy](setup/post-deploy.md) for details on finding ingress IPs. If you're not using Istio, find the URLs based on your ingress setup.
+    See [Post-Deploy](setup/post-deploy.md) for details on finding ingress IPs.
 
 ??? question "Can I add more Radarr/Sonarr instances?"
     Yes. Deploy additional instances with unique names and variants. For example:

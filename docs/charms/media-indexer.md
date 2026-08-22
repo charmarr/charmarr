@@ -13,7 +13,7 @@ The charm talks to other charms to figure out how to set everything up. The orde
 | **Radarr/Sonarr** | `media-indexer` | Gets their API URLs, registers them as "Applications" in Prowlarr |
 | **FlareSolverr** | `flaresolverr` | Gets its URL, configures it as a proxy for Cloudflare-protected indexers |
 | **VPN Gateway** | `vpn-gateway` | VPN routing |
-| **Ingress** | `istio_ingress_route` | Enables external access |
+| **Ingress** | `ingress` or `istio_ingress_route` | Enables external access |
 
 Unlike Radarr/Sonarr, Prowlarr doesn't need storage or download client relations. It only manages indexers.
 

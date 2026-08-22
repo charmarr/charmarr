@@ -13,7 +13,7 @@ The charm talks to other charms to figure out how to set everything up. The orde
 | **Storage** | `media-storage` | Where to save downloads (`/data`), UID/GID for file permissions |
 | **Radarr/Sonarr** | `download-client` | Which media managers need download categories |
 | **VPN Gateway** | `vpn-gateway` | VPN routing |
-| **Ingress** | `istio_ingress_route` | Enables external access |
+| **Ingress** | `ingress` or `istio_ingress_route` | Enables external access |
 
 The charm creates download categories automatically based on connected media managers. For example, if you have `radarr` and `sonarr-4k` connected, qBittorrent gets categories named `radarr` and `sonarr-4k` with appropriate save paths.
 
@@ -61,7 +61,7 @@ The charm talks to other charms to figure out how to set everything up. The orde
 | **Storage** | `media-storage` | Where to save downloads (`/data`), UID/GID for file permissions |
 | **Radarr/Sonarr** | `download-client` | Which media managers need download categories |
 | **VPN Gateway** | `vpn-gateway` | VPN routing |
-| **Ingress** | `istio_ingress_route` | Enables external access |
+| **Ingress** | `ingress` or `istio_ingress_route` | Enables external access |
 
 Like qBittorrent, SABnzbd gets categories automatically based on connected media managers.
 

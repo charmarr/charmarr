@@ -17,12 +17,12 @@ curl -O https://raw.githubusercontent.com/charmarr/charmarr/main/justfiles/charm
 just -f charmarr-primitives.just setup
 ```
 
-This installs MicroK8s with required addons, bootstraps Juju, and creates a `charmarr` model.
+This installs Canonical K8s with local storage and an L2 load balancer pool, bootstraps Juju, and creates a `charmarr` model.
 
 Verify it worked:
 
 ```bash
-juju clouds    # should show mcrk8s
+juju clouds    # should show ck8s
 juju models    # should show charmarr model
 ```
 
@@ -38,26 +38,44 @@ just -f charmarr-primitives.just nuke
 
 Already have a cluster? Here's the shopping list.
 
-| Category | Requirement | Status | Istio Support |
-|----------|-------------|--------|---------------|
-| Hardware | 8 GB RAM | Minimum | - |
-| Hardware | 4 vCPUs | Minimum | - |
-| OS | Ubuntu baremetal | Recommended | - |
-| OS | Other Linux distros | Untested | - |
-| OS | Virtualized setups | Untested | - |
-| Kubernetes | MicroK8s | Recommended | Yes |
-| Kubernetes | Minikube | Supported | Yes |
-| Kubernetes | Other standard K8s | Supported | Yes |
-| Kubernetes | K3s / k3d | Supported | [Needs tweaks](#compatibility-checklist) |
-| Kubernetes | Cilium CNI | Supported | [Needs tweaks](#compatibility-checklist) |
-| Kubernetes | LB with 3+ IPs | - | Required |
-| Tools | Juju 3.6.x | Required | Required |
+| Category | Requirement | Status |
+|----------|-------------|--------|
+| Hardware | 8 GB RAM | Minimum |
+| Hardware | 4 vCPUs | Minimum |
+| OS | Ubuntu baremetal | Recommended |
+| OS | Other Linux distros | Untested |
+| OS | Virtualized setups | Untested |
+| Kubernetes | Canonical K8s | Recommended |
+| Kubernetes | MicroK8s | Supported |
+| Kubernetes | Minikube | Supported |
+| Kubernetes | Other standard K8s | Supported |
+| Kubernetes | K3s / k3d | Supported |
+| Kubernetes | LoadBalancer with 4+ IPs | Required |
+| Kubernetes | Default StorageClass | Required |
+| Tools | Juju 3.6.x | Required |
 
-### MicroK8s Addons
+Charmarr deploys one ingress application per group of apps, so the cluster needs a LoadBalancer implementation that can hand out an address to each. Four covers the largest layout: one for the arrs, one for Seerr, and one each for Plex and Jellyfin.
+
+### Canonical K8s
+
+```bash
+sudo snap install k8s --channel=1.32-classic/stable --classic
+sudo k8s bootstrap
+sudo k8s enable local-storage
+sudo k8s set load-balancer.l2-mode=true load-balancer.cidrs="10.0.0.10-10.0.0.19"
+sudo k8s enable load-balancer
+sudo k8s status --wait-ready
+```
+
+Pick a `cidrs` range that is free on your LAN. This gives you the `csi-rawfile-default` StorageClass, which is `ReadWriteOnce` only, so deploy with `access_mode = "ReadWriteOnce"`.
+
+### MicroK8s
 
 ```bash
 sudo microk8s enable dns hostpath-storage metallb
 ```
+
+The `hostpath-storage` addon provides `microk8s-hostpath`, which supports `ReadWriteMany`.
 
 ### Juju Setup
 
@@ -73,10 +91,10 @@ Bootstrap with your cluster:
 
 ```bash
 # Add your k8s cluster to Juju (pipe kubeconfig into add-k8s)
-sudo microk8s config | juju add-k8s mcrk8s --client
+sudo k8s config | juju add-k8s ck8s --client
 
 # Bootstrap Juju on the cluster
-juju bootstrap mcrk8s mcrk8s
+juju bootstrap ck8s ck8s
 
 # Create the charmarr model
 juju add-model charmarr
@@ -86,26 +104,11 @@ See the Juju docs for [add-k8s](https://documentation.ubuntu.com/juju/3.6/refere
 
 ---
 
-## Ingress & Security
+## Ingress
 
-Charmarr lets you opt-in to [Istio Ambient](https://istio.io/latest/docs/ambient/overview/). Enabling Istio provides ingress to all Charmarr apps via the Istio ingress gateway, which is recommended if the cluster is compatible as it simplifies ingress setup. On top, it is possible to enable mesh which hardens internal traffic with zero-trust. See [Networking](../security/network.md) for details.
+Charmarr fronts every web UI with [Traefik](https://charmhub.io/traefik-k8s). It runs on any conformant cluster and needs nothing beyond a LoadBalancer address, so there is nothing to install and nothing to decide here.
 
-### Compatibility Checklist
-
-- [x] Used [The Easy Way](#the-easy-way) to setup the cluster
-
-**— OR —**
-
-- [x] No Istiod already running on the cluster (if you don't know, it's probably not)
-- [x] Not using K3s or k3d (read the warning below)
-- [x] Not using Cilium CNI (or willing to [configure it](https://istio.io/latest/docs/ambient/install/platform-prerequisites/#cilium))
-
-All checked? Enable Istio and mesh while deploying.
-
-Not all checked? Disable Istio and handle ingress yourself. See [Istio platform prerequisites](https://istio.io/latest/docs/ambient/install/platform-prerequisites/) for details.
-
-!!! warning
-    K3s and k3d use non-standard CNI paths that can conflict with Istio Ambient. Adding Istio may disrupt the CNI chain and cause hard-to-debug networking issues. It can work with careful configuration: [K3s docs](https://istio.io/latest/docs/ambient/install/platform-prerequisites/#k3s), [k3d docs](https://istio.io/latest/docs/ambient/install/platform-prerequisites/#k3d). So if you want to use it with Istio Ambient, do it at your own discretion.
+If you want mutual TLS and zero-trust policies on internal traffic instead, Charmarr can run on Istio Ambient. That is a separate opt-in with its own prerequisites: see [Enabling Istio](../security/network.md#enabling-istio).
 
 ---
 

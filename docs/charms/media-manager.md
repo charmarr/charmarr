@@ -16,7 +16,7 @@ The charms talk to other charms to figure out how to set everything up. The orde
 | **Plex** | `media-manager` | Publishes root folders and content type so Plex can create libraries |
 | **Seerr** | `media-manager` | Publishes API URL, quality profiles, root folders so Seerr can send requests |
 | **VPN Gateway** | `vpn-gateway` | Optional VPN routing (if related) |
-| **Ingress** | `istio_ingress_route` | Enables external access |
+| **Ingress** | `ingress` or `istio_ingress_route` | Enables external access |
 
 The charm aggressively reconciles download clients. If you manually add a download client in Radarr/Sonarr that isn't a Juju relation, it gets deleted. Charms are declarative and Charmarr is designed to ✨just work✨.
 

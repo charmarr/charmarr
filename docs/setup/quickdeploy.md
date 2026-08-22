@@ -2,9 +2,6 @@
 
 Charmarr provides pre-configured media stack bundles as [HCL](https://developer.hashicorp.com/terraform/language) modules, deployable with Terraform.
 
-!!! note
-    Cluster already has Istiod? Use [Manual Deploy](manual.md) instead. If you don't know, your cluster doesn't have one.
-
 ## Bundles
 
 | Bundle | ![](../assets/logos/radarr.png){.inline-icon} Radarr | ![](../assets/logos/sonarr.png){.inline-icon} Sonarr |
@@ -16,8 +13,8 @@ Both bundles include:
 
 <table>
   <tr>
-    <td><img src="../../assets/logos/plex.png" class="inline-icon"> Plex</td>
-    <td><img src="../../assets/logos/overseerr.png" class="inline-icon"> Seerr <sup>1</sup></td>
+    <td><img src="../../assets/logos/plex.png" class="inline-icon"> Plex <sup>1</sup></td>
+    <td><img src="../../assets/logos/overseerr.png" class="inline-icon"> Seerr <sup>2</sup></td>
     <td><img src="../../assets/logos/prowlarr.png" class="inline-icon"> Prowlarr</td>
     <td><img src="../../assets/logos/flaresolverr.png" class="inline-icon"> FlareSolverr</td>
   </tr>
@@ -29,7 +26,10 @@ Both bundles include:
   </tr>
 </table>
 
-<small><sup>1</sup> Seerr is the successor to Overseerr (and Jellyseerr). The bundle can deploy
+<small><sup>1</sup> Jellyfin can be deployed instead of Plex, or alongside it. See
+[Media Server](#media-server) below.</small>
+
+<small><sup>2</sup> Seerr is the successor to Overseerr (and Jellyseerr). The bundle can deploy
 Overseerr instead, or both side-by-side during migration. See
 [Media Requester](#media-requester) below.</small>
 
@@ -218,7 +218,7 @@ Comma-separated list of CIDRs to exclude from VPN routing (required when VPN is 
 - **Service CIDR** - K8s service network
 - **LAN CIDR** - Your local network
 
-**MicroK8s defaults:**
+**Canonical K8s and MicroK8s defaults:**
 
 | CIDR | Default |
 |------|---------|
@@ -308,9 +308,29 @@ needed for migration. When you're ready to migrate to Seerr, set
     `enable_overseerr` and the overseerr module will be removed in a
     future release. Migrate before upgrading.
 
-#### Plex Hardware Transcoding
+#### Media Server
 
-If your hardware supports it:
+Pick one media server, or none if you only want the arrs.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `media_server` | `"plex"` | Which media server to deploy: `"plex"`, `"jellyfin"`, or `"none"`. |
+
+```hcl
+module "charmarr" {
+  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
+
+  # ... your other config ...
+
+  media_server = "jellyfin"
+}
+```
+
+Running Plex and Jellyfin side by side is not supported by this module. Seerr accepts exactly one media server, and its administrator account is bound to whichever one completed setup first. If you want a second media server, deploy and relate it yourself.
+
+Whichever you enable is wired to storage and to every media manager, and gets its own ingress.
+
+**Hardware transcoding**, if your hardware supports it:
 
 ```hcl
 module "charmarr" {
@@ -321,86 +341,29 @@ module "charmarr" {
   plex = {
     hardware_transcoding = true
   }
-}
-```
 
-#### Istio
-
-Enable Istio for ingress and mesh security (see [Compatibility Checklist](prerequisites.md#compatibility-checklist) first):
-
-```hcl
-module "charmarr" {
-  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
-
-  # ... your other config ...
-
-  enable_istio = true
-  enable_mesh  = true
-
-  # Only needed if not using MicroK8s
-  istio = {
-    config = {
-      platform = "minikube"  # see table below
-    }
+  jellyfin = {
+    hardware_transcoding = true
   }
 }
 ```
 
-| Distribution | `platform` value |
-|--------------|------------------|
-| MicroK8s | `microk8s` (default) |
-| Minikube | `minikube` |
-| Standard K8s (GKE, EKS, AKS, kubeadm) | `""` |
-| K3s | `k3s` |
-| k3d | `k3d` |
+#### Ingress
 
-**Path Prefixes**
+Charmarr fronts every web UI with [Traefik](https://charmhub.io/traefik-k8s). Nothing to configure.
 
-Path prefixes default to the Juju app name (e.g., deploying as `radarr` gives path `/radarr`). With a typical deployment:
+You get one ingress application per group, each with its own LoadBalancer address:
 
-| App Name | Default Path |
-|----------|--------------|
-| radarr | `/radarr` |
-| sonarr | `/sonarr` |
-| prowlarr | `/prowlarr` |
-| qbittorrent | `/qbittorrent` |
-| sabnzbd | `/sabnzbd` |
+| Application | Fronts |
+|-------------|--------|
+| `arr-ingress` | Radarr, Sonarr, Prowlarr, qBittorrent, SABnzbd |
+| `plex-ingress` | Plex (when `media_server = "plex"`) |
+| `jellyfin-ingress` | Jellyfin (when `media_server = "jellyfin"`) |
+| `seerr-ingress` | Seerr (when `enable_seerr = true`) |
 
-With Istio ingress, these paths are automatically configured. If you're using your own ingress controller, configure it to route these paths to the respective services.
+Plex, Jellyfin, and Seerr each need the root of a gateway, which is why they get their own instead of sharing with the arrs.
 
-To use different paths, or set `"/"` to serve at root (no path prefix):
-
-```hcl
-module "charmarr" {
-  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
-
-  # ... your other config ...
-
-  radarr = {
-    ingress_path = "/movies"
-  }
-
-  qbittorrent = {
-    ingress_path = "/"  # serve at root
-  }
-}
-```
-
-**Ingress Port**
-
-The ingress listener port defaults to 80. To use a different port:
-
-```hcl
-module "charmarr" {
-  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
-
-  # ... your other config ...
-
-  radarr = {
-    ingress_port = 8080
-  }
-}
-```
+Traefik picks the path prefix, in the form `/{model}-{app}`. In a model named `charmarr`, Radarr lands on `/charmarr-radarr`, Sonarr on `/charmarr-sonarr`, and so on. The charms read that prefix off the relation and reconfigure themselves, so links and assets resolve without you setting anything.
 
 ### 3. Deploy
 
@@ -450,7 +413,7 @@ module "charmarr_plus" {
 
 ### 2. Configure Variables
 
-Same as charmarr. See [Storage](#storage), [VPN](#vpn), and [Istio](#istio) above.
+Same as charmarr. See [Storage](#storage), [VPN](#vpn), [Media Server](#media-server), and [Ingress](#ingress) above.
 
 ### 3. Deploy
 
@@ -478,16 +441,17 @@ See the [charmarr-plus module](https://github.com/charmarr/charmarr/tree/main/te
 
 Edit your `main.tf` and reapply. Terraform calculates the diff and applies only what changed.
 
-For example, to enable Istio ingress later:
+For example, to add Seerr later:
 
 ```hcl
 module "charmarr" {
   # ... existing config ...
 
-  enable_istio = true
-  enable_mesh  = true
+  enable_seerr = true
 }
 ```
+
+Changing `media_server` on an existing deployment is not one of these safe diffs. Terraform will remove one media server and deploy the other, and Seerr cannot follow: its administrator account is bound to the server that completed setup. See [Post-deployment](post-deploy.md) before attempting it.
 
 ```bash
 TF_VAR_wireguard_private_key="your-key" terraform apply
