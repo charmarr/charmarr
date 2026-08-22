@@ -41,12 +41,9 @@ _retry_transient = retry(
     ),
 )
 
-WAITING_APPS = {"plex", "seerr"}
-
-
 @given("the charmarr module is deployed")
 def deploy_baseline(tf_manager: TFManager, juju: jubilant.Juju, tf_env: dict) -> None:
-    """Deploy charmarr baseline (no VPN, no Istio)."""
+    """Deploy charmarr baseline (no VPN, traefik ingress)."""
     logger.info("Deploying charmarr baseline...")
     tf_manager.apply(tf_env)
     logger.info("Terraform apply complete, waiting for apps to settle...")
@@ -67,9 +64,9 @@ def deploy_with_vpn(tf_manager: TFManager, juju: jubilant.Juju, tf_env: dict) ->
 
 @given("the charmarr module is deployed with VPN and Istio")
 def deploy_with_vpn_istio(tf_manager: TFManager, juju: jubilant.Juju, tf_env: dict) -> None:
-    """Deploy charmarr with VPN and Istio enabled."""
+    """Swap traefik for istio-ingress and enable the mesh, on top of the VPN deployment."""
     logger.info("Deploying charmarr with VPN and Istio...")
-    env = {**tf_env, "TF_VAR_enable_vpn": "true", "TF_VAR_enable_istio": "true", "TF_VAR_enable_mesh": "true"}
+    env = {**tf_env, "TF_VAR_enable_vpn": "true", "TF_VAR_enable_istio": "true"}
     tf_manager.apply(env)
     logger.info("Terraform apply complete, waiting for apps to settle...")
     wait_for_settled(juju)
@@ -82,27 +79,12 @@ def _get_status(juju: jubilant.Juju) -> jubilant.Status:
     return juju.status()
 
 
-@then("all apps except plex and seerr should be active")
+@then("all apps should be active")
 def all_apps_active(juju: jubilant.Juju) -> None:
-    """Verify all apps except plex and seerr are active."""
+    """Verify every app reached active."""
     status = _get_status(juju)
     for name, app in status.apps.items():
-        if name in WAITING_APPS:
-            continue
         assert app.app_status.current == "active", (
-            f"{name} is {app.app_status.current}: {app.app_status.message}"
-        )
-
-
-@then("plex and seerr should be waiting")
-def plex_seerr_waiting(juju: jubilant.Juju) -> None:
-    """Verify plex and seerr are in waiting status."""
-    status = _get_status(juju)
-    for name in WAITING_APPS:
-        app = status.apps.get(name)
-        if not app:
-            continue
-        assert app.app_status.current == "waiting", (
             f"{name} is {app.app_status.current}: {app.app_status.message}"
         )
 
@@ -116,13 +98,8 @@ def wait_for_settled(juju: jubilant.Juju) -> None:
             logger.info("No apps deployed yet")
             return False
         for name, app in status.apps.items():
-            current = app.app_status.current
-            if name in WAITING_APPS:
-                if current != "waiting":
-                    logger.info(f"{name}: {current} (expected: waiting)")
-                    return False
-            elif current != "active":
-                logger.info(f"{name}: {current} (expected: active)")
+            if app.app_status.current != "active":
+                logger.info(f"{name}: {app.app_status.current} (expected: active)")
                 return False
         return True
 

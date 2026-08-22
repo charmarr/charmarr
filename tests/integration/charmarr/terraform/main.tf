@@ -18,18 +18,14 @@ variable "enable_istio" {
   default = false
 }
 
-variable "enable_mesh" {
-  type    = bool
-  default = false
-}
-
 module "charmarr" {
   source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
 
   model = var.model
 
   storage_backend = "storage-class"
-  storage_class   = "microk8s-hostpath"
+  storage_class   = "csi-rawfile-default"
+  access_mode     = "ReadWriteOnce"
 
   enable_vpn            = var.enable_vpn
   wireguard_private_key = var.wireguard_private_key
@@ -37,7 +33,10 @@ module "charmarr" {
   cluster_cidrs         = "10.1.0.0/16,10.152.183.0/24,10.0.0.0/8"
 
   enable_istio = var.enable_istio
-  enable_mesh  = var.enable_mesh
+
+  # Jellyfin bootstraps itself and Seerr off it, so the whole stack reaches
+  # active. Plex would sit in waiting forever pending a manual claim token.
+  media_server = "jellyfin"
 
   enable_overseerr = false
   enable_seerr     = true
