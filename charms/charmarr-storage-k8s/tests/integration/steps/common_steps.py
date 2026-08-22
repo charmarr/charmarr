@@ -39,7 +39,7 @@ def deploy_storage_class_backend(
 ):
     """Deploy charmarr-storage with storage-class backend."""
     config = {
-        "storage-class": "microk8s-hostpath",
+        "storage-class": "csi-rawfile-default",
         "size": "1Gi",
         "access-mode": "ReadWriteOnce",
         "puid": 1000,
