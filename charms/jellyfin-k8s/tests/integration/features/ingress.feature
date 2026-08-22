@@ -5,7 +5,6 @@ Feature: Jellyfin ingress integration
 
   Scenario: Jellyfin is accessible via ingress
     Given jellyfin is deployed
-    And istio-k8s is deployed
-    And istio-ingress is deployed
-    And jellyfin is related to istio-ingress via istio-ingress-route
+    And traefik is deployed
+    And jellyfin is related to traefik via ingress
     Then jellyfin should be accessible via ingress

@@ -14,8 +14,10 @@ description: |
   - Ingress integration for remote access
 
   The charm completes the startup wizard on first run and creates the
-  administrator account. Retrieve its credentials with
-  `juju show-secret --reveal admin-credentials`.
+  administrator account. Retrieve the initial credentials with
+  `juju show-secret --reveal admin-credentials`. They are a first-login
+  handover: change the password in Jellyfin once you are in. The secret
+  keeps the original value and the charm no longer needs it.
 
   Requires --trust for RBAC permissions.
 
@@ -149,6 +151,13 @@ requires:
     optional: true
     description: Charm hook execution traces to Tempo via ops[tracing]
 
+actions:
+  rotate-api-key:
+    description: |
+      Rotate the Jellyfin API key the charm uses to manage libraries.
+      The replacement is minted before the old key is revoked. The
+      administrator account and its password are left untouched.
+
 config:
   options:
     hardware-transcoding:
@@ -167,11 +176,19 @@ config:
     ingress-port:
       type: int
       default: 80
-      description: Port for the Istio ingress gateway listener.
+      description: |
+        Listener port requested on the Istio ingress gateway.
+        Applies only to the istio-ingress-route relation.
     timezone:
       type: string
       default: "Etc/UTC"
       description: IANA timezone (e.g., America/New_York, Europe/London)
+    api-key-rotation:
+      type: string
+      default: "disabled"
+      description: |
+        Auto-rotate the Jellyfin API key the charm uses to manage libraries.
+        Options: disabled, daily, monthly, yearly
     extended-alert-rules:
       type: boolean
       default: false

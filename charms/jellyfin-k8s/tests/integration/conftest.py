@@ -14,7 +14,7 @@ from tests.integration.helpers import deploy_jellyfin_charm, pack_jellyfin_charm
 
 pytest_plugins = [
     "charmarr_lib.testing.steps.storage",
-    "charmarr_lib.testing.steps.mesh",
+    "charmarr_lib.testing.steps.ingress",
     "tests.integration.steps.jellyfin_steps",
 ]
 
