@@ -24,8 +24,8 @@ jobs:
       channel: latest/edge
       dry-run: ${{ inputs.dry-run || false }}
       run-integration: ${{ !inputs.force-publish }}
-      substrate-channel: 1.32/stable
+      substrate: k8s
+      substrate-channel: "1.32-classic/stable"
       load-nfs-modules: true
-      classic-microk8s-suites: '["test_native_nfs_backend.py"]'
     secrets:
       CHARMHUB_TOKEN: ${{ secrets.CHARMHUB_TOKEN }}

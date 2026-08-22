@@ -24,5 +24,9 @@ jobs:
       channel: latest/edge
       dry-run: ${{ inputs.dry-run || false }}
       run-integration: ${{ !inputs.force-publish }}
+      substrate: k8s
+      substrate-channel: "1.32-classic/stable"
+      # Mesh coverage lives in the nightly workflows, not the release path.
+      exclude-suites: '["test_mesh.py"]'
     secrets:
       CHARMHUB_TOKEN: ${{ secrets.CHARMHUB_TOKEN }}
