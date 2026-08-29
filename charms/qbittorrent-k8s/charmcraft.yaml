@@ -64,7 +64,7 @@ resources:
   qbittorrent-exporter-image:
     type: oci-image
     description: OCI image for martabal/qbittorrent-exporter (Prometheus exporter for qBittorrent)
-    upstream-source: ghcr.io/martabal/qbittorrent-exporter:v2.0.1
+    upstream-source: ghcr.io/martabal/qbittorrent-exporter:v2.0.3
   qbittorrent-image:
     type: oci-image
     description: OCI image for qBittorrent (LinuxServer)
