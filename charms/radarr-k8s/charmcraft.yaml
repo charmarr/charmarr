@@ -78,7 +78,7 @@ resources:
   scraparr-image:
     type: oci-image
     description: OCI image for scraparr (Prometheus exporter for *arr apps)
-    upstream-source: ghcr.io/thecfu/scraparr:3.0.3
+    upstream-source: ghcr.io/thecfu/scraparr:3.2.0
 
 storage:
   config:
