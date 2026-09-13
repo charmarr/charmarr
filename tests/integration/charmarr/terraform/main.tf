@@ -21,7 +21,9 @@ variable "enable_istio" {
 module "charmarr" {
   source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
 
-  model = var.model
+  model = {
+    name = var.model
+  }
 
   storage_backend = "storage-class"
   storage_class   = "csi-rawfile-default"

@@ -2,11 +2,6 @@
 # Data Sources
 # -----------------------------------------------------------------------------
 
-data "juju_model" "model" {
-  name  = var.model
-  owner = var.owner
-}
-
 # Istio is never deployed by this module — the operator installs the control
 # plane themselves. These two data sources are a guard: they fail the plan if
 # enable_istio is set but the cluster has no ambient control plane to attach to.
@@ -65,7 +60,7 @@ data "kubernetes_resources" "gateway_classes" {
 
 resource "juju_secret" "wireguard_key" {
   count      = var.enable_vpn ? 1 : 0
-  model_uuid = data.juju_model.model.uuid
+  model_uuid = local.model_uuid
   name       = "vpn-key"
 
   value = {
@@ -75,7 +70,7 @@ resource "juju_secret" "wireguard_key" {
 
 resource "juju_access_secret" "gluetun_wireguard_access" {
   count      = var.enable_vpn ? 1 : 0
-  model_uuid = data.juju_model.model.uuid
+  model_uuid = local.model_uuid
   secret_id  = juju_secret.wireguard_key[0].secret_id
 
   applications = [module.gluetun[0].app_name]
@@ -100,7 +95,7 @@ resource "null_resource" "gluetun_secret_config" {
   ]
 
   provisioner "local-exec" {
-    command = "juju config gluetun wireguard-private-key-secret=secret:${juju_secret.wireguard_key[0].secret_id} -m ${var.model}"
+    command = "juju config gluetun wireguard-private-key-secret=secret:${juju_secret.wireguard_key[0].secret_id} -m ${local.model_name}"
   }
 }
 
@@ -111,7 +106,7 @@ resource "null_resource" "gluetun_secret_config" {
 module "storage" {
   source = "git::https://github.com/charmarr/charmarr//charms/charmarr-storage-k8s/terraform?ref=main"
 
-  model             = var.model
+  model             = local.model_name
   owner             = var.owner
   app_name          = "storage"
   channel           = var.channel
@@ -132,7 +127,7 @@ module "gluetun" {
   count  = var.enable_vpn ? 1 : 0
   source = "git::https://github.com/charmarr/charmarr//charms/gluetun-k8s/terraform?ref=main"
 
-  model               = var.model
+  model               = local.model_name
   owner               = var.owner
   app_name            = "gluetun"
   channel             = var.channel
@@ -154,7 +149,7 @@ module "gluetun" {
 module "qbittorrent" {
   source = "git::https://github.com/charmarr/charmarr//charms/qbittorrent-k8s/terraform?ref=main"
 
-  model               = var.model
+  model               = local.model_name
   owner               = var.owner
   app_name            = "qbittorrent"
   channel             = var.channel
@@ -169,7 +164,7 @@ module "qbittorrent" {
 module "sabnzbd" {
   source = "git::https://github.com/charmarr/charmarr//charms/sabnzbd-k8s/terraform?ref=main"
 
-  model               = var.model
+  model               = local.model_name
   owner               = var.owner
   app_name            = "sabnzbd"
   channel             = var.channel
@@ -184,7 +179,7 @@ module "sabnzbd" {
 module "prowlarr" {
   source = "git::https://github.com/charmarr/charmarr//charms/prowlarr-k8s/terraform?ref=main"
 
-  model            = var.model
+  model            = local.model_name
   owner            = var.owner
   app_name         = "prowlarr"
   channel          = var.channel
@@ -199,7 +194,7 @@ module "prowlarr" {
 module "flaresolverr" {
   source = "git::https://github.com/charmarr/charmarr//charms/flaresolverr-k8s/terraform?ref=main"
 
-  model       = var.model
+  model       = local.model_name
   owner       = var.owner
   app_name    = "flaresolverr"
   channel     = var.channel
@@ -211,7 +206,7 @@ module "flaresolverr" {
 module "radarr" {
   source = "git::https://github.com/charmarr/charmarr//charms/radarr-k8s/terraform?ref=main"
 
-  model            = var.model
+  model            = local.model_name
   owner            = var.owner
   app_name         = "radarr"
   channel          = var.channel
@@ -226,7 +221,7 @@ module "radarr" {
 module "sonarr" {
   source = "git::https://github.com/charmarr/charmarr//charms/sonarr-k8s/terraform?ref=main"
 
-  model            = var.model
+  model            = local.model_name
   owner            = var.owner
   app_name         = "sonarr"
   channel          = var.channel
@@ -242,7 +237,7 @@ module "plex" {
   count  = local.enable_plex ? 1 : 0
   source = "git::https://github.com/charmarr/charmarr//charms/plex-k8s/terraform?ref=main"
 
-  model                = var.model
+  model                = local.model_name
   owner                = var.owner
   app_name             = "plex"
   channel              = var.channel
@@ -257,7 +252,7 @@ module "jellyfin" {
   count  = local.enable_jellyfin ? 1 : 0
   source = "git::https://github.com/charmarr/charmarr//charms/jellyfin-k8s/terraform?ref=main"
 
-  model                = var.model
+  model                = local.model_name
   owner                = var.owner
   app_name             = "jellyfin"
   channel              = var.channel
@@ -271,7 +266,7 @@ module "overseerr" {
   count  = var.enable_overseerr ? 1 : 0
   source = "git::https://github.com/charmarr/charmarr//charms/overseerr-k8s/terraform?ref=main"
 
-  model            = var.model
+  model            = local.model_name
   owner            = var.owner
   app_name         = "overseerr"
   channel          = var.channel
@@ -285,7 +280,7 @@ module "seerr" {
   count  = var.enable_seerr ? 1 : 0
   source = "git::https://github.com/charmarr/charmarr//charms/seerr-k8s/terraform?ref=main"
 
-  model            = var.model
+  model            = local.model_name
   owner            = var.owner
   app_name         = "seerr"
   channel          = var.channel
@@ -302,7 +297,7 @@ module "seerr" {
 resource "juju_application" "otelcol" {
   count      = var.cos != null ? 1 : 0
   name       = "otelcol"
-  model_uuid = data.juju_model.model.uuid
+  model_uuid = local.model_uuid
   trust      = true
 
   charm {
@@ -319,7 +314,7 @@ module "crowsnest" {
   count  = var.cos != null ? 1 : 0
   source = "git::https://github.com/charmarr/charmarr//charms/charmarr-crowsnest-k8s/terraform?ref=main"
 
-  model       = var.model
+  model       = local.model_name
   owner       = var.owner
   app_name    = "crowsnest"
   channel     = var.channel
@@ -365,7 +360,7 @@ module "beacon" {
   count  = var.enable_istio ? 1 : 0
   source = "git::https://github.com/canonical/istio-beacon-k8s-operator//terraform?ref=main"
 
-  model_uuid  = data.juju_model.model.uuid
+  model_uuid  = local.model_uuid
   app_name    = "beacon"
   channel     = var.istio_channel
   constraints = var.beacon.constraints
@@ -377,7 +372,7 @@ module "arr_ingress" {
   count  = var.enable_istio ? 1 : 0
   source = "git::https://github.com/canonical/istio-ingress-k8s-operator//terraform?ref=main"
 
-  model_uuid  = data.juju_model.model.uuid
+  model_uuid  = local.model_uuid
   app_name    = "arr-ingress"
   channel     = var.istio_channel
   constraints = var.arr_ingress.constraints
@@ -389,7 +384,7 @@ module "arr_ingress_traefik" {
   count  = var.enable_istio ? 0 : 1
   source = "git::https://github.com/canonical/traefik-k8s-operator//terraform?ref=main"
 
-  model_uuid  = data.juju_model.model.uuid
+  model_uuid  = local.model_uuid
   app_name    = "arr-ingress"
   channel     = var.traefik_channel
   constraints = var.arr_ingress.constraints
@@ -401,7 +396,7 @@ module "plex_ingress" {
   count  = var.enable_istio && local.enable_plex ? 1 : 0
   source = "git::https://github.com/canonical/istio-ingress-k8s-operator//terraform?ref=main"
 
-  model_uuid  = data.juju_model.model.uuid
+  model_uuid  = local.model_uuid
   app_name    = "plex-ingress"
   channel     = var.istio_channel
   constraints = var.plex_ingress.constraints
@@ -413,7 +408,7 @@ module "plex_ingress_traefik" {
   count  = !var.enable_istio && local.enable_plex ? 1 : 0
   source = "git::https://github.com/canonical/traefik-k8s-operator//terraform?ref=main"
 
-  model_uuid  = data.juju_model.model.uuid
+  model_uuid  = local.model_uuid
   app_name    = "plex-ingress"
   channel     = var.traefik_channel
   constraints = var.plex_ingress.constraints
@@ -425,7 +420,7 @@ module "jellyfin_ingress" {
   count  = var.enable_istio && local.enable_jellyfin ? 1 : 0
   source = "git::https://github.com/canonical/istio-ingress-k8s-operator//terraform?ref=main"
 
-  model_uuid  = data.juju_model.model.uuid
+  model_uuid  = local.model_uuid
   app_name    = "jellyfin-ingress"
   channel     = var.istio_channel
   constraints = var.jellyfin_ingress.constraints
@@ -437,7 +432,7 @@ module "jellyfin_ingress_traefik" {
   count  = !var.enable_istio && local.enable_jellyfin ? 1 : 0
   source = "git::https://github.com/canonical/traefik-k8s-operator//terraform?ref=main"
 
-  model_uuid  = data.juju_model.model.uuid
+  model_uuid  = local.model_uuid
   app_name    = "jellyfin-ingress"
   channel     = var.traefik_channel
   constraints = var.jellyfin_ingress.constraints
@@ -449,7 +444,7 @@ module "seerr_ingress" {
   count  = var.enable_istio && var.enable_seerr ? 1 : 0
   source = "git::https://github.com/canonical/istio-ingress-k8s-operator//terraform?ref=main"
 
-  model_uuid  = data.juju_model.model.uuid
+  model_uuid  = local.model_uuid
   app_name    = "seerr-ingress"
   channel     = var.istio_channel
   constraints = var.seerr_ingress.constraints
@@ -461,7 +456,7 @@ module "seerr_ingress_traefik" {
   count  = !var.enable_istio && var.enable_seerr ? 1 : 0
   source = "git::https://github.com/canonical/traefik-k8s-operator//terraform?ref=main"
 
-  model_uuid  = data.juju_model.model.uuid
+  model_uuid  = local.model_uuid
   app_name    = "seerr-ingress"
   channel     = var.traefik_channel
   constraints = var.seerr_ingress.constraints

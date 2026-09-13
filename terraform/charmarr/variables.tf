@@ -1,10 +1,50 @@
 variable "model" {
-  description = "Name of the Juju model to deploy to"
-  type        = string
+  description = <<-EOT
+    Model configuration. When `uuid` is set, an existing model is looked up
+    (by UUID); otherwise a new model is created with the given fields, named
+    `name` by default. For more details:
+    https://registry.terraform.io/providers/juju/juju/latest/docs/resources/model
+  EOT
+  type = object({
+    uuid = optional(string)
+    name = optional(string, "charmarr")
+    cloud = optional(object({
+      name   = string
+      region = optional(string)
+    }))
+    annotations       = optional(map(string))
+    config            = optional(map(string))
+    constraints       = optional(string)
+    credential        = optional(string)
+    target_controller = optional(string)
+  })
+  default = {}
+
+  validation {
+    condition = var.model.uuid == null || (
+      var.model.annotations == null &&
+      var.model.cloud == null &&
+      var.model.config == null &&
+      var.model.constraints == null &&
+      var.model.credential == null &&
+      var.model.target_controller == null
+    )
+    error_message = "When `model.uuid` is set, the model already exists; do not also set `annotations`, `cloud`, `config`, `constraints`, `credential`, or `target_controller`."
+  }
+
+  validation {
+    condition     = var.model.uuid != null || (var.model.name != null && length(var.model.name) > 0)
+    error_message = "`model.name` must be non-empty when creating a model (i.e. when `model.uuid` is null)."
+  }
+
+  validation {
+    condition     = var.model.uuid == null || can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", var.model.uuid))
+    error_message = "`model.uuid` must be a valid UUID."
+  }
 }
 
 variable "owner" {
-  description = "Owner of the Juju model"
+  description = "Owner used by the embedded charm modules when they look up the model by name"
   type        = string
   default     = "admin"
 }

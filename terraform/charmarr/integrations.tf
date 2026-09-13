@@ -184,7 +184,7 @@ resource "juju_integration" "storage" {
     for k, v in local.fleet :
     k => v if contains(keys(v.requires), "media_storage")
   }
-  model_uuid = data.juju_model.model.uuid
+  model_uuid = local.model_uuid
 
   application {
     name     = module.storage.app_name
@@ -206,7 +206,7 @@ resource "juju_integration" "vpn" {
     for k, v in local.fleet :
     k => v if contains(keys(v.requires), "vpn_gateway")
   } : {}
-  model_uuid = data.juju_model.model.uuid
+  model_uuid = local.model_uuid
 
   application {
     name     = module.gluetun[0].app_name
@@ -228,7 +228,7 @@ resource "juju_integration" "indexer" {
     for k, v in local.fleet :
     k => v if contains(keys(v.requires), "media_indexer")
   }
-  model_uuid = data.juju_model.model.uuid
+  model_uuid = local.model_uuid
 
   application {
     name     = module.prowlarr.app_name
@@ -242,7 +242,7 @@ resource "juju_integration" "indexer" {
 }
 
 resource "juju_integration" "flaresolverr_prowlarr" {
-  model_uuid = data.juju_model.model.uuid
+  model_uuid = local.model_uuid
 
   application {
     name     = module.flaresolverr.app_name
@@ -261,7 +261,7 @@ resource "juju_integration" "flaresolverr_prowlarr" {
 
 resource "juju_integration" "media_manager" {
   for_each   = local.media_manager_pairs
-  model_uuid = data.juju_model.model.uuid
+  model_uuid = local.model_uuid
 
   application {
     name     = each.value.arr.name
@@ -280,7 +280,7 @@ resource "juju_integration" "media_manager" {
 
 resource "juju_integration" "media_server" {
   for_each   = local.media_server_pairs
-  model_uuid = data.juju_model.model.uuid
+  model_uuid = local.model_uuid
 
   application {
     name     = each.value.server.name
@@ -299,7 +299,7 @@ resource "juju_integration" "media_server" {
 
 resource "juju_integration" "mesh" {
   for_each   = var.enable_istio ? local.fleet : {}
-  model_uuid = data.juju_model.model.uuid
+  model_uuid = local.model_uuid
 
   application {
     name     = module.beacon[0].app_name
@@ -314,7 +314,7 @@ resource "juju_integration" "mesh" {
 
 resource "juju_integration" "mesh_overseerr" {
   count      = var.enable_istio && var.enable_overseerr ? 1 : 0
-  model_uuid = data.juju_model.model.uuid
+  model_uuid = local.model_uuid
 
   application {
     name     = module.beacon[0].app_name
@@ -329,7 +329,7 @@ resource "juju_integration" "mesh_overseerr" {
 
 resource "juju_integration" "mesh_otelcol" {
   count      = var.cos != null && var.enable_istio ? 1 : 0
-  model_uuid = data.juju_model.model.uuid
+  model_uuid = local.model_uuid
 
   application {
     name     = module.beacon[0].app_name
@@ -344,7 +344,7 @@ resource "juju_integration" "mesh_otelcol" {
 
 resource "juju_integration" "mesh_crowsnest" {
   count      = var.cos != null && var.enable_istio ? 1 : 0
-  model_uuid = data.juju_model.model.uuid
+  model_uuid = local.model_uuid
 
   application {
     name     = module.beacon[0].app_name
@@ -368,7 +368,7 @@ resource "juju_integration" "arr_ingress" {
     for k, v in local.fleet :
     k => v if contains(keys(v.requires), local.ingress_requirer_key) && !contains(["plex", "jellyfin", "seerr"], k)
   }
-  model_uuid = data.juju_model.model.uuid
+  model_uuid = local.model_uuid
 
   application {
     name     = local.arr_ingress_app
@@ -383,7 +383,7 @@ resource "juju_integration" "arr_ingress" {
 
 resource "juju_integration" "plex_ingress_plex" {
   count      = local.enable_plex ? 1 : 0
-  model_uuid = data.juju_model.model.uuid
+  model_uuid = local.model_uuid
 
   application {
     name     = local.plex_ingress_app
@@ -398,7 +398,7 @@ resource "juju_integration" "plex_ingress_plex" {
 
 resource "juju_integration" "jellyfin_ingress_jellyfin" {
   count      = local.enable_jellyfin ? 1 : 0
-  model_uuid = data.juju_model.model.uuid
+  model_uuid = local.model_uuid
 
   application {
     name     = local.jellyfin_ingress_app
@@ -413,7 +413,7 @@ resource "juju_integration" "jellyfin_ingress_jellyfin" {
 
 resource "juju_integration" "seerr_ingress_seerr" {
   count      = var.enable_seerr ? 1 : 0
-  model_uuid = data.juju_model.model.uuid
+  model_uuid = local.model_uuid
 
   application {
     name     = local.seerr_ingress_app
@@ -432,7 +432,7 @@ resource "juju_integration" "seerr_ingress_seerr" {
 
 resource "juju_integration" "crowsnest_fleet" {
   for_each   = var.cos != null ? local.fleet : {}
-  model_uuid = data.juju_model.model.uuid
+  model_uuid = local.model_uuid
 
   application {
     name     = module.crowsnest[0].app_name
@@ -454,7 +454,7 @@ resource "juju_integration" "otelcol_metrics" {
     for k, v in local.o11y_emitters :
     k => v if contains(keys(v.provides), "metrics_endpoint")
   }
-  model_uuid = data.juju_model.model.uuid
+  model_uuid = local.model_uuid
 
   application {
     name     = each.value.name
@@ -472,7 +472,7 @@ resource "juju_integration" "otelcol_logging" {
     for k, v in local.o11y_emitters :
     k => v if contains(keys(v.requires), "logging")
   }
-  model_uuid = data.juju_model.model.uuid
+  model_uuid = local.model_uuid
 
   application {
     name     = each.value.name
@@ -490,7 +490,7 @@ resource "juju_integration" "otelcol_tracing" {
     for k, v in local.o11y_emitters :
     k => v if contains(keys(v.requires), "charm_tracing")
   }
-  model_uuid = data.juju_model.model.uuid
+  model_uuid = local.model_uuid
 
   application {
     name     = each.value.name
@@ -512,7 +512,7 @@ resource "juju_integration" "grafana_dashboard" {
     for k, v in local.o11y_emitters :
     k => v if contains(keys(v.provides), "grafana_dashboard")
   }
-  model_uuid = data.juju_model.model.uuid
+  model_uuid = local.model_uuid
 
   application {
     name     = each.value.name
@@ -526,7 +526,7 @@ resource "juju_integration" "grafana_dashboard" {
 
 resource "juju_integration" "grafana_source_crowsnest" {
   count      = var.cos != null ? 1 : 0
-  model_uuid = data.juju_model.model.uuid
+  model_uuid = local.model_uuid
 
   application {
     name     = module.crowsnest[0].app_name
@@ -544,7 +544,7 @@ resource "juju_integration" "grafana_source_crowsnest" {
 
 resource "juju_integration" "otelcol_to_loki" {
   count      = var.cos != null ? 1 : 0
-  model_uuid = data.juju_model.model.uuid
+  model_uuid = local.model_uuid
 
   application {
     name     = juju_application.otelcol[0].name
@@ -558,7 +558,7 @@ resource "juju_integration" "otelcol_to_loki" {
 
 resource "juju_integration" "otelcol_to_mimir" {
   count      = var.cos != null ? 1 : 0
-  model_uuid = data.juju_model.model.uuid
+  model_uuid = local.model_uuid
 
   application {
     name     = juju_application.otelcol[0].name
@@ -572,7 +572,7 @@ resource "juju_integration" "otelcol_to_mimir" {
 
 resource "juju_integration" "otelcol_to_tempo" {
   count      = var.cos != null ? 1 : 0
-  model_uuid = data.juju_model.model.uuid
+  model_uuid = local.model_uuid
 
   application {
     name     = juju_application.otelcol[0].name
@@ -586,7 +586,7 @@ resource "juju_integration" "otelcol_to_tempo" {
 
 resource "juju_integration" "otelcol_receive_ca_cert" {
   count      = var.cos != null ? 1 : 0
-  model_uuid = data.juju_model.model.uuid
+  model_uuid = local.model_uuid
 
   application {
     name     = juju_application.otelcol[0].name
@@ -602,7 +602,7 @@ resource "juju_integration" "otelcol_receive_ca_cert" {
 # AuthorizationPolicy permits grafana traffic into crowsnest.
 resource "juju_integration" "crowsnest_grafana_cmr_mesh" {
   count      = var.cos != null && var.enable_istio ? 1 : 0
-  model_uuid = data.juju_model.model.uuid
+  model_uuid = local.model_uuid
 
   application {
     name     = module.crowsnest[0].app_name
