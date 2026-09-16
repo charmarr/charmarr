@@ -92,7 +92,7 @@ wheels = [
 
 [[package]]
 name = "charmarr-lib-vpn"
-version = "0.5.0"
+version = "0.6.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "charmarr-lib-krm" },
@@ -100,9 +100,9 @@ dependencies = [
     { name = "ops" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a6/5c/0e9b2e182ae91ddfb40dd0bbb1cc59d04227486e7a199e8fdbac6f88ec3b/charmarr_lib_vpn-0.5.0.tar.gz", hash = "sha256:237e8da865716cf94ea5802e6bd4de434784da3965b8239ceb6ee8ce7cfbab74", size = 15952, upload-time = "2025-12-24T23:31:02.363Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c3/87/5269113f0899eecf15b87e8cdd7bf64e26d5c376fbb16e4b220d33e4a2e2/charmarr_lib_vpn-0.6.2.tar.gz", hash = "sha256:f02ea4e45c1dfede12b4820583f2db9adb1147779694a0305b6e802aa631b96f", size = 18548, upload-time = "2026-09-16T12:55:44.097Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/49/32/89756e5c9666a91ae195f0e53028b45744d3fe0fd102224afb148d3c820c/charmarr_lib_vpn-0.5.0-py3-none-any.whl", hash = "sha256:5725582a86fa4a3b269d482756dd821f1ef4d5bb908e972f4b3758798181f5b2", size = 14246, upload-time = "2025-12-24T23:31:00.141Z" },
+    { url = "https://files.pythonhosted.org/packages/60/98/5eb6ebfcf34bb0a8aa5d40a6a0560d62ac8f2e2be8425274cccdd17af526/charmarr_lib_vpn-0.6.2-py3-none-any.whl", hash = "sha256:2fd9a5e9dd10fe5f707d0c6336d9b89ec5dc8273aa195c4c745d2ecb87af5eaf", size = 15516, upload-time = "2026-09-16T12:55:42.924Z" },
 ]
 
 [[package]]
