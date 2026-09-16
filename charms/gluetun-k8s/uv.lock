@@ -92,7 +92,7 @@ wheels = [
 
 [[package]]
 name = "charmarr-lib-vpn"
-version = "0.6.0"
+version = "0.6.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "charmarr-lib-krm" },
@@ -100,9 +100,9 @@ dependencies = [
     { name = "ops" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/44/eb/ed6bf63066aee9811e1096f32eca050e667ed14077e852c2d7553fe666ee/charmarr_lib_vpn-0.6.0.tar.gz", hash = "sha256:d8b6bb82106212389d6e1e86e1505011cedf6c7eaed3b47c82e2d59a946ebb2e", size = 16493, upload-time = "2026-08-23T16:37:32.083Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c3/87/5269113f0899eecf15b87e8cdd7bf64e26d5c376fbb16e4b220d33e4a2e2/charmarr_lib_vpn-0.6.2.tar.gz", hash = "sha256:f02ea4e45c1dfede12b4820583f2db9adb1147779694a0305b6e802aa631b96f", size = 18548, upload-time = "2026-09-16T12:55:44.097Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a3/ad/5b5976e079c03329482988bff30ee1cecd606f2d2f6de7205393fd30b87f/charmarr_lib_vpn-0.6.0-py3-none-any.whl", hash = "sha256:7de93616f4c11721425ac648e943bbad7c30ea4e2032e2f5ab9208d1a8e61957", size = 14527, upload-time = "2026-08-23T16:37:30.769Z" },
+    { url = "https://files.pythonhosted.org/packages/60/98/5eb6ebfcf34bb0a8aa5d40a6a0560d62ac8f2e2be8425274cccdd17af526/charmarr_lib_vpn-0.6.2-py3-none-any.whl", hash = "sha256:2fd9a5e9dd10fe5f707d0c6336d9b89ec5dc8273aa195c4c745d2ecb87af5eaf", size = 15516, upload-time = "2026-09-16T12:55:42.924Z" },
 ]
 
 [[package]]
@@ -290,7 +290,7 @@ dev = [
 requires-dist = [
     { name = "charmarr-lib-core", specifier = ">=0.18.0" },
     { name = "charmarr-lib-testing", marker = "extra == 'integration'", specifier = ">=0.4.0" },
-    { name = "charmarr-lib-vpn", specifier = ">=0.6.0" },
+    { name = "charmarr-lib-vpn", specifier = ">=0.6.2" },
     { name = "codespell", marker = "extra == 'dev'", specifier = ">=2.0" },
     { name = "cosl" },
     { name = "coverage", extras = ["toml"], marker = "extra == 'dev'", specifier = ">=7.0" },
