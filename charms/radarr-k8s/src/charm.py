@@ -89,6 +89,26 @@ from charmarr_lib.vpn.interfaces import VPNGatewayRequirer, VPNGatewayRequirerDa
 logger = logging.getLogger(__name__)
 
 
+def add_layer_if_changed(
+    container: ops.Container, label: str, layer: ops.pebble.LayerDict | ops.pebble.Layer
+) -> None:
+    """Add a Pebble layer only if it would change the container's plan.
+
+    Pebble restarts log forwarding from the start of each service's log buffer on
+    every plan change, even when the layer is identical. Re-adding the layer on every
+    hook (e.g. update-status) re-sends old logs, which Loki rejects as too old.
+    """
+    desired = layer if isinstance(layer, ops.pebble.Layer) else ops.pebble.Layer(layer)
+    plan = container.get_plan()
+    unchanged = (
+        all(plan.services.get(name) == svc for name, svc in desired.services.items())
+        and all(plan.checks.get(name) == chk for name, chk in desired.checks.items())
+        and all(plan.log_targets.get(name) == t for name, t in desired.log_targets.items())
+    )
+    if not unchanged:
+        container.add_layer(label, desired, combine=True)
+
+
 class RadarrCharm(ops.CharmBase):
     """Radarr movie collection manager charm."""
 
@@ -324,7 +344,7 @@ class RadarrCharm(ops.CharmBase):
         if not self._scraparr_container.can_connect():
             return
         layer = self._build_scraparr_layer(api_key)
-        self._scraparr_container.add_layer(METRICS_SERVICE_NAME, layer, combine=True)
+        add_layer_if_changed(self._scraparr_container, METRICS_SERVICE_NAME, layer)
         self._scraparr_container.replan()
 
     def _reconcile_vpn(self) -> None:
@@ -635,10 +655,10 @@ class RadarrCharm(ops.CharmBase):
 
         if not self.unit.is_leader():
             if self._container.can_connect():
-                self._container.add_layer(
+                add_layer_if_changed(
+                    self._container,
                     f"{CONTAINER_NAME}-check",
                     {"checks": self._build_readiness_check()},
-                    combine=True,
                 )
             return
 
@@ -701,7 +721,7 @@ class RadarrCharm(ops.CharmBase):
 
         # Configure Pebble layer and start service
         layer = self._build_pebble_layer(storage.puid, storage.pgid)
-        self._container.add_layer(SERVICE_NAME, layer, combine=True)
+        add_layer_if_changed(self._container, SERVICE_NAME, layer)
         self._container.replan()
 
         # Reconcile scraparr sidecar (Prometheus exporter)

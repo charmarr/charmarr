@@ -34,6 +34,27 @@ from charmarr_lib.core.interfaces import (
 
 logger = logging.getLogger(__name__)
 
+
+def add_layer_if_changed(
+    container: ops.Container, label: str, layer: ops.pebble.LayerDict | ops.pebble.Layer
+) -> None:
+    """Add a Pebble layer only if it would change the container's plan.
+
+    Pebble restarts log forwarding from the start of each service's log buffer on
+    every plan change, even when the layer is identical. Re-adding the layer on every
+    hook (e.g. update-status) re-sends old logs, which Loki rejects as too old.
+    """
+    desired = layer if isinstance(layer, ops.pebble.Layer) else ops.pebble.Layer(layer)
+    plan = container.get_plan()
+    unchanged = (
+        all(plan.services.get(name) == svc for name, svc in desired.services.items())
+        and all(plan.checks.get(name) == chk for name, chk in desired.checks.items())
+        and all(plan.log_targets.get(name) == t for name, t in desired.log_targets.items())
+    )
+    if not unchanged:
+        container.add_layer(label, desired, combine=True)
+
+
 CONTAINER_NAME = "flaresolverr"
 PORT = 8191
 METRICS_PORT = 8192
@@ -164,7 +185,7 @@ class FlareSolverrCharm(ops.CharmBase):
             }
         )
 
-        self._container.add_layer("flaresolverr", layer, combine=True)
+        add_layer_if_changed(self._container, "flaresolverr", layer)
         self._container.replan()
 
     def _publish_relation_data(self) -> None:

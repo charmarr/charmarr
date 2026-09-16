@@ -55,6 +55,26 @@ HEALTH_CHECK_WAIT_MIN = 2
 HEALTH_CHECK_WAIT_MAX = 5
 
 
+def add_layer_if_changed(
+    container: ops.Container, label: str, layer: ops.pebble.LayerDict | ops.pebble.Layer
+) -> None:
+    """Add a Pebble layer only if it would change the container's plan.
+
+    Pebble restarts log forwarding from the start of each service's log buffer on
+    every plan change, even when the layer is identical. Re-adding the layer on every
+    hook (e.g. update-status) re-sends old logs, which Loki rejects as too old.
+    """
+    desired = layer if isinstance(layer, ops.pebble.Layer) else ops.pebble.Layer(layer)
+    plan = container.get_plan()
+    unchanged = (
+        all(plan.services.get(name) == svc for name, svc in desired.services.items())
+        and all(plan.checks.get(name) == chk for name, chk in desired.checks.items())
+        and all(plan.log_targets.get(name) == t for name, t in desired.log_targets.items())
+    )
+    if not unchanged:
+        container.add_layer(label, desired, combine=True)
+
+
 class VPNHealthStatus(BaseModel, frozen=True):
     """VPN health check result."""
 
@@ -419,7 +439,7 @@ class GluetunCharm(ops.CharmBase):
         if not self._exporter_container.can_connect():
             return
         layer = self._build_exporter_layer()
-        self._exporter_container.add_layer(GLUETUN_EXPORTER_SERVICE_NAME, layer, combine=True)
+        add_layer_if_changed(self._exporter_container, GLUETUN_EXPORTER_SERVICE_NAME, layer)
         self._exporter_container.replan()
 
     def _reconcile(self, event: ops.EventBase) -> None:
@@ -455,10 +475,10 @@ class GluetunCharm(ops.CharmBase):
         # This acts as a guardrail if someone scales the application beyond 1.
         if not self.unit.is_leader():
             if self._container.can_connect():
-                self._container.add_layer(
+                add_layer_if_changed(
+                    self._container,
                     f"{GLUETUN_CONTAINER_NAME}-check",
                     Layer({"checks": self._build_readiness_check()}),
-                    combine=True,
                 )
             return
 
@@ -492,7 +512,7 @@ class GluetunCharm(ops.CharmBase):
         # Configure Pebble layer and start service
         self._push_iptables_post_rules()
         layer = self._build_pebble_layer(private_key)
-        self._container.add_layer("gluetun", layer, combine=True)
+        add_layer_if_changed(self._container, "gluetun", layer)
         self._container.replan()
 
         # Reconcile gluetun-exporter sidecar
