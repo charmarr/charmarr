@@ -6,16 +6,40 @@
 import logging
 import re
 from pathlib import Path
+from typing import Any
 
 import jubilant
 from pydantic import BaseModel
 from pytest_jubilant import pack
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
 
-from charmarr_lib.testing import get_oci_resources, run_multimeter_action
+from charmarr_lib.testing import get_oci_resources
 
 logger = logging.getLogger(__name__)
 
 CHARM_DIR = Path(__file__).parent.parent.parent
+EXTERNAL_IP_ATTEMPTS = 3
+EXTERNAL_IP_WAIT = 5
+
+
+class MultimeterActionError(RuntimeError):
+    """A multimeter action did not complete."""
+
+
+def run_multimeter_action(
+    juju: jubilant.Juju, action: str, params: dict[str, Any] | None = None
+) -> dict[str, str]:
+    """Run an action on charmarr-multimeter, raising if it does not complete.
+
+    The shared helper returns an empty dict on any failure, which turns an
+    unreachable agent into a result that reads as "the resource does not exist"
+    and lets connectivity assertions pass without ever running.
+    """
+    try:
+        result = juju.run("charmarr-multimeter/0", action, params or {})
+    except Exception as e:
+        raise MultimeterActionError(f"multimeter action {action!r} did not complete: {e}") from e
+    return dict(result.results)
 
 
 class VXLANInfo(BaseModel):
@@ -59,8 +83,18 @@ def deploy_gluetun_charm(
     )
 
 
+@retry(
+    retry=retry_if_exception_type(MultimeterActionError),
+    stop=stop_after_attempt(EXTERNAL_IP_ATTEMPTS),
+    wait=wait_fixed(EXTERNAL_IP_WAIT),
+    reraise=True,
+)
 def get_external_ip(juju: jubilant.Juju) -> str | None:
-    """Get external IP from multimeter container."""
+    """Get external IP from multimeter container.
+
+    The action asks a third-party echo service over the tunnel, so a reset
+    connection says nothing about the VPN. Retry before believing it.
+    """
     results = run_multimeter_action(juju, "get-external-ip")
     return results.get("ip") or None
 
