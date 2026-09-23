@@ -34,13 +34,17 @@ def mock_k8s():
 
 
 def make_privileged_statefulset() -> MagicMock:
-    """Create a mock StatefulSet with privileged gluetun container."""
-    mock_sts = MagicMock()
+    """Create a mock resource whose gluetun container is privileged.
+
+    Serves as both StatefulSet and Pod, which the charm reads separately.
+    """
+    mock_resource = MagicMock()
     mock_container = MagicMock()
     mock_container.name = "gluetun"
     mock_container.securityContext.privileged = True
-    mock_sts.spec.template.spec.containers = [mock_container]
-    return mock_sts
+    mock_resource.spec.template.spec.containers = [mock_container]
+    mock_resource.spec.containers = [mock_container]
+    return mock_resource
 
 
 @pytest.fixture

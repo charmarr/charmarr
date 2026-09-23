@@ -16,6 +16,7 @@ from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from lightkube.core.exceptions import ApiError
 from lightkube.models.core_v1 import Container, SecurityContext
 from lightkube.resources.apps_v1 import StatefulSet
+from lightkube.resources.core_v1 import Pod
 from ops.pebble import Layer
 from pydantic import BaseModel
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
@@ -53,6 +54,18 @@ GLUETUN_API_TIMEOUT = 5.0
 HEALTH_CHECK_RETRIES = 5
 HEALTH_CHECK_WAIT_MIN = 2
 HEALTH_CHECK_WAIT_MAX = 5
+
+
+def _has_privileged_gluetun(containers: list[Container] | None) -> bool:
+    """Return True if the gluetun container in the list is privileged."""
+    for container in containers or []:
+        if (
+            container.name == GLUETUN_CONTAINER_NAME
+            and container.securityContext
+            and container.securityContext.privileged
+        ):
+            return True
+    return False
 
 
 class VPNHealthStatus(BaseModel, frozen=True):
@@ -323,8 +336,8 @@ class GluetunCharm(ops.CharmBase):
         except (httpx.HTTPError, ValueError) as e:
             return VPNHealthStatus(connected=False, error=str(e))
 
-    def _is_gluetun_privileged(self) -> bool:
-        """Check if gluetun container has privileged security context."""
+    def _statefulset_is_privileged(self) -> bool:
+        """Check whether the StatefulSet requests a privileged gluetun container."""
         try:
             sts = self.k8s.get(StatefulSet, self.app.name, self.model.name)
         except ApiError:
@@ -332,41 +345,47 @@ class GluetunCharm(ops.CharmBase):
 
         if sts.spec is None or sts.spec.template.spec is None:
             return False
+        return _has_privileged_gluetun(sts.spec.template.spec.containers)
 
-        for container in sts.spec.template.spec.containers or []:
-            if (
-                container.name == GLUETUN_CONTAINER_NAME
-                and container.securityContext
-                and container.securityContext.privileged
-            ):
-                return True
-        return False
-
-    def _ensure_gluetun_privileged(self) -> bool:
-        """Ensure gluetun container has privileged security context.
-
-        Returns:
-            True if patch was applied (pod will restart), False if already privileged.
-        """
-        if self._is_gluetun_privileged():
+    def _pod_is_privileged(self) -> bool:
+        """Check whether the running pod's gluetun container is privileged."""
+        try:
+            pod = self.k8s.get(Pod, self.unit.name.replace("/", "-"), self.model.name)
+        except ApiError:
             return False
 
-        container = Container(
-            name=GLUETUN_CONTAINER_NAME,
-            securityContext=SecurityContext(privileged=True),
-        )
-        patch: dict[str, Any] = {
-            "spec": {
-                "template": {
-                    "spec": {
-                        "containers": [container.to_dict()],
+        if pod.spec is None:
+            return False
+        return _has_privileged_gluetun(pod.spec.containers)
+
+    def _ensure_gluetun_privileged(self) -> bool:
+        """Ensure the gluetun container has privileged security context.
+
+        Returns:
+            True while the workload is not yet privileged, so the caller stops
+            before replanning. The StatefulSet reports the capability as soon as
+            it is patched, but the pod carrying it only gains it on restart, and
+            replanning in that window fails on the missing NET_ADMIN.
+        """
+        if not self._statefulset_is_privileged():
+            container = Container(
+                name=GLUETUN_CONTAINER_NAME,
+                securityContext=SecurityContext(privileged=True),
+            )
+            patch: dict[str, Any] = {
+                "spec": {
+                    "template": {
+                        "spec": {
+                            "containers": [container.to_dict()],
+                        }
                     }
                 }
             }
-        }
-        self.k8s.patch(StatefulSet, self.app.name, patch, self.model.name)
-        logger.info("Patched gluetun container to privileged mode")
-        return True
+            self.k8s.patch(StatefulSet, self.app.name, patch, self.model.name)
+            logger.info("Patched gluetun container to privileged mode")
+            return True
+
+        return not self._pod_is_privileged()
 
     def _build_provider_data(
         self, health: VPNHealthStatus, cluster_dns_ip: str
@@ -489,16 +508,13 @@ class GluetunCharm(ops.CharmBase):
         if not private_key and not self._override_mode:
             return
 
-        # Configure Pebble layer and start service
         self._push_iptables_post_rules()
         layer = self._build_pebble_layer(private_key)
         self._container.add_layer("gluetun", layer, combine=True)
         self._container.replan()
 
-        # Reconcile gluetun-exporter sidecar
         self._reconcile_exporter()
 
-        # Check VPN status and publish to relations
         health = self._check_vpn_health()
         cluster_dns_ip = get_cluster_dns_ip(self.k8s)
         provider_data = self._build_provider_data(health, cluster_dns_ip)

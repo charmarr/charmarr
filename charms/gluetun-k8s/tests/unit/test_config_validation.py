@@ -3,7 +3,10 @@
 
 """Unit tests for gluetun-k8s config validation."""
 
+from unittest.mock import MagicMock
+
 import ops
+from lightkube.resources.apps_v1 import StatefulSet
 from ops.testing import Container, Secret, State
 
 GLUETUN_CONTAINER = Container(name="gluetun", can_connect=True)
@@ -228,3 +231,36 @@ def test_override_invalid_json_blocked(ctx):
         ),
     )
     assert "custom-overrides" in state.unit_status.message
+
+
+def test_replan_waits_for_the_pod_to_become_privileged(ctx, mock_k8s):
+    """A patched StatefulSet does not license a replan against an unprivileged pod."""
+
+    def gluetun_container(privileged: bool) -> MagicMock:
+        mock = MagicMock()
+        mock.name = "gluetun"
+        mock.securityContext.privileged = privileged
+        return mock
+
+    statefulset = MagicMock()
+    statefulset.spec.template.spec.containers = [gluetun_container(privileged=True)]
+    pod = MagicMock()
+    pod.spec.containers = [gluetun_container(privileged=False)]
+    mock_k8s.get.side_effect = lambda resource, *_: statefulset if resource is StatefulSet else pod
+
+    secret = Secret(tracked_content={"private-key": "test-private-key-value"})
+    state = ctx.run(
+        ctx.on.config_changed(),
+        State(
+            leader=True,
+            containers=[GLUETUN_CONTAINER, GLUETUN_EXPORTER_CONTAINER],
+            config={
+                "cluster-cidrs": "10.1.0.0/16",
+                "vpn-provider": "nordvpn",
+                "wireguard-private-key-secret": secret.id,
+            },
+            secrets=[secret],
+        ),
+    )
+
+    assert state.get_container("gluetun").layers == {}

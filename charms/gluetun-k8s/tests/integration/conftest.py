@@ -4,6 +4,7 @@
 """Pytest configuration for gluetun-k8s integration tests."""
 
 import os
+from collections.abc import Generator
 from pathlib import Path
 
 import jubilant
@@ -15,6 +16,12 @@ from charmarr_lib.testing import (
     grant_secret_to_app,
     vpn_creds_available,
     wait_for_active_idle,
+)
+from tests.integration.cluster import discover_cluster_cidrs
+from tests.integration.diagnostics import (
+    log_cluster_topology,
+    log_failure_context,
+    warn_on_cidr_overlap,
 )
 from tests.integration.helpers import deploy_gluetun_charm, pack_gluetun_charm
 
@@ -32,6 +39,21 @@ POD_CIDR = "10.1.0.0/16"
 SERVICE_CIDR = "10.152.183.0/24"
 
 
+@pytest.fixture(scope="session", autouse=True)
+def cluster_topology() -> None:
+    """Record cluster addressing once per session, whether or not tests fail."""
+    log_cluster_topology()
+    warn_on_cidr_overlap(POD_CIDR, SERVICE_CIDR)
+
+
+@pytest.hookimpl(wrapper=True, tryfirst=True)
+def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[None]) -> Generator:
+    report = yield
+    if report.failed and report.when in ("setup", "call"):
+        log_failure_context()
+    return report
+
+
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     """Mark all integration tests as xfail if VPN credentials not available."""
     if vpn_creds_available():
@@ -47,9 +69,9 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 
 @pytest.fixture(scope="module")
 def cluster_cidrs() -> str:
-    """Build cluster CIDRs string including pod, service, and node networks."""
-    node_cidr = get_node_cidr()
-    return f"{POD_CIDR},{SERVICE_CIDR},{node_cidr}"
+    """Build cluster CIDRs covering pod, service, node and any other pod network in use."""
+    declared = [POD_CIDR, SERVICE_CIDR, get_node_cidr()]
+    return ",".join(discover_cluster_cidrs(declared))
 
 
 @pytest.fixture(scope="module")
