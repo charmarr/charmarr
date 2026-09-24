@@ -3,25 +3,22 @@
 
 """Pytest configuration for prowlarr-k8s integration tests."""
 
-import json
 import os
 from pathlib import Path
 
 import jubilant
 import pytest
-from pytest_jubilant import pack
 
 from charmarr_lib.testing import ArrCredentials, vpn_creds_available, wait_for_active_idle
 from charmarr_lib.testing.steps.storage import deploy_storage_from_charmhub
 from tests.integration.helpers import (
-    CHARMS_DIR,
     deploy_prowlarr_charm,
-    deploy_radarr_charm,
     get_prowlarr_credentials,
     pack_prowlarr_charm,
 )
 
 FLARESOLVERR_CHANNEL = os.environ.get("CHARMARR_FLARESOLVERR_CHANNEL", "latest/edge")
+RADARR_CHANNEL = os.environ.get("CHARMARR_RADARR_CHANNEL", "latest/edge")
 
 pytest_plugins = [
     "charmarr_lib.testing.steps.storage",
@@ -53,16 +50,6 @@ def charm_path() -> Path:
     if env_path := os.environ.get("CHARM_PATH"):
         return Path(env_path)
     return pack_prowlarr_charm()
-
-
-@pytest.fixture(scope="session")
-def radarr_charm_path() -> Path:
-    """Pack radarr charm for integration testing."""
-    if env_paths := os.environ.get("ARR_CHARM_PATHS"):
-        paths = json.loads(env_paths)
-        if "radarr-k8s" in paths:
-            return Path(paths["radarr-k8s"])
-    return pack(CHARMS_DIR / "radarr-k8s")
 
 
 @pytest.fixture(scope="module")
@@ -112,12 +99,14 @@ def flaresolverr_related(
 
 
 @pytest.fixture(scope="module")
-def radarr_deployed(juju: jubilant.Juju, radarr_charm_path: Path, storage_deployed: None) -> None:
-    """Ensure radarr is deployed with storage."""
+def radarr_deployed(juju: jubilant.Juju, storage_deployed: None) -> None:
+    """Ensure radarr is deployed from Charmhub with storage."""
     status = juju.status()
     if "radarr" in status.apps:
         return
-    deploy_radarr_charm(juju, radarr_charm_path)
+    juju.deploy("radarr-k8s", app="radarr", channel=RADARR_CHANNEL, trust=True)
+    juju.integrate("radarr:media-storage", "charmarr-storage:media-storage")
+    wait_for_active_idle(juju)
 
 
 @pytest.fixture(scope="module")
