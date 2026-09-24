@@ -30,13 +30,19 @@ class QBittorrentApi:
         return f"{self._base_url}{API_BASE_PATH}{path}"
 
     def authenticate(self, username: str, password: str) -> None:
-        """Authenticate and store session cookie."""
+        """Authenticate and store session cookie.
+
+        A successful login answers 200 with "Ok." up to qBittorrent 5.1 and an
+        empty 204 from 5.2, setting the session cookie either way. A rejected one
+        is a 200 carrying "Fails." up to 5.1 and a 401 from 5.2.
+        """
         response = self._client.post(
             self._url("/auth/login"),
             data={"username": username, "password": password},
         )
-        if response.status_code != 200 or response.text != "Ok.":
-            raise QBittorrentApiError(f"Authentication failed: {response.text}")
+        if not response.is_success or response.text.strip() == "Fails.":
+            detail = response.text.strip() or f"HTTP {response.status_code}"
+            raise QBittorrentApiError(f"Authentication failed: {detail}")
 
     def get_version(self) -> str:
         """Get qBittorrent version (health check)."""

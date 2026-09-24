@@ -131,7 +131,7 @@ def test_reconcile_builds_pebble_layer(ctx, mock_k8s):
     service = layer.services["qbittorrent"]
     assert service.user_id == 1000
     assert service.group_id == 1000
-    assert service.command == "/usr/bin/qbittorrent-nox --profile=/config"
+    assert service.command == "/app/qbittorrent-nox --profile=/config"
     assert service.environment.get("HOME") == "/config"
     assert service.environment.get("TZ") == "Etc/UTC"
 

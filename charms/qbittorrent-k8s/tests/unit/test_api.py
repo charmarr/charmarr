@@ -5,6 +5,7 @@
 
 from unittest.mock import MagicMock, patch
 
+import httpx
 import pytest
 
 from _qbittorrent import QBittorrentApi, QBittorrentApiError
@@ -33,6 +34,30 @@ def test_authenticate_failure(api):
     api._mock.post.return_value = MagicMock(status_code=403, text="Fails.")
     with pytest.raises(QBittorrentApiError):
         api.authenticate("admin", "wrong")
+
+
+@pytest.mark.parametrize(
+    ("status", "body", "accepted"),
+    [
+        (200, "Ok.", True),
+        (204, "", True),
+        (200, "Fails.", False),
+        (401, "", False),
+        (500, "", False),
+    ],
+)
+def test_authenticate_accepts_both_qbittorrent_dialects(status, body, accepted):
+    """5.1 answers 200 "Ok."/"Fails.", 5.2 answers 204/401 with no body."""
+    client = QBittorrentApi("http://localhost:8080")
+    client._client = httpx.Client(
+        transport=httpx.MockTransport(lambda _: httpx.Response(status, text=body))
+    )
+
+    if accepted:
+        client.authenticate("charmarr", "pass")
+    else:
+        with pytest.raises(QBittorrentApiError):
+            client.authenticate("charmarr", "pass")
 
 
 def test_create_category_ignores_conflict(api):

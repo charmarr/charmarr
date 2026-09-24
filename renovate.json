@@ -37,9 +37,9 @@
       "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)ubu(?<build>\\d+)-ls(?<revision>\\d+)$"
     },
     {
-      "description": "LinuxServer qbittorrent (has -r# in tag)",
+      "description": "LinuxServer qbittorrent (tag embeds the libtorrent build, which is not part of the qbittorrent version)",
       "matchPackageNames": ["lscr.io/linuxserver/qbittorrent"],
-      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)-r(?<build>\\d+)-ls(?<revision>\\d+)$"
+      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)_v[\\d.]+-ls(?<revision>\\d+)$"
     },
     {
       "description": "LinuxServer sabnzbd",

@@ -50,16 +50,23 @@ def webui_authenticates(juju: jubilant.Juju, credentials: Credentials) -> None:
         headers={"Content-Type": "application/x-www-form-urlencoded"},
         body=login_body,
     )
-    assert login_response.status_code == 200, (
+    # qBittorrent answers a successful login with 200 "Ok." up to 5.1 and an empty
+    # 204 from 5.2, and names the session cookie SID and QBT_SID_<port> respectively.
+    assert 200 <= login_response.status_code < 300, (
         f"Login failed: {login_response.status_code} - {login_response.body}"
     )
-    assert login_response.body == "Ok.", f"Login response: {login_response.body}"
+    assert login_response.body.strip() != "Fails.", f"Login response: {login_response.body}"
 
-    sid = login_response.cookies.get("SID")
-    assert sid, f"No SID cookie in response: {login_response.cookies}"
+    session = next(
+        ((name, value) for name, value in login_response.cookies.items() if "SID" in name),
+        None,
+    )
+    assert session, f"No session cookie in response: {login_response.cookies}"
 
     version_url = "http://qbittorrent:8080/api/v2/app/version"
-    version_response = http_request(juju, version_url, headers={"Cookie": f"SID={sid}"})
+    version_response = http_request(
+        juju, version_url, headers={"Cookie": f"{session[0]}={session[1]}"}
+    )
     assert version_response.status_code == 200, (
         f"Expected 200, got {version_response.status_code}: {version_response.body}"
     )
