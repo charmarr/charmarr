@@ -57,7 +57,7 @@ resource "null_resource" "gluetun_secret_config" {
 # -----------------------------------------------------------------------------
 
 module "storage" {
-  source = "git::https://github.com/charmarr/charmarr//charms/charmarr-storage-k8s/terraform?ref=main"
+  source = "git::https://github.com/charmarr/charmarr//charms/charmarr-storage-k8s/terraform?ref=track/1"
 
   model             = var.model
   owner             = var.owner
@@ -77,7 +77,7 @@ module "storage" {
 
 module "gluetun" {
   count  = var.enable_vpn ? 1 : 0
-  source = "git::https://github.com/charmarr/charmarr//charms/gluetun-k8s/terraform?ref=main"
+  source = "git::https://github.com/charmarr/charmarr//charms/gluetun-k8s/terraform?ref=track/1"
 
   model                        = var.model
   owner                        = var.owner
@@ -99,7 +99,7 @@ module "gluetun" {
 }
 
 module "qbittorrent" {
-  source = "git::https://github.com/charmarr/charmarr//charms/qbittorrent-k8s/terraform?ref=main"
+  source = "git::https://github.com/charmarr/charmarr//charms/qbittorrent-k8s/terraform?ref=track/1"
 
   model               = var.model
   owner               = var.owner
@@ -114,7 +114,7 @@ module "qbittorrent" {
 }
 
 module "sabnzbd" {
-  source = "git::https://github.com/charmarr/charmarr//charms/sabnzbd-k8s/terraform?ref=main"
+  source = "git::https://github.com/charmarr/charmarr//charms/sabnzbd-k8s/terraform?ref=track/1"
 
   model               = var.model
   owner               = var.owner
@@ -129,7 +129,7 @@ module "sabnzbd" {
 }
 
 module "prowlarr" {
-  source = "git::https://github.com/charmarr/charmarr//charms/prowlarr-k8s/terraform?ref=main"
+  source = "git::https://github.com/charmarr/charmarr//charms/prowlarr-k8s/terraform?ref=track/1"
 
   model            = var.model
   owner            = var.owner
@@ -144,7 +144,7 @@ module "prowlarr" {
 }
 
 module "flaresolverr" {
-  source = "git::https://github.com/charmarr/charmarr//charms/flaresolverr-k8s/terraform?ref=main"
+  source = "git::https://github.com/charmarr/charmarr//charms/flaresolverr-k8s/terraform?ref=track/1"
 
   model       = var.model
   owner       = var.owner
@@ -160,7 +160,7 @@ module "flaresolverr" {
 # -----------------------------------------------------------------------------
 
 module "radarr_hd" {
-  source = "git::https://github.com/charmarr/charmarr//charms/radarr-k8s/terraform?ref=main"
+  source = "git::https://github.com/charmarr/charmarr//charms/radarr-k8s/terraform?ref=track/1"
 
   model            = var.model
   owner            = var.owner
@@ -177,7 +177,7 @@ module "radarr_hd" {
 }
 
 module "radarr_uhd" {
-  source = "git::https://github.com/charmarr/charmarr//charms/radarr-k8s/terraform?ref=main"
+  source = "git::https://github.com/charmarr/charmarr//charms/radarr-k8s/terraform?ref=track/1"
 
   model            = var.model
   owner            = var.owner
@@ -194,7 +194,7 @@ module "radarr_uhd" {
 }
 
 module "radarr_anime" {
-  source = "git::https://github.com/charmarr/charmarr//charms/radarr-k8s/terraform?ref=main"
+  source = "git::https://github.com/charmarr/charmarr//charms/radarr-k8s/terraform?ref=track/1"
 
   model            = var.model
   owner            = var.owner
@@ -215,7 +215,7 @@ module "radarr_anime" {
 # -----------------------------------------------------------------------------
 
 module "sonarr_hd" {
-  source = "git::https://github.com/charmarr/charmarr//charms/sonarr-k8s/terraform?ref=main"
+  source = "git::https://github.com/charmarr/charmarr//charms/sonarr-k8s/terraform?ref=track/1"
 
   model            = var.model
   owner            = var.owner
@@ -232,7 +232,7 @@ module "sonarr_hd" {
 }
 
 module "sonarr_uhd" {
-  source = "git::https://github.com/charmarr/charmarr//charms/sonarr-k8s/terraform?ref=main"
+  source = "git::https://github.com/charmarr/charmarr//charms/sonarr-k8s/terraform?ref=track/1"
 
   model            = var.model
   owner            = var.owner
@@ -249,7 +249,7 @@ module "sonarr_uhd" {
 }
 
 module "sonarr_anime" {
-  source = "git::https://github.com/charmarr/charmarr//charms/sonarr-k8s/terraform?ref=main"
+  source = "git::https://github.com/charmarr/charmarr//charms/sonarr-k8s/terraform?ref=track/1"
 
   model            = var.model
   owner            = var.owner
@@ -270,7 +270,7 @@ module "sonarr_anime" {
 # -----------------------------------------------------------------------------
 
 module "plex" {
-  source = "git::https://github.com/charmarr/charmarr//charms/plex-k8s/terraform?ref=main"
+  source = "git::https://github.com/charmarr/charmarr//charms/plex-k8s/terraform?ref=track/1"
 
   model                = var.model
   owner                = var.owner
@@ -284,7 +284,7 @@ module "plex" {
 }
 
 module "overseerr" {
-  source = "git::https://github.com/charmarr/charmarr//charms/overseerr-k8s/terraform?ref=main"
+  source = "git::https://github.com/charmarr/charmarr//charms/overseerr-k8s/terraform?ref=track/1"
 
   model            = var.model
   owner            = var.owner

@@ -24,7 +24,7 @@ variable "enable_mesh" {
 }
 
 module "charmarr" {
-  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
+  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=track/1"
 
   model = var.model
 
