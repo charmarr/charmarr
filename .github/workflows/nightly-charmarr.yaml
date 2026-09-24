@@ -5,6 +5,12 @@ on:
   schedule:
     - cron: '0 22 * * *'
 
+# charm-integration.yaml opens issues on soft failures, and a called workflow
+# cannot hold permissions the caller lacks.
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   service-mesh-qbittorrent:
     name: Service mesh / qbittorrent
