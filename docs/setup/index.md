@@ -2,6 +2,17 @@
 
 Get Charmarr running on your Kubernetes cluster in minutes.
 
+!!! warning "track/1 is winding down"
+
+    These docs describe **track/1**, the current stable track. It still receives
+    fixes that keep the existing deployment working, but newly reported bugs and
+    new features are not being addressed here.
+
+    A stable **track/2** is coming soon. If you are deploying Charmarr for the
+    first time, use the `latest/edge` channel rather than `1/stable`, so that you
+    land on track/2 when it is released instead of migrating later.
+
+
 <div class="grid cards" markdown>
 
 -   **1. Prerequisites**

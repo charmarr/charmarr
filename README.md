@@ -11,6 +11,15 @@
   <a href="https://github.com/charmarr/charmarr/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue" alt="License"></a>
 </p>
 
+> [!WARNING]
+> **track/1 is winding down.** It still receives fixes that keep the existing
+> deployment working, and the nightly keeps running so its health stays visible,
+> but newly reported bugs and new features are not being addressed here.
+>
+> A stable **track/2** is coming soon. New deployments should use the
+> `latest/edge` channel rather than `1/stable`, to land on track/2 when it is
+> released instead of migrating later.
+
 | Charm | Description | CharmHub |
 |:-----:|:-----------:|:--------:|
 | | **Infrastructure** | |
