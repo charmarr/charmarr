@@ -85,6 +85,8 @@ from charmarr_lib.core.interfaces import (
 from charmarr_lib.vpn import reconcile_gateway_client
 from charmarr_lib.vpn.interfaces import VPNGatewayRequirer, VPNGatewayRequirerData
 
+QBITTORRENT_BIN = "/app/qbittorrent-nox"
+
 logger = logging.getLogger(__name__)
 
 
@@ -266,7 +268,10 @@ class QBittorrentCharm(ops.CharmBase):
             "services": {
                 SERVICE_NAME: {
                     "override": "replace",
-                    "command": "/usr/bin/qbittorrent-nox --profile=/config",
+                    # The image ships the binary outside PATH, and moved it from
+                    # /usr/bin to /app in 5.2, so the location is pinned here with
+                    # the image rather than resolved at runtime.
+                    "command": f"{QBITTORRENT_BIN} --profile=/config",
                     "startup": "enabled",
                     "user-id": puid,
                     "group-id": pgid,
