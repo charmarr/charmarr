@@ -39,9 +39,3 @@ def get_prowlarr_credentials(juju: jubilant.Juju) -> ArrCredentials | None:
     if creds:
         creds.base_url = f"http://prowlarr:{WEBUI_PORT}/prowlarr"
     return creds
-
-
-def deploy_radarr_charm(juju: jubilant.Juju, charm_path: Path) -> None:
-    """Deploy radarr charm with storage relation."""
-    radarr_dir = CHARMS_DIR / "radarr-k8s"
-    deploy_arr_charm(juju, charm_path, "radarr", radarr_dir, with_storage=True)
