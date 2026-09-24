@@ -89,6 +89,7 @@ nav:
   - Migration:
       - migration/index.md
       - Overseerr → Seerr: migration/overseerr-to-seerr.md
+      - Recyclarr v7 → v8: migration/recyclarr-v8.md
   - Security:
       - security/index.md
       - Networking: security/network.md

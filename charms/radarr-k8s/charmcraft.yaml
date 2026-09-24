@@ -70,15 +70,15 @@ resources:
   radarr-image:
     type: oci-image
     description: OCI image for Radarr (LinuxServer)
-    upstream-source: lscr.io/linuxserver/radarr:6.1.1.10360-ls299
+    upstream-source: lscr.io/linuxserver/radarr:6.4.4.10685-ls318
   recyclarr-image:
     type: oci-image
     description: OCI image for Recyclarr
-    upstream-source: ghcr.io/recyclarr/recyclarr:7.5.2
+    upstream-source: ghcr.io/recyclarr/recyclarr:8.7.2
   scraparr-image:
     type: oci-image
     description: OCI image for scraparr (Prometheus exporter for *arr apps)
-    upstream-source: ghcr.io/thecfu/scraparr:3.0.3
+    upstream-source: ghcr.io/thecfu/scraparr:3.2.0
 
 storage:
   config:
@@ -178,7 +178,7 @@ config:
       description: |
         Override default Trash Guide profiles for this variant.
 
-        When empty, uses variant defaults (4k: uhd-bluray-web, anime: anime).
+        When empty, uses variant defaults (4k: uhd-bluray-web, anime: anime-remux-1080p).
         Set explicitly to override or use different profiles.
 
         Examples:
@@ -186,7 +186,7 @@ config:
           - uhd-bluray-web (4K Bluray + WEB-DL)
           - remux-web-1080p (1080p Remux + WEB-DL)
           - remux-web-2160p (4K Remux + WEB-DL)
-          - anime (Anime-optimized)
+          - anime-remux-1080p (Anime-optimized)
 
         WARNING: Do not mix 1080p and 4K profiles. Deploy separate instances instead.
 

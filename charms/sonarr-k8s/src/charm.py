@@ -450,7 +450,7 @@ class SonarrCharm(ops.CharmBase):
         """Sync Trash Guides quality profiles via Recyclarr."""
         profiles_config = str(self.config.get("trash-profiles", "")).strip()
         if not profiles_config:
-            profiles_config = get_default_trash_profiles(self._get_variant())
+            profiles_config = get_default_trash_profiles(self._get_variant(), MediaManager.SONARR)
         if not profiles_config:
             return
 
@@ -825,7 +825,7 @@ class SonarrCharm(ops.CharmBase):
         api_key, _ = secret_data
         profiles_config = str(self.config.get("trash-profiles", "")).strip()
         if not profiles_config:
-            profiles_config = get_default_trash_profiles(self._get_variant())
+            profiles_config = get_default_trash_profiles(self._get_variant(), MediaManager.SONARR)
         if not profiles_config:
             event.fail("No trash-profiles configured and no default for standard variant")
             return

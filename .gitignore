@@ -65,3 +65,6 @@ charms/*/terraform/.terraform.lock.hcl
 
 # UV
 # uv.lock is committed for reproducible CI builds
+
+# mkdocs build output
+site/
