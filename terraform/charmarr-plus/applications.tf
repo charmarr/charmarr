@@ -459,7 +459,7 @@ module "beacon" {
 }
 
 module "arr_ingress" {
-  count  = var.enable_istio ? 1 : 0
+  count  = var.enable_ingress && var.enable_istio ? 1 : 0
   source = "git::https://github.com/canonical/istio-ingress-k8s-operator//terraform?ref=main"
 
   model_uuid  = data.juju_model.model.uuid
@@ -471,7 +471,7 @@ module "arr_ingress" {
 }
 
 module "arr_ingress_traefik" {
-  count  = var.enable_istio ? 0 : 1
+  count  = var.enable_ingress && !var.enable_istio ? 1 : 0
   source = "git::https://github.com/canonical/traefik-k8s-operator//terraform?ref=main"
 
   model_uuid  = data.juju_model.model.uuid
@@ -483,7 +483,7 @@ module "arr_ingress_traefik" {
 }
 
 module "plex_ingress" {
-  count  = var.enable_istio && local.enable_plex ? 1 : 0
+  count  = var.enable_ingress && var.enable_istio && local.enable_plex ? 1 : 0
   source = "git::https://github.com/canonical/istio-ingress-k8s-operator//terraform?ref=main"
 
   model_uuid  = data.juju_model.model.uuid
@@ -495,7 +495,7 @@ module "plex_ingress" {
 }
 
 module "plex_ingress_traefik" {
-  count  = !var.enable_istio && local.enable_plex ? 1 : 0
+  count  = var.enable_ingress && !var.enable_istio && local.enable_plex ? 1 : 0
   source = "git::https://github.com/canonical/traefik-k8s-operator//terraform?ref=main"
 
   model_uuid  = data.juju_model.model.uuid
@@ -507,7 +507,7 @@ module "plex_ingress_traefik" {
 }
 
 module "jellyfin_ingress" {
-  count  = var.enable_istio && local.enable_jellyfin ? 1 : 0
+  count  = var.enable_ingress && var.enable_istio && local.enable_jellyfin ? 1 : 0
   source = "git::https://github.com/canonical/istio-ingress-k8s-operator//terraform?ref=main"
 
   model_uuid  = data.juju_model.model.uuid
@@ -519,7 +519,7 @@ module "jellyfin_ingress" {
 }
 
 module "jellyfin_ingress_traefik" {
-  count  = !var.enable_istio && local.enable_jellyfin ? 1 : 0
+  count  = var.enable_ingress && !var.enable_istio && local.enable_jellyfin ? 1 : 0
   source = "git::https://github.com/canonical/traefik-k8s-operator//terraform?ref=main"
 
   model_uuid  = data.juju_model.model.uuid
@@ -531,7 +531,7 @@ module "jellyfin_ingress_traefik" {
 }
 
 module "seerr_ingress" {
-  count  = var.enable_istio && var.enable_seerr ? 1 : 0
+  count  = var.enable_ingress && var.enable_istio && var.enable_seerr ? 1 : 0
   source = "git::https://github.com/canonical/istio-ingress-k8s-operator//terraform?ref=main"
 
   model_uuid  = data.juju_model.model.uuid
@@ -543,7 +543,7 @@ module "seerr_ingress" {
 }
 
 module "seerr_ingress_traefik" {
-  count  = !var.enable_istio && var.enable_seerr ? 1 : 0
+  count  = var.enable_ingress && !var.enable_istio && var.enable_seerr ? 1 : 0
   source = "git::https://github.com/canonical/traefik-k8s-operator//terraform?ref=main"
 
   model_uuid  = data.juju_model.model.uuid

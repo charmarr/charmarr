@@ -365,6 +365,28 @@ Plex, Jellyfin, and Seerr each need the root of a gateway, which is why they get
 
 Traefik picks the path prefix, in the form `/{model}-{app}`. In a model named `charmarr`, Radarr lands on `/charmarr-radarr`, Sonarr on `/charmarr-sonarr`, and so on. The charms read that prefix off the relation and reconfigure themselves, so links and assets resolve without you setting anything.
 
+#### Bring your own ingress
+
+Set `enable_ingress = false` to keep the module from deploying or wiring any
+ingress. Every application keeps its `ingress` endpoint free, so you can relate
+a provider you already run. For example, with `tailscale-beacon-k8s`:
+
+```bash
+juju deploy tailscale-beacon-k8s ts-beacon --channel=dev/edge
+juju integrate radarr:ingress ts-beacon:ingress
+juju integrate sonarr:ingress ts-beacon:ingress
+juju integrate prowlarr:ingress ts-beacon:ingress
+juju integrate qbittorrent:ingress ts-beacon:ingress
+juju integrate sabnzbd:ingress ts-beacon:ingress
+# Relate whichever media server and requester you deployed.
+juju integrate jellyfin:ingress ts-beacon:ingress
+juju integrate seerr:ingress ts-beacon:ingress
+```
+
+The module still deploys the applications and every non-ingress integration.
+`output.ingress.provider` reports `external` so downstream configuration can
+tell that the module is not managing the edge.
+
 ### 3. Deploy
 
 ```bash

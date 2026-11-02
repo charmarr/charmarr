@@ -48,6 +48,21 @@ variable "enable_istio" {
   default     = false
 }
 
+variable "enable_ingress" {
+  description = <<-EOT
+    Deploy and wire this module's built-in ingress (traefik-k8s, or
+    istio-ingress-k8s when enable_istio = true).
+
+    Set to false to bring your own ingress provider, such as
+    tailscale-beacon-k8s (ts-beacon), Pangolin, or an existing Traefik. When
+    false, the module deploys no ingress applications and creates no ingress
+    integrations, leaving each application's `ingress` endpoint free for you
+    to relate your provider to.
+  EOT
+  type        = bool
+  default     = true
+}
+
 # -----------------------------------------------------------------------------
 # VPN Configuration
 # -----------------------------------------------------------------------------
