@@ -44,7 +44,7 @@ variable "model" {
 }
 
 variable "owner" {
-  description = "Owner used by the embedded charm modules when they look up the model by name"
+  description = "Owner used when this module creates the model. Ignored when targeting an existing model by UUID, where the real owner is resolved from the model"
   type        = string
   default     = "admin"
 }

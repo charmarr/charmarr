@@ -107,7 +107,7 @@ module "storage" {
   source = "git::https://github.com/charmarr/charmarr//charms/charmarr-storage-k8s/terraform?ref=main"
 
   model             = local.model_name
-  owner             = var.owner
+  owner             = local.model_owner
   app_name          = "storage"
   channel           = var.channel
   constraints       = var.storage.constraints
@@ -128,7 +128,7 @@ module "gluetun" {
   source = "git::https://github.com/charmarr/charmarr//charms/gluetun-k8s/terraform?ref=main"
 
   model               = local.model_name
-  owner               = var.owner
+  owner               = local.model_owner
   app_name            = "gluetun"
   channel             = var.channel
   constraints         = var.gluetun.constraints
@@ -150,7 +150,7 @@ module "qbittorrent" {
   source = "git::https://github.com/charmarr/charmarr//charms/qbittorrent-k8s/terraform?ref=main"
 
   model               = local.model_name
-  owner               = var.owner
+  owner               = local.model_owner
   app_name            = "qbittorrent"
   channel             = var.channel
   constraints         = var.qbittorrent.constraints
@@ -165,7 +165,7 @@ module "sabnzbd" {
   source = "git::https://github.com/charmarr/charmarr//charms/sabnzbd-k8s/terraform?ref=main"
 
   model               = local.model_name
-  owner               = var.owner
+  owner               = local.model_owner
   app_name            = "sabnzbd"
   channel             = var.channel
   constraints         = var.sabnzbd.constraints
@@ -180,7 +180,7 @@ module "prowlarr" {
   source = "git::https://github.com/charmarr/charmarr//charms/prowlarr-k8s/terraform?ref=main"
 
   model            = local.model_name
-  owner            = var.owner
+  owner            = local.model_owner
   app_name         = "prowlarr"
   channel          = var.channel
   constraints      = var.prowlarr.constraints
@@ -195,7 +195,7 @@ module "flaresolverr" {
   source = "git::https://github.com/charmarr/charmarr//charms/flaresolverr-k8s/terraform?ref=main"
 
   model       = local.model_name
-  owner       = var.owner
+  owner       = local.model_owner
   app_name    = "flaresolverr"
   channel     = var.channel
   constraints = var.flaresolverr.constraints
@@ -207,7 +207,7 @@ module "radarr" {
   source = "git::https://github.com/charmarr/charmarr//charms/radarr-k8s/terraform?ref=main"
 
   model            = local.model_name
-  owner            = var.owner
+  owner            = local.model_owner
   app_name         = "radarr"
   channel          = var.channel
   constraints      = var.radarr.constraints
@@ -222,7 +222,7 @@ module "sonarr" {
   source = "git::https://github.com/charmarr/charmarr//charms/sonarr-k8s/terraform?ref=main"
 
   model            = local.model_name
-  owner            = var.owner
+  owner            = local.model_owner
   app_name         = "sonarr"
   channel          = var.channel
   constraints      = var.sonarr.constraints
@@ -238,7 +238,7 @@ module "plex" {
   source = "git::https://github.com/charmarr/charmarr//charms/plex-k8s/terraform?ref=main"
 
   model                = local.model_name
-  owner                = var.owner
+  owner                = local.model_owner
   app_name             = "plex"
   channel              = var.channel
   constraints          = var.plex.constraints
@@ -253,7 +253,7 @@ module "jellyfin" {
   source = "git::https://github.com/charmarr/charmarr//charms/jellyfin-k8s/terraform?ref=main"
 
   model                = local.model_name
-  owner                = var.owner
+  owner                = local.model_owner
   app_name             = "jellyfin"
   channel              = var.channel
   constraints          = var.jellyfin.constraints
@@ -267,7 +267,7 @@ module "overseerr" {
   source = "git::https://github.com/charmarr/charmarr//charms/overseerr-k8s/terraform?ref=main"
 
   model            = local.model_name
-  owner            = var.owner
+  owner            = local.model_owner
   app_name         = "overseerr"
   channel          = var.channel
   constraints      = var.overseerr.constraints
@@ -281,7 +281,7 @@ module "seerr" {
   source = "git::https://github.com/charmarr/charmarr//charms/seerr-k8s/terraform?ref=main"
 
   model            = local.model_name
-  owner            = var.owner
+  owner            = local.model_owner
   app_name         = "seerr"
   channel          = var.channel
   constraints      = var.seerr.constraints
@@ -315,7 +315,7 @@ module "crowsnest" {
   source = "git::https://github.com/charmarr/charmarr//charms/charmarr-crowsnest-k8s/terraform?ref=main"
 
   model       = local.model_name
-  owner       = var.owner
+  owner       = local.model_owner
   app_name    = "crowsnest"
   channel     = var.channel
   constraints = var.crowsnest.constraints

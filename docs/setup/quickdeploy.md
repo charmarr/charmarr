@@ -93,6 +93,14 @@ module "charmarr" {
 
 When targeting an existing model, no other `model` fields (`name`, `cloud`, `config`, etc.) may be set. See the [juju_model resource docs](https://registry.terraform.io/providers/juju/juju/latest/docs/resources/model) for the full list of fields.
 
+If you previously deployed with `model = "charmarr"`, upgrade by pointing at the existing model by UUID:
+
+```hcl
+model = { uuid = "<model-uuid>" }
+```
+
+Do **not** switch an existing deployment to `model = { name = "charmarr" }`: the module would try to create a model that already exists and fail. Get the UUID with `juju show-model charmarr --format json | jq -r '.charmarr."model-uuid"'`.
+
 #### Storage
 
 Shared storage enables hardlinks between download clients and media managers. See [Storage](../charms/storage.md) for why this matters.

@@ -1,4 +1,4 @@
-variable "model" {
+variable "model_uuid" {
   type = string
 }
 
@@ -22,7 +22,7 @@ module "charmarr" {
   source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
 
   model = {
-    name = var.model
+    uuid = var.model_uuid
   }
 
   storage_backend = "storage-class"
