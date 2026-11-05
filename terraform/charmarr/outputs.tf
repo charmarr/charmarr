@@ -34,7 +34,8 @@ output "mesh" {
 output "ingress" {
   description = "Ingress provider in use and the application names it fronts with"
   value = {
-    provider = var.enable_istio ? "istio-ingress-k8s" : "traefik-k8s"
+    enabled  = var.enable_ingress
+    provider = !var.enable_ingress ? "external" : (var.enable_istio ? "istio-ingress-k8s" : "traefik-k8s")
     arr      = local.arr_ingress_app
     plex     = local.plex_ingress_app
     jellyfin = local.jellyfin_ingress_app

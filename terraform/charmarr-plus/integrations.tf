@@ -400,10 +400,10 @@ resource "juju_integration" "mesh_crowsnest" {
 # arr_ingress fronts every fleet charm that ingresses except the root-only ones,
 # which each get a dedicated instance below.
 resource "juju_integration" "arr_ingress" {
-  for_each = {
+  for_each = var.enable_ingress ? {
     for k, v in local.fleet :
     k => v if contains(keys(v.requires), local.ingress_requirer_key) && !contains(["plex", "jellyfin", "seerr"], k)
-  }
+  } : {}
   model_uuid = local.model_uuid
 
   application {
@@ -418,7 +418,7 @@ resource "juju_integration" "arr_ingress" {
 }
 
 resource "juju_integration" "plex_ingress_plex" {
-  count      = local.enable_plex ? 1 : 0
+  count      = local.enable_plex && var.enable_ingress ? 1 : 0
   model_uuid = local.model_uuid
 
   application {
@@ -433,7 +433,7 @@ resource "juju_integration" "plex_ingress_plex" {
 }
 
 resource "juju_integration" "jellyfin_ingress_jellyfin" {
-  count      = local.enable_jellyfin ? 1 : 0
+  count      = local.enable_jellyfin && var.enable_ingress ? 1 : 0
   model_uuid = local.model_uuid
 
   application {
@@ -448,7 +448,7 @@ resource "juju_integration" "jellyfin_ingress_jellyfin" {
 }
 
 resource "juju_integration" "seerr_ingress_seerr" {
-  count      = var.enable_seerr ? 1 : 0
+  count      = var.enable_seerr && var.enable_ingress ? 1 : 0
   model_uuid = local.model_uuid
 
   application {

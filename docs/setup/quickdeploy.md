@@ -389,6 +389,38 @@ Plex, Jellyfin, and Seerr each need the root of a gateway, which is why they get
 
 Traefik picks the path prefix, in the form `/{model}-{app}`. In a model named `charmarr`, Radarr lands on `/charmarr-radarr`, Sonarr on `/charmarr-sonarr`, and so on. The charms read that prefix off the relation and reconfigure themselves, so links and assets resolve without you setting anything.
 
+#### Bring your own ingress
+
+Set `enable_ingress = false` to keep the module from deploying or wiring any
+ingress. Every application keeps its `ingress` endpoint free, so you can relate
+a provider you already run.
+
+For example, with the Canonical Tailscale charms, deploy a beacon in the
+CharmArr model and relate it to each application:
+
+```bash
+juju deploy tailscale-beacon-k8s ts-beacon --trust --channel=dev/edge
+juju integrate radarr:ingress ts-beacon:ingress
+juju integrate sonarr:ingress ts-beacon:ingress
+juju integrate prowlarr:ingress ts-beacon:ingress
+juju integrate qbittorrent:ingress ts-beacon:ingress
+juju integrate sabnzbd:ingress ts-beacon:ingress
+# Relate whichever media server and requester you deployed.
+juju integrate jellyfin:ingress ts-beacon:ingress
+juju integrate seerr:ingress ts-beacon:ingress
+```
+
+The beacon needs a cluster-wide `tailscale-k8s` operator, deployed once per
+cluster (typically in a separate `tailscale-system` model), to reconcile the
+Services it creates onto the tailnet. See the
+[Canonical Tailscale charms](https://github.com/canonical/service-mesh/tree/main/charms)
+for the operator and credential setup. Unlike the shared `arr-ingress`, the
+beacon exposes each related application on its own tailnet hostname.
+
+The module still deploys the applications and every non-ingress integration.
+`output.ingress.provider` reports `external` so downstream configuration can
+tell that the module is not managing the edge.
+
 ### 3. Deploy
 
 ```bash
