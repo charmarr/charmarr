@@ -11,7 +11,7 @@ mock_provider "kubernetes" {}
 mock_provider "null" {}
 
 variables {
-  model           = "charmarr"
+  model           = { name = "charmarr" }
   vpn_provider    = "protonvpn"
   cluster_cidrs   = "10.1.0.0/16,10.152.183.0/24,10.0.0.0/8"
   storage_backend = "storage-class"

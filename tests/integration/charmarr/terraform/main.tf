@@ -1,4 +1,4 @@
-variable "model" {
+variable "model_uuid" {
   type = string
 }
 
@@ -21,7 +21,9 @@ variable "enable_istio" {
 module "charmarr" {
   source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
 
-  model = var.model
+  model = {
+    uuid = var.model_uuid
+  }
 
   storage_backend = "storage-class"
   storage_class   = "csi-rawfile-default"
