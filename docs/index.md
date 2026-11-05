@@ -70,7 +70,6 @@ Really. The deployment looks like this:
     module "charmarr" {
       source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
 
-      model                 = { name = "charmarr" }
       wireguard_private_key = var.wireguard_private_key
       vpn_provider          = "protonvpn"
       cluster_cidrs         = "10.1.0.0/16,10.152.183.0/24,192.168.0.0/24"

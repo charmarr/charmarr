@@ -17,13 +17,13 @@ curl -O https://raw.githubusercontent.com/charmarr/charmarr/main/justfiles/charm
 just -f charmarr-primitives.just setup
 ```
 
-This installs Canonical K8s with local storage and an L2 load balancer pool, bootstraps Juju, and creates a `charmarr` model.
+This installs Canonical K8s with local storage and an L2 load balancer pool, and bootstraps Juju. The `charmarr` model is created later: Quick Deploy creates it automatically, and Manual Deploy starts by creating it.
 
 Verify it worked:
 
 ```bash
 juju clouds    # should show ck8s
-juju models    # should show charmarr model
+juju models    # should show the controller model
 ```
 
 To remove everything:
@@ -95,9 +95,6 @@ sudo k8s config | juju add-k8s ck8s --client
 
 # Bootstrap Juju on the cluster
 juju bootstrap ck8s ck8s
-
-# Create the charmarr model
-juju add-model charmarr
 ```
 
 See the Juju docs for [add-k8s](https://documentation.ubuntu.com/juju/3.6/reference/juju-cli/list-of-juju-cli-commands/add-k8s/) and [bootstrap](https://documentation.ubuntu.com/juju/3.6/reference/juju-cli/list-of-juju-cli-commands/bootstrap/).

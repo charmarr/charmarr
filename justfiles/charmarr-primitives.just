@@ -40,15 +40,10 @@ setup:
     juju add-k8s ck8s --client
     juju bootstrap ck8s ck8s
 
-    echo "Creating charmarr model..."
-    juju add-model --config logging-config="<root>=WARNING; unit=DEBUG" \
-                   --config update-status-hook-interval="60m" charmarr
-
     echo ""
     echo "Charmarr infrastructure ready!"
     echo "  - Canonical K8s (classic) with Juju bootstrapped"
     echo "  - Default StorageClass: csi-rawfile-default (ReadWriteOnce)"
-    echo "  - Model 'charmarr' created"
     echo ""
     echo "Verify with:"
     echo "  juju clouds"
