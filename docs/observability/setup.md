@@ -83,7 +83,7 @@ Grafana will install the plugin and restart automatically.
 The bundled Terraform modules at [`terraform/charmarr/`](https://github.com/charmarr/charmarr/tree/main/terraform/charmarr) and [`terraform/charmarr-plus/`](https://github.com/charmarr/charmarr/tree/main/terraform/charmarr-plus) take a single `cos` variable. When set, otelcol and crowsnest get deployed, every fleet relation wires automatically, and crowsnest is exposed through the existing arr-ingress so that COS reaches it via the external URL.
 
 ```hcl title="terraform.tfvars"
-model = "charmarr"
+model = { name = "charmarr" }
 owner = "admin"
 
 # ... usual charmarr config ...

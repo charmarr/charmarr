@@ -56,7 +56,7 @@ variable "wireguard_private_key" {
 module "charmarr" {
   source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
 
-  model = "charmarr"
+  model = { name = "charmarr" }
 
   # Storage
   storage_backend = "hostpath"
@@ -76,6 +76,30 @@ module "charmarr" {
 ```
 
 ### 2. Configure Variables
+
+#### Model
+
+By default the module creates the model it deploys into (`model = { name = "charmarr" }`, or `charmarr-plus` for the Plus bundle). To deploy into a model someone else already created instead, target it by UUID:
+
+```hcl
+module "charmarr" {
+  source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
+
+  model = { uuid = "<model-uuid>" }
+
+  # ... your other config ...
+}
+```
+
+When targeting an existing model, no other `model` fields (`name`, `cloud`, `config`, etc.) may be set. See the [juju_model resource docs](https://registry.terraform.io/providers/juju/juju/latest/docs/resources/model) for the full list of fields.
+
+If you previously deployed with `model = "charmarr"`, upgrade by pointing at the existing model by UUID:
+
+```hcl
+model = { uuid = "<model-uuid>" }
+```
+
+Do **not** switch an existing deployment to `model = { name = "charmarr" }`: the module would try to create a model that already exists and fail. Get the UUID with `juju show-model charmarr --format json | jq -r '.charmarr."model-uuid"'`.
 
 #### Storage
 
@@ -397,7 +421,7 @@ variable "wireguard_private_key" {
 module "charmarr_plus" {
   source = "git::https://github.com/charmarr/charmarr//terraform/charmarr-plus?ref=main"
 
-  model = "charmarr"
+  model = { name = "charmarr-plus" }
 
   # Storage
   storage_backend = "hostpath"

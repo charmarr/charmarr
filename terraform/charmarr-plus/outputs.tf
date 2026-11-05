@@ -1,11 +1,11 @@
 output "model" {
   description = "Juju model name"
-  value       = var.model
+  value       = local.model_name
 }
 
 output "model_uuid" {
   description = "Juju model UUID"
-  value       = data.juju_model.model.uuid
+  value       = local.model_uuid
 }
 
 output "applications" {

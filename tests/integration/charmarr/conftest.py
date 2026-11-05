@@ -39,7 +39,7 @@ def tf_env(juju: jubilant.Juju) -> dict:
     """Environment variables for terraform apply."""
     logger.info(f"Using juju model: {juju.model}")
     env = os.environ.copy()
-    env["TF_VAR_model"] = juju.model
+    env["TF_VAR_model_uuid"] = juju.show_model().model_uuid
     if wg_key := os.environ.get("WIREGUARD_PRIVATE_KEY"):
         env["TF_VAR_wireguard_private_key"] = wg_key
     # enable_istio makes the module probe the cluster for an ambient control
