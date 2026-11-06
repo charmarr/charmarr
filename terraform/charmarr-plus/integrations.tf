@@ -164,6 +164,54 @@ locals {
     }
   }
 
+  # Download clients that provide download-client.
+  download_clients = {
+    qbittorrent = {
+      name     = module.qbittorrent.app_name
+      provides = module.qbittorrent.provides
+    }
+    sabnzbd = {
+      name     = module.sabnzbd.app_name
+      provides = module.sabnzbd.provides
+    }
+  }
+
+  # Arrs that require a download client.
+  download_client_consumers = {
+    radarr_hd = {
+      name     = module.radarr_hd.app_name
+      requires = module.radarr_hd.requires
+    }
+    radarr_uhd = {
+      name     = module.radarr_uhd.app_name
+      requires = module.radarr_uhd.requires
+    }
+    radarr_anime = {
+      name     = module.radarr_anime.app_name
+      requires = module.radarr_anime.requires
+    }
+    sonarr_hd = {
+      name     = module.sonarr_hd.app_name
+      requires = module.sonarr_hd.requires
+    }
+    sonarr_uhd = {
+      name     = module.sonarr_uhd.app_name
+      requires = module.sonarr_uhd.requires
+    }
+    sonarr_anime = {
+      name     = module.sonarr_anime.app_name
+      requires = module.sonarr_anime.requires
+    }
+  }
+
+  # Cartesian product of download client × arr.
+  download_client_pairs = merge([
+    for dc_k, dc_v in local.download_clients : {
+      for arr_k, arr_v in local.download_client_consumers :
+      "${dc_k}_${arr_k}" => { client = dc_v, consumer = arr_v }
+    }
+  ]...)
+
   # Cartesian product of arr × consumer for media-manager wiring.
   media_manager_pairs = merge([
     for arr_k, arr_v in local.media_providers : {
@@ -288,6 +336,25 @@ resource "juju_integration" "flaresolverr_prowlarr" {
   application {
     name     = module.prowlarr.app_name
     endpoint = module.prowlarr.requires.flaresolverr
+  }
+}
+
+# =============================================================================
+# Download Client Integrations
+# =============================================================================
+
+resource "juju_integration" "download_client" {
+  for_each   = local.download_client_pairs
+  model_uuid = local.model_uuid
+
+  application {
+    name     = each.value.client.name
+    endpoint = each.value.client.provides.download_client
+  }
+
+  application {
+    name     = each.value.consumer.name
+    endpoint = each.value.consumer.requires.download_client
   }
 }
 
