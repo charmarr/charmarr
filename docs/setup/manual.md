@@ -6,6 +6,15 @@ Think of it like connecting Lego blocks. Each charm is a block, and relations sn
 
 Perfect for learning, debugging, or building something the pre-built bundles don't cover.
 
+## Create a Model
+
+Charmarr runs in a dedicated Juju model. Create one and switch to it (skip this if you already have one):
+
+```bash
+juju add-model charmarr
+juju switch charmarr
+```
+
 !!! tip
     Open a second terminal and run `juju status --integrations --watch 1s` to watch your deployment come alive as you run commands.
 
