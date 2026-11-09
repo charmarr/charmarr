@@ -164,44 +164,22 @@ locals {
     }
   }
 
-  # Download clients that provide download-client.
+  # Fleet members that provide download-client (qBittorrent, SABnzbd).
   download_clients = {
-    qbittorrent = {
-      name     = module.qbittorrent.app_name
-      provides = module.qbittorrent.provides
+    for k, v in local.fleet : k => {
+      name     = v.name
+      provides = v.provides
     }
-    sabnzbd = {
-      name     = module.sabnzbd.app_name
-      provides = module.sabnzbd.provides
-    }
+    if contains(keys(v.provides), "download_client")
   }
 
-  # Arrs that require a download client.
+  # Fleet members that require a download client (all Radarr/Sonarr instances).
   download_client_consumers = {
-    radarr_hd = {
-      name     = module.radarr_hd.app_name
-      requires = module.radarr_hd.requires
+    for k, v in local.fleet : k => {
+      name     = v.name
+      requires = v.requires
     }
-    radarr_uhd = {
-      name     = module.radarr_uhd.app_name
-      requires = module.radarr_uhd.requires
-    }
-    radarr_anime = {
-      name     = module.radarr_anime.app_name
-      requires = module.radarr_anime.requires
-    }
-    sonarr_hd = {
-      name     = module.sonarr_hd.app_name
-      requires = module.sonarr_hd.requires
-    }
-    sonarr_uhd = {
-      name     = module.sonarr_uhd.app_name
-      requires = module.sonarr_uhd.requires
-    }
-    sonarr_anime = {
-      name     = module.sonarr_anime.app_name
-      requires = module.sonarr_anime.requires
-    }
+    if contains(keys(v.requires), "download_client")
   }
 
   # Cartesian product of download client × arr.
