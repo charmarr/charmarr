@@ -128,6 +128,32 @@ locals {
     }
   }
 
+  # Fleet members that provide download-client (qBittorrent, SABnzbd).
+  download_clients = {
+    for k, v in local.fleet : k => {
+      name     = v.name
+      provides = v.provides
+    }
+    if contains(keys(v.provides), "download_client")
+  }
+
+  # Fleet members that require a download client (Radarr, Sonarr).
+  download_client_consumers = {
+    for k, v in local.fleet : k => {
+      name     = v.name
+      requires = v.requires
+    }
+    if contains(keys(v.requires), "download_client")
+  }
+
+  # Cartesian product of download client × arr.
+  download_client_pairs = merge([
+    for dc_k, dc_v in local.download_clients : {
+      for arr_k, arr_v in local.download_client_consumers :
+      "${dc_k}_${arr_k}" => { client = dc_v, consumer = arr_v }
+    }
+  ]...)
+
   # Cartesian product of arr × consumer for media-manager wiring.
   media_manager_pairs = merge([
     for arr_k, arr_v in local.media_providers : {
@@ -252,6 +278,25 @@ resource "juju_integration" "flaresolverr_prowlarr" {
   application {
     name     = module.prowlarr.app_name
     endpoint = module.prowlarr.requires.flaresolverr
+  }
+}
+
+# =============================================================================
+# Download Client Integrations
+# =============================================================================
+
+resource "juju_integration" "download_client" {
+  for_each   = local.download_client_pairs
+  model_uuid = local.model_uuid
+
+  application {
+    name     = each.value.client.name
+    endpoint = each.value.client.provides.download_client
+  }
+
+  application {
+    name     = each.value.consumer.name
+    endpoint = each.value.consumer.requires.download_client
   }
 }
 
