@@ -1,11 +1,6 @@
-data "juju_model" "model" {
-  name  = var.model
-  owner = var.owner
-}
-
 resource "juju_application" "charmarr_storage" {
   name       = var.app_name
-  model_uuid = data.juju_model.model.uuid
+  model_uuid = var.model_uuid
   trust      = true
 
   charm {
