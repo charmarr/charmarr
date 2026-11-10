@@ -22,15 +22,9 @@ variable "constraints" {
   default     = "arch=amd64"
 }
 
-variable "model" {
-  description = "Name of the model to deploy to"
+variable "model_uuid" {
+  description = "UUID of the model to deploy to"
   type        = string
-}
-
-variable "owner" {
-  description = "Owner of the Juju model"
-  type        = string
-  default     = "admin"
 }
 
 variable "revision" {

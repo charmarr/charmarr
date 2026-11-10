@@ -43,12 +43,6 @@ variable "model" {
   }
 }
 
-variable "owner" {
-  description = "Owner used when this module creates the model. Ignored when targeting an existing model by UUID, where the real owner is resolved from the model"
-  type        = string
-  default     = "admin"
-}
-
 variable "channel" {
   description = "Default channel for Charmarr charms"
   type        = string

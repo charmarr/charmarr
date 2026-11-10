@@ -3,14 +3,9 @@ output "app_name" {
   value       = juju_application.crowsnest.name
 }
 
-output "model" {
-  description = "Juju model name"
-  value       = data.juju_model.model.name
-}
-
 output "model_uuid" {
   description = "Juju model UUID"
-  value       = data.juju_model.model.uuid
+  value       = var.model_uuid
 }
 
 output "provides" {
