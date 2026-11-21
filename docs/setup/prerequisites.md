@@ -105,8 +105,6 @@ See the Juju docs for [add-k8s](https://documentation.ubuntu.com/juju/3.6/refere
 
 Charmarr fronts every web UI with [Traefik](https://charmhub.io/traefik-k8s). It runs on any conformant cluster and needs nothing beyond a LoadBalancer address, so there is nothing to install and nothing to decide here.
 
-If you want mutual TLS and zero-trust policies on internal traffic instead, Charmarr can run on Istio Ambient. That is a separate opt-in with its own prerequisites: see [Enabling Istio](../security/network.md#enabling-istio).
-
 ---
 
 ## Terraform

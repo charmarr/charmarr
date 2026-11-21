@@ -114,12 +114,6 @@ And you're done. Charmarr begins autonomously wiring up the apps for you.
 
     Public traffic stays anonymized always via Gluetun. And protected with a double layered kill switch. Meaning no leaks, ever.
 
--   :material-shield-lock: **Zero-trust ready**
-
-    ---
-
-    Enable Istio Ambient for mTLS and authz firewalls between services, auto-configured from charm relations. Enterprise security, one flag away.
-
 -   :material-radar: **o11y, out of the box**
 
     ---
@@ -158,7 +152,6 @@ And you're done. Charmarr begins autonomously wiring up the apps for you.
   <a href="https://www.linuxserver.io"><img src="assets/logos/linuxserver-io.png" alt="LinuxServer.io"></a>
   <a href="https://kubernetes.io"><img src="assets/logos/kubernetes.png" alt="Kubernetes"></a>
   <a href="https://juju.is"><img src="assets/logos/juju.png" alt="Juju"></a>
-  <a href="https://istio.io"><img src="assets/logos/istio.png" alt="Istio"></a>
   <a href="https://www.terraform.io"><img src="assets/logos/terraform.png" alt="Terraform"></a>
 </div>
 </div>

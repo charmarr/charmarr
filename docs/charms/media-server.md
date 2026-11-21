@@ -13,7 +13,7 @@ The charm talks to other charms to figure out how to set up Plex. The order in w
 | **Storage** | `media-storage` | Where the media root is (`/data`), UID/GID for file permissions |
 | **Radarr/Sonarr** | `media-manager` | Where each app hardlinks its media and what content type (movies, tv, anime, 4k, etc.) |
 | **Seerr** | `media-server` | Allows Seerr to talk to Plex |
-| **Ingress** | `ingress` or `istio_ingress_route` | Enables external access to Plex |
+| **Ingress** | `ingress` | Enables external access to Plex |
 
 From this information, the charm automatically creates Plex libraries that match your Radarr/Sonarr setup:
 
@@ -73,7 +73,7 @@ The charm talks to other charms to figure out how to set up Jellyfin. The order 
 | **Storage** | `media-storage` | Where the media root is (`/data`), UID/GID for file permissions |
 | **Radarr/Sonarr** | `media-manager` | Where each app hardlinks its media and what content type (movies, tv, anime, 4k, etc.) |
 | **Seerr** | `media-server` | Allows Seerr to talk to Jellyfin |
-| **Ingress** | `ingress` or `istio_ingress_route` | Enables external access to Jellyfin |
+| **Ingress** | `ingress` | Enables external access to Jellyfin |
 
 Libraries are created from the same mapping Plex uses:
 

@@ -19,6 +19,4 @@ jobs:
       use-parrot: false
       substrate: k8s
       substrate-channel: "1.32-classic/stable"
-      # Mesh coverage lives in the nightly workflows, not the PR path.
-      exclude-suites: '["test_istio_mesh.py"]'
     secrets: inherit

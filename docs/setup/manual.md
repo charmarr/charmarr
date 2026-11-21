@@ -333,8 +333,6 @@ Find the addresses:
 juju status arr-ingress
 ```
 
-To run on Istio instead, see [Enabling Istio](../security/network.md#enabling-istio).
-
 ---
 
 ## Managing Apps

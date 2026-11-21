@@ -5,66 +5,13 @@ on:
   schedule:
     - cron: '0 22 * * *'
 
-# charm-integration.yaml opens issues on soft failures, and a called workflow
-# cannot hold permissions the caller lacks.
 permissions:
   contents: read
-  issues: write
 
 jobs:
-  service-mesh-qbittorrent:
-    name: Service mesh / qbittorrent
-    uses: charmarr/.github/.github/workflows/charm-integration.yaml@v2
-    with:
-      charm-path: charms/qbittorrent-k8s
-      substrate: k8s
-      substrate-channel: "1.32-classic/stable"
-      configure-cni-for-istio: true
-      include-suites: '["test_mesh.py"]'
-      soft-fail: true
-    secrets: inherit
-
-  service-mesh-sabnzbd:
-    name: Service mesh / sabnzbd
-    uses: charmarr/.github/.github/workflows/charm-integration.yaml@v2
-    with:
-      charm-path: charms/sabnzbd-k8s
-      substrate: k8s
-      substrate-channel: "1.32-classic/stable"
-      configure-cni-for-istio: true
-      include-suites: '["test_mesh.py"]'
-      soft-fail: true
-    secrets: inherit
-
-  service-mesh-flaresolverr:
-    name: Service mesh / flaresolverr
-    uses: charmarr/.github/.github/workflows/charm-integration.yaml@v2
-    with:
-      charm-path: charms/flaresolverr-k8s
-      substrate: k8s
-      substrate-channel: "1.32-classic/stable"
-      configure-cni-for-istio: true
-      include-suites: '["test_mesh.py"]'
-      soft-fail: true
-    secrets: inherit
-
-  service-mesh-gluetun:
-    name: Service mesh / gluetun VPN egress
-    uses: charmarr/.github/.github/workflows/charm-integration.yaml@v2
-    with:
-      charm-path: charms/gluetun-k8s
-      substrate: k8s
-      substrate-channel: "1.32-classic/stable"
-      configure-cni-for-istio: true
-      include-suites: '["test_istio_mesh.py"]'
-      soft-fail: true
-    secrets: inherit
-
   integration:
     name: charmarr deployment
     runs-on: ubuntu-latest
-    # The Istio scenario now deploys the control plane itself and swaps every
-    # ingress app over from traefik, on top of the two preceding scenarios.
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v6
@@ -76,7 +23,6 @@ jobs:
           charmcraft: "false"
           substrate: k8s
           substrate-channel: "1.32-classic/stable"
-          configure-cni-for-istio: "true"
 
       - name: Install Terraform
         run: |

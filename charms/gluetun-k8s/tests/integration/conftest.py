@@ -27,7 +27,6 @@ from tests.integration.helpers import deploy_gluetun_charm, pack_gluetun_charm
 
 pytest_plugins = [
     "charmarr_lib.testing.steps.multimeter",
-    "charmarr_lib.testing.steps.mesh",
     "charmarr_lib.testing.steps.gluetun",
     "tests.integration.steps.common_steps",
     "tests.integration.steps.vpn_steps",

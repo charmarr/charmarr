@@ -16,8 +16,3 @@ def test_baseline_deployment() -> None:
 @scenario(FEATURE, "Deployment with VPN")
 def test_deployment_with_vpn() -> None:
     """Deployment with VPN enabled."""
-
-
-@scenario(FEATURE, "Deployment with VPN and Istio")
-def test_deployment_with_vpn_and_istio() -> None:
-    """Deployment with VPN and service mesh enabled."""

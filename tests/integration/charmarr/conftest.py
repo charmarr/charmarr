@@ -15,7 +15,6 @@ from charmarr_lib.testing import TFManager
 
 pytest_plugins = [
     "pytest_jubilant",
-    "charmarr_lib.testing.steps.mesh",
     "tests.integration.charmarr.steps.charmarr_steps",
 ]
 
@@ -42,10 +41,4 @@ def tf_env(juju: jubilant.Juju) -> dict:
     env["TF_VAR_model_uuid"] = juju.show_model().model_uuid
     if wg_key := os.environ.get("WIREGUARD_PRIVATE_KEY"):
         env["TF_VAR_wireguard_private_key"] = wg_key
-    # enable_istio makes the module probe the cluster for an ambient control
-    # plane, which needs credentials for the hashicorp/kubernetes provider.
-    if "KUBE_CONFIG_PATH" not in env:
-        kubeconfig = Path.home() / ".kube" / "config"
-        if kubeconfig.is_file():
-            env["KUBE_CONFIG_PATH"] = str(kubeconfig)
     return env

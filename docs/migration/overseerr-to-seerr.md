@@ -108,7 +108,7 @@ sha256sum ./export.tgz
     ```
 
     The bundle deploys `seerr-k8s` and creates all relations
-    (Radarr/Sonarr, Plex, ingress, service-mesh). Wait for the Seerr
+    (Radarr/Sonarr, Plex, ingress). Wait for the Seerr
     unit to reach `waiting: Complete setup in web UI` - that's the
     post-first-start state.
 
@@ -129,10 +129,6 @@ sha256sum ./export.tgz
     juju deploy traefik-k8s --trust --channel=latest/stable seerr-ingress
     juju integrate seerr:ingress seerr-ingress:ingress
     ```
-
-    On an Istio deployment, use `istio-ingress-k8s` and the
-    `istio-ingress-route` endpoint instead, and enroll Seerr in the mesh with
-    `juju integrate seerr:service-mesh beacon:service-mesh`.
 
     Wait for `juju status seerr` to show
     `waiting: Complete setup in web UI`. Don't complete the wizard.
@@ -268,7 +264,7 @@ few days as insurance.
 | Media servers | Plex only | Plex, Jellyfin, Emby |
 | API endpoints | `/api/v1/...` | `/api/v1/...` (compatible) |
 | Settings file | `settings.json` | `settings.json` (+ `settings.old.json` post-migration) |
-| Relations on the charm | `media-manager`, `media-server`, `istio-ingress-route`, … | same, plus generic `ingress` |
+| Relations on the charm | `media-manager`, `media-server`, ingress, … | same, plus generic `ingress` |
 | Juju app name | `overseerr` (convention) | `seerr` (convention) |
 
 The `/api/v1/` API is backwards-compatible - any external integrations

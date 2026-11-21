@@ -62,17 +62,6 @@ def deploy_with_vpn(tf_manager: TFManager, juju: jubilant.Juju, tf_env: dict) ->
     logger.info("Apps settled")
 
 
-@given("the charmarr module is deployed with VPN and Istio")
-def deploy_with_vpn_istio(tf_manager: TFManager, juju: jubilant.Juju, tf_env: dict) -> None:
-    """Swap traefik for istio-ingress and enable the mesh, on top of the VPN deployment."""
-    logger.info("Deploying charmarr with VPN and Istio...")
-    env = {**tf_env, "TF_VAR_enable_vpn": "true", "TF_VAR_enable_istio": "true"}
-    tf_manager.apply(env)
-    logger.info("Terraform apply complete, waiting for apps to settle...")
-    wait_for_settled(juju)
-    logger.info("Apps settled")
-
-
 @_retry_transient
 def _get_status(juju: jubilant.Juju) -> jubilant.Status:
     """Get juju status with retry on transient errors."""

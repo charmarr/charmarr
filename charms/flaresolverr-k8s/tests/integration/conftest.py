@@ -13,7 +13,6 @@ from tests.integration.helpers import deploy_flaresolverr_charm, pack_flaresolve
 
 pytest_plugins = [
     "charmarr_lib.testing.steps.multimeter",
-    "charmarr_lib.testing.steps.mesh",
     "tests.integration.steps.flaresolverr_steps",
 ]
 

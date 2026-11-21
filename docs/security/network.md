@@ -98,6 +98,9 @@ See [VPN Gateway](../charms/vpn-gateway.md) for how the `gluetun-k8s` charm work
 
 ## L4/L7: Service Mesh
 
+!!! warning "Not actively maintained"
+    Istio support is not actively maintained and is not covered by Charmarr's automated tests. It may break between releases. Use it at your own risk.
+
 East-west traffic (intra-cluster) flows through [Istio ambient mesh](https://istio.io/latest/docs/ambient/overview/). Unlike the VXLAN layer which anonymizes north-south traffic (external), the service mesh encrypts and authorizes internal pod-to-pod communication.
 
 Charmarr uses the [Charmed Istio](https://canonical-service-mesh-documentation.readthedocs-hosted.com/en/latest/) distribution (which I co-maintain for Canonical, shameless plug). The charmed service mesh automatically enrolls Charmarr pods into the mesh and configures authorization policies based on charm topology and policies defined in charm code.
@@ -106,19 +109,7 @@ Charmarr uses the [Charmed Istio](https://canonical-service-mesh-documentation.r
 
 Istio is off by default. Turning it on is one flag, but the control plane is yours to run: Charmarr deploys `istio-ingress-k8s` and `istio-beacon-k8s`, never `istio-k8s` itself.
 
-**1. Check your cluster can take it**
-
-- [x] No Istiod already running on the cluster (if you don't know, it's probably not)
-- [x] Not using K3s or k3d (read the warning below)
-- [x] Not using Cilium CNI (or willing to [configure it](https://istio.io/latest/docs/ambient/install/platform-prerequisites/#cilium))
-- [x] LoadBalancer has an address free for each ingress gateway
-
-Not all checked? Stay on Traefik. See [Istio platform prerequisites](https://istio.io/latest/docs/ambient/install/platform-prerequisites/) for details.
-
-!!! warning
-    K3s and k3d use non-standard CNI paths that can conflict with Istio Ambient. Adding Istio may disrupt the CNI chain and cause hard-to-debug networking issues. It can work with careful configuration: [K3s docs](https://istio.io/latest/docs/ambient/install/platform-prerequisites/#k3s), [k3d docs](https://istio.io/latest/docs/ambient/install/platform-prerequisites/#k3d). So if you want to use it with Istio Ambient, do it at your own discretion.
-
-**2. Deploy the control plane**
+**1. Deploy the control plane**
 
 ```bash
 juju add-model istio-system
@@ -128,7 +119,7 @@ juju deploy istio-k8s --channel=dev/edge --trust
 !!! note "Pick your channel"
     `dev/edge` tracks the in-development release. Check [canonical/service-mesh](https://github.com/canonical/service-mesh) for the current stable track and use that instead if one suits you better.
 
-**3. Switch Charmarr over**
+**2. Switch Charmarr over**
 
 With Terraform, set the flag:
 

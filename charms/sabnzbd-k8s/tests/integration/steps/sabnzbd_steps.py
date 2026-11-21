@@ -6,7 +6,7 @@
 import jubilant
 from pytest_bdd import given, then, when
 
-from charmarr_lib.testing import get_ingress_ip, http_request
+from charmarr_lib.testing import http_request
 from tests.integration.helpers import ApiKey
 
 
@@ -43,18 +43,4 @@ def api_responds(juju: jubilant.Juju, api_key: ApiKey) -> None:
     url = f"http://sabnzbd:8080/api?mode=version&output=json&apikey={api_key.api_key}"
     response = http_request(juju, url)
     assert response.status_code == 200, f"API failed: {response.status_code} - {response.body}"
-    assert "version" in response.body, f"Expected version in response: {response.body}"
-
-
-@then("the sabnzbd API should be accessible via ingress")
-def api_accessible_via_ingress(juju: jubilant.Juju, api_key: ApiKey) -> None:
-    """Assert API is accessible via istio-ingress."""
-    ingress_ip = get_ingress_ip(juju, "istio-ingress")
-    assert ingress_ip, "Could not get istio-ingress IP"
-
-    url = f"http://{ingress_ip}:80/sabnzbd/api?mode=version&output=json&apikey={api_key.api_key}"
-    response = http_request(juju, url)
-    assert response.status_code == 200, (
-        f"API via ingress failed: {response.status_code} - {response.body}"
-    )
     assert "version" in response.body, f"Expected version in response: {response.body}"

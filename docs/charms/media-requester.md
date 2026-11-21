@@ -12,7 +12,7 @@ The charm talks to other charms to figure out how to set up Seerr. The order in 
 |-------------|-----------|----------------|
 | **Radarr/Sonarr** | `media-manager` | API URL, quality profiles, root folders. Configures them automatically in Seerr. |
 | **Plex/Jellyfin** | `media-server` | Which server it is, its URL, and for Jellyfin the administrator credentials. Allows Seerr to talk to the media server. |
-| **Ingress** | `ingress` or `istio_ingress_route` | Enables external access to Seerr |
+| **Ingress** | `ingress` | Enables external access to Seerr |
 
 The charm aggressively reconciles Radarr/Sonarr servers. If you manually add a server in Seerr that isn't a Juju relation, it gets deleted. Charms are declarative and Charmarr is designed to ✨just work✨.
 

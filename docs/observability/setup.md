@@ -101,7 +101,7 @@ That is the entire observability configuration. `terraform apply` brings up the 
 Leave `cos = null` (the default) and nothing observability-related is deployed.
 
 !!! tip "Why ingress and not cross-model mesh"
-    Grafana lives in the COS model and needs to reach crowsnest to render the fleet's relation graph. Wiring crowsnest into arr-ingress publishes a stable external URL that COS uses directly. No cross-model mesh policies, no mesh trust shenanigans, and it works the same whether or not Istio is enabled.
+    Grafana lives in the COS model and needs to reach crowsnest to render the fleet's relation graph. Wiring crowsnest into arr-ingress publishes a stable external URL that COS uses directly. No cross-model policies and no trust setup are needed.
 
 ## With the Juju CLI
 

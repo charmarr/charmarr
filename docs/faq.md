@@ -3,7 +3,7 @@
 ## Setup
 
 ??? question "What Kubernetes distros are supported?"
-    Any conformant distro with a LoadBalancer and a default StorageClass. Canonical K8s is recommended. See the [shopping list](setup/prerequisites.md#manual-setup) in prerequisites. Istio Ambient narrows this further: see [Enabling Istio](security/network.md#enabling-istio).
+    Any conformant distro with a LoadBalancer and a default StorageClass. Canonical K8s is recommended. See the [shopping list](setup/prerequisites.md#manual-setup) in prerequisites.
 
 ??? question "What are the hardware requirements?"
     Charmarr has more overhead than a simple Docker Compose setup. Kubernetes and Juju add resource consumption. As someone smart once said, there's no free lunch. Charmarr's benefits come with a price to pay.
@@ -64,13 +64,6 @@
 
     See [Quick Deploy - VPN](setup/quickdeploy.md#vpn) and [Manual Deploy - VPN Gateway](setup/manual.md#vpn-gateway) for configuration examples.
 
-??? question "Do I need the service mesh?"
-    Probably not. It's enterprise-level network hardening made as simple as it can get for homelab use. Do I need it? Most likely not. But homelab is not a place where one does things one needs, it's a place where one does things one wants and can. Does Charmarr make service mesh accessible to any homelab user? Absolutely.
-
-    Istio is disabled by default and Charmarr ships with Traefik instead. Turning it on is a single `enable_istio = true`, but the cluster has to be able to take it: see [Enabling Istio](security/network.md#enabling-istio). Charmarr works fine without it at homelab level.
-
-    Why include it? Partly to dogfood my own project from work, but also to expose it to a wider audience who are curious enough to try it. See [Networking](security/network.md) for what it does.
-
 ??? question "What happens if my VPN connection drops?"
     A two-way killswitch protects you. If the VPN drops, Gluetun's internal firewall blocks traffic. If the Gluetun pod dies, Kubernetes NetworkPolicies block traffic. Your real IP is never exposed. See [Networking](security/network.md) for details.
 
@@ -86,8 +79,7 @@
     - Plex: `http://<PLEX_INGRESS_IP>`
     - Seerr: `http://<SEERR_INGRESS_IP>`
 
-    Traefik owns those prefixes, so they change with your model and application names. Under Istio the prefix and port are yours instead, via the `ingress-path` and `ingress-port` config.
-
+    Traefik owns those prefixes, so they change with your model and application names.
     See [Post-Deploy](setup/post-deploy.md) for details on finding ingress IPs.
 
 ??? question "Can I add more Radarr/Sonarr instances?"

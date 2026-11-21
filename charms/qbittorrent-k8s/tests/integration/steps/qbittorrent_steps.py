@@ -6,7 +6,7 @@
 import jubilant
 from pytest_bdd import given, then, when
 
-from charmarr_lib.testing import get_ingress_ip, http_request
+from charmarr_lib.testing import http_request
 from tests.integration.helpers import Credentials
 
 
@@ -67,36 +67,6 @@ def webui_authenticates(juju: jubilant.Juju, credentials: Credentials) -> None:
     version_response = http_request(
         juju, version_url, headers={"Cookie": f"{session[0]}={session[1]}"}
     )
-    assert version_response.status_code == 200, (
-        f"Expected 200, got {version_response.status_code}: {version_response.body}"
-    )
-
-
-@then("the qbittorrent WebUI should be accessible via ingress")
-def webui_accessible_via_ingress(juju: jubilant.Juju, credentials: Credentials) -> None:
-    """Assert WebUI is accessible via istio-ingress."""
-    ingress_ip = get_ingress_ip(juju, "istio-ingress")
-    assert ingress_ip, "Could not get istio-ingress IP"
-
-    base_url = f"http://{ingress_ip}:80/qbittorrent"
-    login_url = f"{base_url}/api/v2/auth/login"
-    login_body = f"username={credentials.username}&password={credentials.password}"
-    login_response = http_request(
-        juju,
-        login_url,
-        method="POST",
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-        body=login_body,
-    )
-    assert login_response.status_code == 200, (
-        f"Login via ingress failed: {login_response.status_code} - {login_response.body}"
-    )
-
-    sid = login_response.cookies.get("SID")
-    assert sid, f"No SID cookie in ingress response: {login_response.cookies}"
-
-    version_url = f"{base_url}/api/v2/app/version"
-    version_response = http_request(juju, version_url, headers={"Cookie": f"SID={sid}"})
     assert version_response.status_code == 200, (
         f"Expected 200, got {version_response.status_code}: {version_response.body}"
     )

@@ -13,11 +13,6 @@ variable "enable_vpn" {
   default = false
 }
 
-variable "enable_istio" {
-  type    = bool
-  default = false
-}
-
 module "charmarr" {
   source = "git::https://github.com/charmarr/charmarr//terraform/charmarr?ref=main"
 
@@ -33,8 +28,6 @@ module "charmarr" {
   wireguard_private_key = var.wireguard_private_key
   vpn_provider          = "protonvpn"
   cluster_cidrs         = "10.1.0.0/16,10.152.183.0/24,10.0.0.0/8"
-
-  enable_istio = var.enable_istio
 
   # Jellyfin bootstraps itself and Seerr off it, so the whole stack reaches
   # active. Plex would sit in waiting forever pending a manual claim token.
