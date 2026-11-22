@@ -4,12 +4,18 @@
 """Unit tests for ProwlarrCharm reconciliation."""
 
 import json
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from ops.testing import Container, Exec, Mount, Relation, Secret, State
 
-from _prowlarr import IndexerProxyResponse, IndexerProxyType, TagResponse
-from charmarr_lib.core import ArrApiResponseError
+from _prowlarr import (
+    INDEXER_SYNC_PENDING_FILE,
+    IndexerProxyResponse,
+    IndexerProxyType,
+    TagResponse,
+)
+from charmarr_lib.core import ArrApiError, ArrApiResponseError
 from charmarr_lib.core.interfaces import FlareSolverrProviderData
 from charmarr_lib.vpn.interfaces import VPNGatewayProviderData
 
@@ -315,6 +321,93 @@ def test_secret_rotate_updates_config(ctx, mock_k8s, tmp_path):
     assert rotated_secret.tracked_content["api-key"] == new_key
 
 
+def _indexer_resync_state(tmp_path, *, pending: bool = True):
+    """Build a state, optionally with a pending forced-indexer-resync marker."""
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    (config_dir / "config.xml").write_text(f"<Config><ApiKey>{TEST_API_KEY}</ApiKey></Config>")
+    if pending:
+        (config_dir / Path(INDEXER_SYNC_PENDING_FILE).name).write_text("")
+
+    container = Container(
+        name="prowlarr",
+        can_connect=True,
+        mounts={"config": Mount(location="/config", source=config_dir)},
+        execs={CHOWN_EXEC},
+    )
+    secret = Secret(label="api-key", tracked_content={"api-key": TEST_API_KEY}, owner="app")
+    state = State(leader=True, containers=[container, SCRAPARR_CONTAINER], secrets=[secret])
+    return config_dir, state
+
+
+def _pending_marker(config_dir):
+    return config_dir / Path(INDEXER_SYNC_PENDING_FILE).name
+
+
+def test_secret_rotate_requests_indexer_resync(ctx, mock_k8s, tmp_path):
+    """A rotation marks a forced indexer resync so the new key reaches the apps."""
+    config_dir, state = _indexer_resync_state(tmp_path, pending=False)
+
+    with (
+        patch("charm.generate_api_key", return_value="newkey99887766554433221100aabbcc"),
+        patch("charm.ensure_pebble_user"),
+        patch("charm.reconcile_gateway_client"),
+    ):
+        ctx.run(ctx.on.secret_rotate(next(iter(state.secrets))), state)
+
+    assert _pending_marker(config_dir).exists()
+
+
+def test_reconcile_forces_resync_for_pending_request(ctx, mock_k8s, tmp_path):
+    """A reconcile with a ready workload forces the re-push and clears the marker."""
+    config_dir, state = _indexer_resync_state(tmp_path)
+    mock_api = _mock_flaresolverr_api()
+
+    with (
+        patch("charm.ProwlarrCharm._is_workload_ready", return_value=True),
+        patch("charm.ProwlarrCharm._get_api_client", return_value=mock_api),
+        patch("charm.ensure_pebble_user"),
+        patch("charm.reconcile_gateway_client"),
+    ):
+        ctx.run(ctx.on.config_changed(), state)
+
+    mock_api.sync_application_indexers.assert_called_once_with(force=True)
+    assert not _pending_marker(config_dir).exists()
+
+
+def test_reconcile_keeps_pending_resync_until_workload_ready(ctx, mock_k8s, tmp_path):
+    """The marker survives until the restarted workload can answer API calls."""
+    config_dir, state = _indexer_resync_state(tmp_path)
+
+    with (
+        patch("charm.ProwlarrCharm._is_workload_ready", return_value=False),
+        patch("charm.ProwlarrCharm._force_indexer_resync") as mock_force,
+        patch("charm.ensure_pebble_user"),
+        patch("charm.reconcile_gateway_client"),
+    ):
+        ctx.run(ctx.on.config_changed(), state)
+
+    mock_force.assert_not_called()
+    assert _pending_marker(config_dir).exists()
+
+
+def test_reconcile_keeps_pending_resync_on_api_error(ctx, mock_k8s, tmp_path):
+    """A failed forced resync is retried on the next reconcile."""
+    config_dir, state = _indexer_resync_state(tmp_path)
+    mock_api = _mock_flaresolverr_api()
+    mock_api.sync_application_indexers.side_effect = ArrApiError("boom")
+
+    with (
+        patch("charm.ProwlarrCharm._is_workload_ready", return_value=True),
+        patch("charm.ProwlarrCharm._get_api_client", return_value=mock_api),
+        patch("charm.ensure_pebble_user"),
+        patch("charm.reconcile_gateway_client"),
+    ):
+        ctx.run(ctx.on.config_changed(), state)
+
+    assert _pending_marker(config_dir).exists()
+
+
 def _flaresolverr_test_state(tmp_path):
     """Build common state for FlareSolverr tests."""
     config_dir = tmp_path / "config"
@@ -341,6 +434,15 @@ def _flaresolverr_test_state(tmp_path):
         secrets=[secret],
         relations=[relation],
     )
+
+
+def _mock_flaresolverr_api():
+    """Create a mock API client with no FlareSolverr proxy configured."""
+    mock_api = MagicMock()
+    mock_api.get_indexer_proxies.return_value = []
+    mock_api.__enter__ = MagicMock(return_value=mock_api)
+    mock_api.__exit__ = MagicMock(return_value=False)
+    return mock_api
 
 
 def _mock_api_with_proxy():

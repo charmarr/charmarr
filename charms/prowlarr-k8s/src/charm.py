@@ -5,6 +5,7 @@
 """Prowlarr Charm."""
 
 import logging
+import time
 from urllib.parse import urlparse
 
 import ops
@@ -38,6 +39,7 @@ from _prowlarr import (
     CONTAINER_NAME,
     DEFAULT_PGID,
     DEFAULT_PUID,
+    INDEXER_SYNC_PENDING_FILE,
     METRICS_CONTAINER_NAME,
     METRICS_PATH,
     METRICS_PORT,
@@ -53,6 +55,7 @@ from _prowlarr import (
     ProwlarrApiClient,
 )
 from charmarr_lib.core import (
+    ArrApiError,
     ArrApiResponseError,
     CharmarrTopology,
     CharmarrTopologyRelation,
@@ -62,6 +65,7 @@ from charmarr_lib.core import (
     generate_api_key,
     get_secret_rotation_policy,
     observe_events,
+    read_api_key,
     reconcilable_events_k8s,
     reconcile_config_xml,
     reconcile_media_manager_connections,
@@ -217,6 +221,8 @@ class ProwlarrCharm(ops.CharmBase):
         if self._container.exists(CONFIG_FILE):
             content = self._container.pull(CONFIG_FILE).read()
 
+        previous_api_key = read_api_key(content) if content else None
+
         updated = reconcile_config_xml(
             content,
             api_key=api_key,
@@ -228,6 +234,11 @@ class ProwlarrCharm(ops.CharmBase):
         if content != updated:
             self._container.push(CONFIG_FILE, updated, make_dirs=True)
             logger.info("Reconciled config.xml")
+
+        if previous_api_key is not None and previous_api_key != api_key:
+            # Prowlarr's own key changed. The proxied indexers it pushed into the
+            # apps still carry the old key, so schedule a forced re-push.
+            self._request_indexer_resync()
 
     def _is_service_running(self) -> bool:
         services = self._container.get_services(SERVICE_NAME)
@@ -320,6 +331,57 @@ class ProwlarrCharm(ops.CharmBase):
                 indexer_url=self._internal_url,
                 get_secret=self._get_secret_content,
             )
+
+    def _request_indexer_resync(self) -> None:
+        """Flag that Prowlarr must re-push its proxied indexers to the apps.
+
+        Prowlarr stores its own API key inside every proxied indexer it pushed
+        into Radarr/Sonarr, so a key change is only propagated by a forced
+        ``ApplicationIndexerSync``. That sync has to wait for the workload
+        restart the rotation triggers, so the request is persisted on the config
+        volume and consumed by the next reconcile.
+        """
+        if self._container.can_connect():
+            self._container.push(INDEXER_SYNC_PENDING_FILE, "", make_dirs=True)
+            logger.info("Requested forced indexer resync after API key change")
+
+    def _clear_indexer_resync(self) -> None:
+        if self._container.exists(INDEXER_SYNC_PENDING_FILE):
+            self._container.remove_path(INDEXER_SYNC_PENDING_FILE)
+
+    def _force_indexer_resync(self, api_key: str) -> None:
+        """Force Prowlarr to re-push its proxied indexers to connected apps."""
+        with self._get_api_client(api_key) as api:
+            api.sync_application_indexers(force=True)
+
+    def _reconcile_pending_indexer_resync(self, api_key: str) -> None:
+        """Run a pending forced indexer resync once the workload is reachable."""
+        if not self._container.can_connect():
+            return
+        if not self._container.exists(INDEXER_SYNC_PENDING_FILE):
+            return
+        if not self._is_workload_ready(api_key):
+            return
+
+        try:
+            self._force_indexer_resync(api_key)
+        except ArrApiError as e:
+            logger.warning("Forced indexer resync failed, will retry: %s", e)
+            return
+
+        self._clear_indexer_resync()
+        logger.info("Re-pushed proxied indexers to connected applications")
+
+    def _wait_for_workload_ready(
+        self, api_key: str, *, attempts: int = 12, interval: int = 5
+    ) -> bool:
+        """Poll the restarted workload until it answers API calls (bounded)."""
+        for attempt in range(attempts):
+            if self._is_workload_ready(api_key):
+                return True
+            if attempt < attempts - 1:
+                time.sleep(interval)
+        return False
 
     def _configure_flaresolverr_proxy(self, api: ProwlarrApiClient, url: str, tag_id: int) -> None:
         """Configure FlareSolverr proxy in Prowlarr."""
@@ -478,6 +540,9 @@ class ProwlarrCharm(ops.CharmBase):
         if self._is_service_running():
             self._container.stop(SERVICE_NAME)
 
+        # _reconcile_config schedules the forced indexer re-push needed to get
+        # the new key into the apps; the marker is consumed by a later reconcile
+        # once the restart below brings the workload back.
         self._reconcile_config(new_api_key)
         self._container.replan()
         self._reconcile_scraparr(new_api_key)
@@ -606,6 +671,7 @@ class ProwlarrCharm(ops.CharmBase):
         if self._is_workload_ready(api_key):
             self._reconcile_flaresolverr(api_key)
             self._reconcile_media_managers(api_key, secret_id)
+            self._reconcile_pending_indexer_resync(api_key)
 
     def _on_collect_unit_status(self, event: ops.CollectStatusEvent) -> None:
         """Collect all unit statuses. Framework picks the worst."""
@@ -670,6 +736,8 @@ class ProwlarrCharm(ops.CharmBase):
             return
 
         new_api_key = generate_api_key()
+        # _reconcile_config schedules the forced indexer re-push so the new key
+        # reaches the apps even if the workload is slow to come back below.
         self._reconcile_config(new_api_key)
 
         try:
@@ -686,6 +754,14 @@ class ProwlarrCharm(ops.CharmBase):
 
         self._reconcile_scraparr(new_api_key)
 
+        if self._wait_for_workload_ready(new_api_key):
+            try:
+                self._force_indexer_resync(new_api_key)
+                self._clear_indexer_resync()
+                logger.info("Re-pushed proxied indexers after API key rotation")
+            except ArrApiError as e:
+                logger.warning("Forced indexer resync failed, will retry: %s", e)
+
         event.set_results({"result": "API key rotated successfully"})
 
     def _on_sync_indexers_action(self, event: ops.ActionEvent) -> None:
@@ -701,6 +777,16 @@ class ProwlarrCharm(ops.CharmBase):
 
         api_key, secret_id = secret_data
         self._reconcile_media_managers(api_key, secret_id)
+
+        # Force the sync so a rotated/stale Prowlarr key actually reaches the
+        # applications; a non-forced sync no-ops while the mappings still exist.
+        try:
+            self._force_indexer_resync(api_key)
+        except ArrApiError as e:
+            event.fail(f"Indexer sync failed: {e}")
+            return
+
+        self._clear_indexer_resync()
         event.set_results({"result": "Indexer sync triggered"})
 
 

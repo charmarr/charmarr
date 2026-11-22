@@ -18,6 +18,7 @@ from _prowlarr._constants import (
     CONTAINER_NAME,
     DEFAULT_PGID,
     DEFAULT_PUID,
+    INDEXER_SYNC_PENDING_FILE,
     SERVICE_NAME,
     WEBUI_PORT,
 )
@@ -38,6 +39,7 @@ __all__ = [
     "CONTAINER_NAME",
     "DEFAULT_PGID",
     "DEFAULT_PUID",
+    "INDEXER_SYNC_PENDING_FILE",
     "METRICS_CONTAINER_NAME",
     "METRICS_PATH",
     "METRICS_PORT",
