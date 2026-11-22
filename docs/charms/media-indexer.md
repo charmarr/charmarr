@@ -23,7 +23,9 @@ An API key is generated automatically and stored as a Juju secret. It [rotates p
 
 ### How It Works
 
-Prowlarr's job is to register your arr apps as "Applications". Once registered, Prowlarr automatically syncs all your indexers to them. The charm doesn't trigger sync operations. It just registers apps and sets `syncLevel: fullSync`, letting Prowlarr handle the rest.
+Prowlarr's job is to register your arr apps as "Applications". Once registered, Prowlarr automatically syncs all your indexers to them. The charm registers apps and sets `syncLevel: fullSync`, letting Prowlarr handle the rest.
+
+Prowlarr pushes its own API key inside every proxied indexer it hands to the apps. When that key rotates, the apps would keep authenticating with the old key, so the charm forces a full indexer re-push once the workload is back up. The `sync-indexers` action triggers the same forced re-push on demand (useful after adding indexers in the UI).
 
 Users add indexers via the Prowlarr UI. The charm handles everything else.
 

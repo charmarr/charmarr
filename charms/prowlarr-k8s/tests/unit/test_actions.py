@@ -9,6 +9,8 @@ import ops
 import pytest
 from ops.testing import ActionFailed, Container, Mount, State
 
+from charmarr_lib.core import ArrApiError
+
 from .conftest import PROWLARR_CONTAINER, SCRAPARR_CONTAINER
 
 CONFIG_XML = """<?xml version="1.0" encoding="utf-8"?>
@@ -81,6 +83,7 @@ def test_sync_indexers_action(ctx, mock_k8s, tmp_path):
         patch("charm.ensure_pebble_user"),
         patch("charm.reconcile_gateway_client"),
         patch("charm.ProwlarrCharm._reconcile_media_managers") as mock_reconcile,
+        patch("charm.ProwlarrCharm._force_indexer_resync") as mock_force_sync,
         patch(
             "charm.ProwlarrCharm._get_api_key_secret",
             return_value=("testkey123456789012345678901234", "secret:123"),
@@ -91,6 +94,8 @@ def test_sync_indexers_action(ctx, mock_k8s, tmp_path):
             State(leader=True, containers=[container, SCRAPARR_CONTAINER]),
         )
         mock_reconcile.assert_called_once_with("testkey123456789012345678901234", "secret:123")
+        # A rotated key only propagates through a forced re-push.
+        mock_force_sync.assert_called_once_with("testkey123456789012345678901234")
 
 
 def test_sync_indexers_action_not_leader(ctx, mock_k8s):
@@ -194,3 +199,67 @@ def test_rotate_api_key_restarts_running_service(ctx, mock_k8s, tmp_path):
 
     updated_content = config_file.read_text()
     assert "newkey__123456789012345678901234" in updated_content
+
+
+def test_rotate_api_key_action_re_pushes_indexers(ctx, mock_k8s, tmp_path):
+    """rotate-api-key forces an indexer re-push so apps pick up the new key."""
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    (config_dir / "config.xml").write_text(CONFIG_XML)
+
+    container = Container(
+        name="prowlarr",
+        can_connect=True,
+        mounts={"config": Mount(location="/config", source=config_dir)},
+    )
+    secret = ops.testing.Secret(
+        tracked_content={"api-key": "testkey123456789012345678901234"},
+        label="api-key",
+    )
+    new_key = "newkey__123456789012345678901234"
+
+    with (
+        patch("charm.ProwlarrCharm._is_workload_ready", return_value=True),
+        patch("charm.ProwlarrCharm._is_service_running", return_value=False),
+        patch("charm.ProwlarrCharm._force_indexer_resync") as mock_force_sync,
+        patch("charm.ensure_pebble_user"),
+        patch("charm.reconcile_gateway_client"),
+        patch("charm.generate_api_key", return_value=new_key),
+    ):
+        ctx.run(
+            ctx.on.action("rotate-api-key"),
+            State(leader=True, containers=[container, SCRAPARR_CONTAINER], secrets=[secret]),
+        )
+
+    mock_force_sync.assert_called_once_with(new_key)
+
+
+def test_sync_indexers_action_fails_when_force_sync_errors(ctx, mock_k8s, tmp_path):
+    """A failed forced re-push is reported back to the operator."""
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    (config_dir / "config.xml").write_text(CONFIG_XML)
+
+    container = Container(
+        name="prowlarr",
+        can_connect=True,
+        mounts={"config": Mount(location="/config", source=config_dir)},
+    )
+
+    with (
+        patch("charm.ProwlarrCharm._reconcile_media_managers"),
+        patch("charm.ProwlarrCharm._force_indexer_resync", side_effect=ArrApiError("boom")),
+        patch("charm.ensure_pebble_user"),
+        patch("charm.reconcile_gateway_client"),
+        patch(
+            "charm.ProwlarrCharm._get_api_key_secret",
+            return_value=("testkey123456789012345678901234", "secret:123"),
+        ),
+        pytest.raises(ActionFailed) as exc_info,
+    ):
+        ctx.run(
+            ctx.on.action("sync-indexers"),
+            State(leader=True, containers=[container, SCRAPARR_CONTAINER]),
+        )
+
+    assert "Indexer sync failed" in str(exc_info.value)

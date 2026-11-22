@@ -138,6 +138,19 @@ class ProwlarrApiClient(BaseArrApiClient):
         """Get all configured indexers."""
         return self._get_validated_list("/indexer", IndexerResponse)
 
+    # Commands
+
+    def sync_application_indexers(self, *, force: bool = True) -> None:
+        """Trigger a full re-push of proxied indexers to connected applications.
+
+        Prowlarr pushes its own API key inside every proxied indexer it adds to
+        Radarr/Sonarr, so a rotated Prowlarr key only reaches those apps when the
+        indexers are re-pushed. A plain ``ApplicationIndexerSync`` no-ops while
+        Prowlarr still has ``ApplicationIndexerMapping`` rows for the
+        applications, hence the forced sync.
+        """
+        self._post("/command", {"name": "ApplicationIndexerSync", "forceSync": force})
+
     # Host Config (typed response, raw methods are in BaseArrApiClient)
 
     def get_host_config(self) -> ProwlarrHostConfigResponse:
